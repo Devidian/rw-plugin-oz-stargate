@@ -1,0 +1,319 @@
+name: Build and Release
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_dry_run:
+        description: "Build release assets without publishing"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: "20"
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Require changelog fragments for runtime changes
+        if: github.event_name == 'pull_request'
+        env:
+          CHANGELOG_BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: ./scripts/verify-changelog-fragments.sh
+
+      - name: Verify entry-point architecture
+        run: ./scripts/verify-entrypoint-architecture.sh
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          cache: maven
+
+      - name: Configure Maven settings.xml
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <servers>
+              <server><id>github</id><username>${GITHUB_ACTOR}</username><password>${GITHUB_TOKEN}</password></server>
+              <server><id>github-oz-tools</id><username>${GITHUB_ACTOR}</username><password>${GITHUB_TOKEN}</password></server>
+              <server><id>github-oz-globalintercom</id><username>${GITHUB_ACTOR}</username><password>${GITHUB_TOKEN}</password></server>
+              <server><id>github-oz-global-intercom</id><username>${GITHUB_ACTOR}</username><password>${GITHUB_TOKEN}</password></server>
+              <server><id>github-oz-discord-connect</id><username>${GITHUB_ACTOR}</username><password>${GITHUB_TOKEN}</password></server>
+            </servers>
+          </settings>
+          EOF
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+
+      - name: Install PluginAPI locally
+        run: |
+          mvn -B install:install-file \
+            -Dfile=libs/PluginAPI.jar \
+            -DgroupId=net.risingworld \
+            -DartifactId=PluginAPI \
+            -Dversion=0.9.3.2 \
+            -Dpackaging=jar
+
+      - name: Checkout OZ Tools dependency
+        uses: actions/checkout@v6
+        with:
+          repository: Devidian/rw-plugin-oz-tools
+          ref: v0.26.2
+          path: .ci/rw-plugin-oz-tools
+
+      - name: Install OZ Tools locally
+        working-directory: .ci/rw-plugin-oz-tools
+        run: mvn -B -DskipTests install
+
+      - name: Check API helper
+        run: ./scripts/verify-plugin-api.sh --summary
+
+      - name: Verify repository docs exist
+        run: |
+          test -f AGENTS.md
+          test -f PLANS.md
+          test -f README.md
+          test -f HISTORY.md
+          test -f RUNTIME_TESTING.md
+
+      - name: Compile package
+        run: mvn -B -DskipTests package
+
+      - name: Run tests
+        run: mvn -B test
+
+      - name: Verify packaged artifacts
+        run: |
+          ls target/*.jar
+          ls dist/*.zip
+          test -f src/resources/plugin.yml
+
+  build:
+    name: Build release artifacts
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name != 'pull_request'
+
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - id: meta
+        name: Detect version
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF##*/}"
+            VERSION="${VERSION#v}"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=SNAPSHOT" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          cache: maven
+
+      - name: Configure Maven settings.xml
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <servers>
+              <server><id>github</id><username>${GITHUB_ACTOR}</username><password>${GITHUB_TOKEN}</password></server>
+              <server><id>github-oz-tools</id><username>${GITHUB_ACTOR}</username><password>${GITHUB_TOKEN}</password></server>
+              <server><id>github-oz-globalintercom</id><username>${GITHUB_ACTOR}</username><password>${GITHUB_TOKEN}</password></server>
+              <server><id>github-oz-global-intercom</id><username>${GITHUB_ACTOR}</username><password>${GITHUB_TOKEN}</password></server>
+              <server><id>github-oz-discord-connect</id><username>${GITHUB_ACTOR}</username><password>${GITHUB_TOKEN}</password></server>
+            </servers>
+          </settings>
+          EOF
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+
+      - name: Install PluginAPI locally
+        run: |
+          mvn -B install:install-file \
+            -Dfile=libs/PluginAPI.jar \
+            -DgroupId=net.risingworld \
+            -DartifactId=PluginAPI \
+            -Dversion=0.9.3.2 \
+            -Dpackaging=jar
+
+      - name: Checkout OZ Tools dependency
+        uses: actions/checkout@v6
+        with:
+          repository: Devidian/rw-plugin-oz-tools
+          ref: v0.26.2
+          path: .ci/rw-plugin-oz-tools
+
+      - name: Install OZ Tools locally
+        working-directory: .ci/rw-plugin-oz-tools
+        run: mvn -B -DskipTests install
+
+      - name: Verify tag, POM, and plugin.yml versions match
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          POM_VERSION="$(grep -m1 '<version>' pom.xml | sed -E 's/.*<version>([^<]+)<\/version>.*/\1/')"
+          PLUGIN_VERSION="$(sed -n 's/^version: //p' src/resources/plugin.yml)"
+
+          test "${TAG_VERSION}" = "${POM_VERSION}"
+          test "${TAG_VERSION}" = "${PLUGIN_VERSION}"
+
+      - name: Require curated changelog
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          ! find changelog/unreleased -type f -name '*.md' -print -quit | grep -q .
+
+      - name: Verify mandatory release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: test -s "release-notes/${GITHUB_REF_NAME#v}.md"
+
+      - name: Show configured version
+        run: |
+          echo "POM version lines:"
+          grep -n "<version>" pom.xml | head -n 5
+          echo
+          echo "plugin.yml version:"
+          grep -n "^version:" src/resources/plugin.yml
+
+      - name: Build with Maven
+        run: mvn -B -DskipTests package
+
+      - name: Verify release assets
+        run: |
+          ls target/*.jar
+          ls dist/*.zip
+          test -f pom.xml
+          test -f src/resources/plugin.yml
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-output
+          path: |
+            target/*.jar
+            dist/*.zip
+            pom.xml
+            src/resources/plugin.yml
+            libs/PluginAPI.jar
+            src/assembly/*.xml
+
+  release_dry_run:
+    name: Release dry run
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.release_dry_run
+
+    steps:
+      - name: Checkout release notes
+        uses: actions/checkout@v6
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: build-output
+
+      - name: Show release payload
+        run: |
+          echo "Dry-run artifact listing:"
+          find . -maxdepth 3 -type f | sort
+
+  release:
+    name: Publish GitHub Packages and Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout release notes
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: release-notes
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: build-output
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          server-id: github
+          settings-path: ${{ github.workspace }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate settings.xml for Maven deploy
+        run: |
+          cat > "${{ github.workspace }}/settings.xml" <<EOF
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <servers>
+              <server><id>github</id><username>${GITHUB_ACTOR}</username><password>${GITHUB_TOKEN}</password></server>
+            </servers>
+          </settings>
+          EOF
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+
+      - name: Publish to GitHub Packages
+        run: |
+          JAR_FILE="$(ls target/*.jar | head -n 1)"
+          mvn -B deploy:deploy-file \
+            --settings "${{ github.workspace }}/settings.xml" \
+            -Dfile="$JAR_FILE" \
+            -DpomFile=pom.xml \
+            -DrepositoryId=github \
+            -Durl="https://maven.pkg.github.com/${{ github.repository }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: "${{ github.event.repository.name }} ${{ needs.build.outputs.version }}"
+          tag_name: "${{ github.ref_name }}"
+          body_path: "release-notes/${{ needs.build.outputs.version }}.md"
+          files: |
+            dist/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

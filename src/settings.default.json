@@ -1,0 +1,6 @@
+{
+  "enableWelcomeMessage": false,
+  "relay": { "url": "wss://sgn.omega-zirkel.de/ws", "advertisedHost": "" },
+  "networkCode": { "override": "", "trusted": "" },
+  "forbiddenActions": { "ChangeGameMode": true }
+}

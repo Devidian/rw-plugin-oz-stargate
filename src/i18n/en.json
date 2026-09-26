@@ -1,0 +1,140 @@
+{
+  "tc": {
+    "cmd": {
+      "help": "Help: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. Travel: /PH_PLUGIN_CMD gatelist, /PH_PLUGIN_CMD dial <target> [source], /PH_PLUGIN_CMD warp <target gate>. Admin only: /PH_PLUGIN_CMD registerGate, /PH_PLUGIN_CMD unregisterGate <ID>, /PH_PLUGIN_CMD trust [UID]. Admin test: /PH_PLUGIN_CMD pack, /PH_PLUGIN_CMD unpack, /PH_PLUGIN_CMD recover.",
+      "status": "🔎 Plugin Status\n➡️ Plugin version: PH_VERSION\n➡️ Installed languages: PH_LANG_AVAILABLE\n➡️ Your language: PH_LANGUAGE\n➡️ Used language: PH_USEDLANG\n➡️ Translated by: Devidian"
+    },
+    "data": {
+      "desc": "Here you can view stored player data for PH_PLUGIN_NAME.",
+      "empty": "No stored player data is available for this plugin yet.",
+      "title": "Saved Data for PH_PLUGIN_NAME"
+    },
+    "err": {
+      "cmd": {
+        "unknown": "Unknown command. Type <color=red>/PH_PLUGIN_CMD help</color> for help."
+      }
+    },
+    "msg": {
+      "plugin": {
+        "welcome": "ℹ️ <color=#F00000>PH_PLUGIN_NAME</color> | <color=#F0F000>vPH_PLUGIN_VERSION</color> | <color=#C0C0C0>/PH_PLUGIN_CMD</color> | loaded!"
+      }
+    },
+    "settings": {
+      "desc": "Here you can adjust the player-facing settings for PH_PLUGIN_NAME.",
+      "empty": "No player settings are available for PH_PLUGIN_NAME yet.",
+      "title": "Plugin Settings for PH_PLUGIN_NAME"
+    },
+    "setting": {
+      "enablewelcomemessage": {
+        "desc": "If true, this plugin sends a welcome message when a player joins.",
+        "label": "Welcome message"
+      },
+      "logging": {
+        "desc": "Logging output and verbosity.",
+        "label": "Logging"
+      },
+      "loglevel": {
+        "desc": "Controls plugin logging verbosity.",
+        "label": "Log level"
+      },
+      "playermessages": {
+        "desc": "Messages sent directly to players by this plugin.",
+        "label": "Player messages"
+      },
+      "reloadonchange": {
+        "desc": "Reloads settings when the JSON file changes.",
+        "label": "Reload on change"
+      },
+      "runtime": {
+        "desc": "Runtime reload and maintenance behavior.",
+        "label": "Runtime"
+      }
+    },
+    "stargate": {
+      "menu": {
+        "info": "Info / Status",
+        "open": "Open Stargate"
+      },
+      "info": {
+        "panel": {
+          "info": "<b>PH_PLUGIN_NAME</b>\nVersion: PH_PLUGIN_VERSION\nCommand: /PH_PLUGIN_CMD\nCross-server travel with inventory and clothing through the Stargate Network.",
+          "status": "<b>Status</b>\nWelcome message: PH_WELCOME_MESSAGE\nRelay: PH_RELAY_STATUS"
+        }
+      },
+      "settings": {
+        "empty": "There are no player settings for OZ Stargate yet."
+      },
+      "inventory": {
+        "admin_only": "This command is available only to administrators.",
+        "unavailable": "Inventory is currently unavailable.",
+        "packed": "Inventory and worn clothes were stored and removed from the player. /sg unpack returns them once.",
+        "unpacked": "Inventory and worn clothes were returned from storage.",
+        "missing": "No inventory or clothes are stored for you.",
+        "error": "Could not process inventory; see server log.",
+        "restore_failed": "Restore failed; your prior inventory was put back.",
+        "recovery_pending": "A pack or unpack was interrupted. Use /sg recover; inspect the server log if the state is unclear.",
+        "no_recovery": "No pending inventory recovery exists.",
+        "recovered": "Inventory from the earlier recovery format was restored.",
+        "legacy_snapshot": "The old inventory snapshot was only a copy and can no longer be unpacked. Use /sg pack again.",
+        "already_packed": "Inventory and clothes are already stored. Use /sg unpack.",
+        "not_empty": "Inventory and worn clothes must be empty before unpacking.",
+        "pack_cancelled": "Interrupted pack cancelled; your items are still with you.",
+        "manual_recovery": "The intermediate state is unclear. Nothing was released; inspect the server log and data."
+      },
+      "network": {
+        "settings": {
+          "title": "Stargate network",
+          "desc": "Connection and network identity.",
+          "url": "Relay URL",
+          "url_desc": "WebSocket URL of the Stargate relay.",
+          "override": "Override network code",
+          "override_desc": "Optional code for grouping test servers; leave empty for automatic calculation.",
+          "host": "Reachable game-server host",
+          "host_desc": "Public IP or DNS name of this game server for dialing."
+        },
+        "offline": "Stargate network is disconnected.",
+        "registered": "Stargate PH_GATE was registered here.",
+        "unregistered": "Stargate PH_GATE was removed.",
+        "not_owned": "Stargate PH_GATE does not belong to this server.",
+        "list": "Reachable Stargates: PH_GATES",
+        "dial_free": "Wormhole to PH_TARGET is available.",
+        "dial_blocked": "Stargate PH_GATE is busy.",
+        "dial_failed": "Dial failed: PH_REASON",
+        "incoming": "Stargate PH_GATE has an incoming wormhole.",
+        "incoming_blocked": "Incoming wormhole at Stargate PH_GATE rejected: another incoming wormhole is active.",
+        "choose_origin": "Specify the source gate: /sg dial <target> <source> (local gates: PH_COUNT).",
+        "usage_dial": "Usage: /sg dial <target gate> [source gate]",
+        "usage_unregister": "Usage: /sg unregisterGate <gate ID>",
+        "timeout": "No Stargate network response within 15 seconds.",
+        "error": "Stargate network error: PH_REASON",
+        "status_online": "connected",
+        "status_offline": "disconnected",
+        "trust_header": "Player observations for PH_UID:",
+        "trust_empty": "No player observations are stored for PH_UID.",
+        "trust_row": "Server PH_SERVER: PH_SECONDS seconds played, group PH_GROUP.",
+        "usage_warp": "Usage: /sg warp <target gate>",
+        "warp_not_open": "No wormhole is open to this Stargate. Dial it first.",
+        "warp_pending": "An inventory or transfer operation is still pending.",
+        "warp_unavailable": "Inventory and clothes could not be secured for travel.",
+        "warp_preparing": "Preparing Stargate travel. Please leave inventory and clothes unchanged.",
+        "warp_changed": "Inventory or clothes changed during preparation. Cancelling travel.",
+        "warp_departing": "Travelling through the Stargate to PH_GATE. Please confirm the server change.",
+        "warp_manual": "The transfer state is unclear. Inventory remains blocked for review; please contact an administrator.",
+        "warp_restored": "Travel was cancelled. Inventory and clothes were restored.",
+        "warp_base_restored": "Your previous inventory and clothes on this server were restored.",
+        "warp_arrived": "You arrived through Stargate PH_GATE.",
+        "warp_failed": "Stargate travel failed: PH_REASON"
+      },
+      "trust": {
+        "settings": {
+          "title": "Forbidden actions",
+          "desc": "Protects the Stargate network against unintended mode changes.",
+          "change_mode": "Forbid game-mode changes",
+          "change_mode_desc": "Prevents local game-mode changes through game commands."
+        },
+        "change_mode_title": "Action not allowed",
+        "change_mode_forbidden": "Changing game mode is forbidden in this Stargate network."
+      }
+    }
+  }
+}

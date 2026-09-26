@@ -1,0 +1,3 @@
+# OZ Stargate repository rules
+
+This standalone repository owns only the Rising World plugin. Use the current Maven template architecture, Java 20, Maven, OZ Tools for shared UI/settings/i18n/SQLite, and the repository-local `PluginSettings` class. `OZStargate` is the only Rising World `Listener`; its event methods only delegate to focused classes below `stargate/`. Keep player-visible text in DE/EN i18n JSON. Preserve existing world settings and databases on Development uploads. Validate API usage, Maven package, and Development activation before requesting a player test. Public releases require explicit authorization and do not imply production deployment.

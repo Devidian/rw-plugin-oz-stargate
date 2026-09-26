@@ -1,0 +1,9 @@
+name: "OZ - Stargate"
+main: de.omegazirkel.risingworld.OZStargate
+version: 0.1.0
+author: "Maik 'Devidian' Laschober"
+team: "Omega Zirkel"
+description: "Cross-server Stargate travel with inventory and clothing transfer"
+license: N/A
+website: https://github.com/Devidian/rw-plugin-oz-stargate
+loadorder: 0

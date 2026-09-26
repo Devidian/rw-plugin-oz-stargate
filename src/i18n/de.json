@@ -1,0 +1,140 @@
+{
+  "tc": {
+    "cmd": {
+      "help": "Hilfe: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. Reisen: /PH_PLUGIN_CMD gatelist, /PH_PLUGIN_CMD dial <Ziel> [Quelle], /PH_PLUGIN_CMD warp <Zieltor>. Nur Admins: /PH_PLUGIN_CMD registerGate, /PH_PLUGIN_CMD unregisterGate <ID>, /PH_PLUGIN_CMD trust [UID]. Admin-Test: /PH_PLUGIN_CMD pack, /PH_PLUGIN_CMD unpack, /PH_PLUGIN_CMD recover.",
+      "status": "🔎 Plugin Status\n➡️ Plugin version: PH_VERSION\n➡️ Installierte Sprachen: PH_LANG_AVAILABLE\n➡️ Deine Sprache: PH_LANGUAGE\n➡️ Verwendete Sprache: PH_USEDLANG"
+    },
+    "data": {
+      "desc": "Hier kannst du gespeicherte Spielerdaten für PH_PLUGIN_NAME ansehen.",
+      "empty": "Für dieses Plugin sind noch keine gespeicherten Spielerdaten verfügbar.",
+      "title": "Gespeicherte Daten für PH_PLUGIN_NAME"
+    },
+    "err": {
+      "cmd": {
+        "unknown": "Unbekanntes Kommando tippe <color=red>/PH_PLUGIN_CMD help</color> für Hilfe."
+      }
+    },
+    "msg": {
+      "plugin": {
+        "welcome": "ℹ️ <color=#F00000>PH_PLUGIN_NAME</color> | <color=#F0F000>vPH_PLUGIN_VERSION</color> | <color=#C0C0C0>/PH_PLUGIN_CMD</color> | geladen!"
+      }
+    },
+    "settings": {
+      "desc": "Hier kannst du spielerbezogene Einstellungen für PH_PLUGIN_NAME anpassen.",
+      "empty": "Für PH_PLUGIN_NAME sind noch keine Spieler-Einstellungen verfügbar.",
+      "title": "Plugin Einstellungen für PH_PLUGIN_NAME"
+    },
+    "setting": {
+      "enablewelcomemessage": {
+        "desc": "Wenn aktiv, sendet dieses Plugin eine Willkommensnachricht, wenn ein Spieler beitritt.",
+        "label": "Willkommensnachricht"
+      },
+      "logging": {
+        "desc": "Logging-Ausgabe und Detailgrad.",
+        "label": "Protokollierung"
+      },
+      "loglevel": {
+        "desc": "Steuert die Logging-Ausgabe des Plugins.",
+        "label": "Log-Level"
+      },
+      "playermessages": {
+        "desc": "Nachrichten, die dieses Plugin direkt an Spieler sendet.",
+        "label": "Spielernachrichten"
+      },
+      "reloadonchange": {
+        "desc": "Lädt Einstellungen bei Änderung der JSON-Datei neu.",
+        "label": "Bei Änderung neu laden"
+      },
+      "runtime": {
+        "desc": "Reload- und Wartungsverhalten zur Laufzeit.",
+        "label": "Laufzeit"
+      }
+    },
+    "stargate": {
+      "menu": {
+        "info": "Info / Status",
+        "open": "Stargate öffnen"
+      },
+      "info": {
+        "panel": {
+          "info": "<b>PH_PLUGIN_NAME</b>\nVersion: PH_PLUGIN_VERSION\nBefehl: /PH_PLUGIN_CMD\nServerübergreifende Reisen mit Inventar und Kleidung im Stargate-Netzwerk.",
+          "status": "<b>Status</b>\nWillkommensnachricht: PH_WELCOME_MESSAGE\nRelay: PH_RELAY_STATUS"
+        }
+      },
+      "settings": {
+        "empty": "Für OZ Stargate sind noch keine Spieler-Einstellungen verfügbar."
+      },
+      "inventory": {
+        "admin_only": "Dieser Befehl ist nur für Administratoren verfügbar.",
+        "unavailable": "Inventar ist derzeit nicht verfügbar.",
+        "packed": "Inventar und Kleidung wurden eingelagert und vom Spieler entfernt. /sg unpack gibt sie einmalig zurück.",
+        "unpacked": "Inventar und Kleidung wurden aus dem Speicher zurückgegeben.",
+        "missing": "Für dich sind kein Inventar und keine Kleidung eingelagert.",
+        "error": "Inventar konnte nicht verarbeitet werden; siehe Server-Log.",
+        "restore_failed": "Wiederherstellung fehlgeschlagen; dein vorheriges Inventar wurde zurückgesetzt.",
+        "recovery_pending": "Ein Pack- oder Entpackvorgang ist unterbrochen. Nutze /sg recover; bei unklarem Zustand Server-Log prüfen.",
+        "no_recovery": "Keine ausstehende Inventar-Wiederherstellung vorhanden.",
+        "recovered": "Inventar aus dem früheren Sicherungsformat wiederhergestellt.",
+        "legacy_snapshot": "Der alte Inventar-Schnappschuss war nur eine Kopie und kann nicht mehr entpackt werden. Nutze /sg pack erneut.",
+        "already_packed": "Inventar und Kleidung sind bereits eingelagert. Nutze /sg unpack.",
+        "not_empty": "Zum Entpacken müssen Inventar und getragene Kleidung leer sein.",
+        "pack_cancelled": "Unterbrochenes Packen abgebrochen; deine Gegenstände sind noch bei dir.",
+        "manual_recovery": "Zwischenzustand ist nicht eindeutig. Nichts wurde freigegeben; bitte Server-Log und Daten prüfen."
+      },
+      "network": {
+        "settings": {
+          "title": "Stargate-Netzwerk",
+          "desc": "Verbindung und Netzwerkkennung.",
+          "url": "Relay-Adresse",
+          "url_desc": "WebSocket-Adresse des Stargate-Relays.",
+          "override": "Netzwerkcode überschreiben",
+          "override_desc": "Optionaler Code zur Zuordnung von Testservern; leer nutzt die automatische Berechnung.",
+          "host": "Erreichbarer Spielserver-Host",
+          "host_desc": "Öffentliche IP oder DNS-Name dieses Spielservers für die Anwahl."
+        },
+        "offline": "Stargate-Netzwerk ist nicht verbunden.",
+        "registered": "Stargate PH_GATE wurde hier registriert.",
+        "unregistered": "Stargate PH_GATE wurde entfernt.",
+        "not_owned": "Stargate PH_GATE gehört nicht zu diesem Server.",
+        "list": "Erreichbare Stargates: PH_GATES",
+        "dial_free": "Wurmloch zu PH_TARGET ist frei.",
+        "dial_blocked": "Stargate PH_GATE ist belegt.",
+        "dial_failed": "Anwahl fehlgeschlagen: PH_REASON",
+        "incoming": "Stargate PH_GATE hat ein eingehendes Wurmloch.",
+        "incoming_blocked": "Eingehendes Wurmloch an Stargate PH_GATE abgelehnt: Bereits eingehendes Wurmloch erkannt.",
+        "choose_origin": "Bitte Quelltor angeben: /sg dial <Ziel> <Quelle> (lokale Tore: PH_COUNT).",
+        "usage_dial": "Verwendung: /sg dial <Zieltor> [Quelltor]",
+        "usage_unregister": "Verwendung: /sg unregisterGate <Tor-ID>",
+        "timeout": "Keine Antwort vom Stargate-Netzwerk innerhalb von 15 Sekunden.",
+        "error": "Stargate-Netzwerkfehler: PH_REASON",
+        "status_online": "verbunden",
+        "status_offline": "nicht verbunden",
+        "trust_header": "Spielerbeobachtungen für PH_UID:",
+        "trust_empty": "Für PH_UID sind keine Spielerbeobachtungen gespeichert.",
+        "trust_row": "Server PH_SERVER: PH_SECONDS Sekunden Spielzeit, Gruppe PH_GROUP.",
+        "usage_warp": "Verwendung: /sg warp <Zieltor>",
+        "warp_not_open": "Zu diesem Stargate ist kein Wurmloch geöffnet. Bitte zuerst anwählen.",
+        "warp_pending": "Eine Inventar- oder Transferoperation ist noch nicht abgeschlossen.",
+        "warp_unavailable": "Inventar und Kleidung konnten nicht für die Reise gesichert werden.",
+        "warp_preparing": "Stargate-Reise wird vorbereitet. Bitte Inventar und Kleidung unverändert lassen.",
+        "warp_changed": "Inventar oder Kleidung wurden während der Vorbereitung verändert. Reise wird abgebrochen.",
+        "warp_departing": "Du reist durch das Stargate nach PH_GATE. Bitte bestätige den Serverwechsel.",
+        "warp_manual": "Der Transferzustand ist unklar. Inventar bleibt zur Prüfung gesperrt; bitte einen Administrator informieren.",
+        "warp_restored": "Die Reise wurde abgebrochen. Inventar und Kleidung wurden wiederhergestellt.",
+        "warp_base_restored": "Dein zuvor auf diesem Server gesichertes Inventar und deine Kleidung wurden wiederhergestellt.",
+        "warp_arrived": "Du bist durch Stargate PH_GATE angekommen.",
+        "warp_failed": "Stargate-Reise fehlgeschlagen: PH_REASON"
+      },
+      "trust": {
+        "settings": {
+          "title": "Verbotene Aktionen",
+          "desc": "Schützt das Stargate-Netzwerk vor nicht vorgesehenen Moduswechseln.",
+          "change_mode": "Spielmoduswechsel verbieten",
+          "change_mode_desc": "Verhindert Änderungen des lokalen Spielmodus über Spielbefehle."
+        },
+        "change_mode_title": "Aktion nicht erlaubt",
+        "change_mode_forbidden": "Der Wechsel des Spielmodus ist in diesem Stargate-Netzwerk verboten."
+      }
+    }
+  }
+}

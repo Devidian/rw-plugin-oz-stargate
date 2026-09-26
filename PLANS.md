@@ -1,0 +1,5 @@
+# OZ Stargate plan
+
+The implementation plan is maintained at `../docs/active/stargate-network-plan.md` in the root workspace. This repository owns the Rising World plugin, its settings, UI, local persistence, and network client. The standalone relay lives in `../rw-stargate-network`.
+
+Phase 1 inventory custody, phase 2 gate discovery/dialing, and phase 3A observations/game-mode restriction passed Development player tests. Phase 3B decline, outbound travel, return travel, and restoration of the prior destination inventory are also accepted. Exact arrival orientation remains unconfirmed. Controlled source restart during the confirmation dialog, restoration and repeat login without duplicates are now accepted. Phase 4 opens gatelist/dial/warp to players while retaining admin-only management and debug commands; non-admin runtime acceptance passed for travel, cancellation restoration and all restricted commands. Prepare the originally requested 0.1.0 release; the user supplied Devidian GitHub repositories for plugin and relay. A forced target game-process crash after claim remains unverified. See RUNTIME_TESTING.md and docs/active/phase-3-transfer-contract.md.
