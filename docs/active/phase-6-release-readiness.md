@@ -222,8 +222,10 @@ its embedded JAR SHA-256 is
 `5494600f9328a7ee4e3eed5f98f598a211b4630e28102253cacfdb1f8a694d6f`.
 ZIP integrity, 0.2.0 descriptor, model source/license notices, 53 JUnit tests,
 entrypoint/API checks and the root forum generator check passed. Development
-and Demo accepted the same previous runtime JAR `436a8313...`; this final
-build differs only in Java import ordering and packaged documentation. Relay
+and Demo accepted the same previous runtime JAR `436a8313...`; comparison of
+all 127 JAR entries found identical file contents in that accepted JAR and the
+final release JAR. Their different SHA-256 values arise from archive metadata.
+Relay
 `yarn test` and its isolated MongoDB transfer smoke passed earlier; the latter
 used a unique test DB and did not replace the running relay. Hosted CI remains
 pending until source is pushed. Do not move either tag while an active transfer
