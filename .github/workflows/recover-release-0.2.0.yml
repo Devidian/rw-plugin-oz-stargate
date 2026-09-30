@@ -1,0 +1,42 @@
+name: Recover Stargate 0.2.0 release
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/recover-release-0.2.0.yml]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: v0.2.0
+          sparse-checkout: release-notes
+      - name: Download validated tag build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 36769574470 -n build-output
+          test -s dist/OZStargate-0.2.0.zip
+          test -s release-notes/0.2.0.md
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in 1 2 3; do
+            if gh release view v0.2.0 >/dev/null 2>&1; then
+              gh release upload v0.2.0 dist/OZStargate-0.2.0.zip --clobber && exit 0
+            else
+              gh release create v0.2.0 dist/OZStargate-0.2.0.zip \
+                --verify-tag \
+                --title 'OZ - Stargate 0.2.0' \
+                --notes-file release-notes/0.2.0.md && exit 0
+            fi
+            sleep 20
+          done
+          exit 1
