@@ -1,0 +1,1 @@
+Add relay-coordinated seven-chevron dialing, localized progress and incoming-priority interruption. Consume correlated gate state, clear travel windows on closure, and require matching sequence capability without changing transfer persistence.

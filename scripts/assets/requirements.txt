@@ -1,0 +1,4 @@
+# Offline asset build only; Python 3.13.5 used for the recorded preview.
+pymeshlab==2025.7.post1
+numpy==2.5.3
+mapbox-earcut==2.1.0

@@ -1,8 +1,10 @@
 {
   "tc": {
+    "shortcut": {"visible": "Stargate-Shortcut in /ozt und Inventar anzeigen"},
     "cmd": {
-      "help": "Hilfe: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. Reisen: /PH_PLUGIN_CMD gatelist, /PH_PLUGIN_CMD dial <Ziel> [Quelle], /PH_PLUGIN_CMD warp <Zieltor>. Nur Admins: /PH_PLUGIN_CMD registerGate, /PH_PLUGIN_CMD unregisterGate <ID>, /PH_PLUGIN_CMD trust [UID]. Admin-Test: /PH_PLUGIN_CMD pack, /PH_PLUGIN_CMD unpack, /PH_PLUGIN_CMD recover.",
-      "status": "🔎 Plugin Status\n➡️ Plugin version: PH_VERSION\n➡️ Installierte Sprachen: PH_LANG_AVAILABLE\n➡️ Deine Sprache: PH_LANGUAGE\n➡️ Verwendete Sprache: PH_USEDLANG"
+      "help": "Hilfe: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. Zum Reisen das DHD am Tor benutzen, ein Ziel wählen und nach Öffnung des ausgehenden Wurmlochs die Durchgangszone betreten.",
+      "status": "🔎 Plugin Status\n➡️ Plugin version: PH_VERSION\n➡️ Installierte Sprachen: PH_LANG_AVAILABLE\n➡️ Deine Sprache: PH_LANGUAGE\n➡️ Verwendete Sprache: PH_USEDLANG",
+      "help_admin": "Hilfe: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. Admin-Debug-Reisen: /PH_PLUGIN_CMD gatelist, /PH_PLUGIN_CMD dial <Ziel> [Quelle], /PH_PLUGIN_CMD warp <Zieltor>. Neues Tor samt ID, Modell und Ankunftspunkt: /PH_PLUGIN_CMD placegate. Nur Admins: /PH_PLUGIN_CMD registerGate, /PH_PLUGIN_CMD unregisterGate <ID>, /PH_PLUGIN_CMD trust [UID]. Admin-Test: /PH_PLUGIN_CMD pack, /PH_PLUGIN_CMD unpack, /PH_PLUGIN_CMD recover. DHD-Verwaltung (Admins): /PH_PLUGIN_CMD placedhd <ID>, /PH_PLUGIN_CMD removedhd <ID>, /PH_PLUGIN_CMD binddhd <ID>, /PH_PLUGIN_CMD unbinddhd, /PH_PLUGIN_CMD canceldhd. Durchgangszonen (Admins): /PH_PLUGIN_CMD sethorizon <ID> [X Y Z], /PH_PLUGIN_CMD showhorizon <ID>, /PH_PLUGIN_CMD removehorizon <ID>. Modell-Vorschau: /PH_PLUGIN_CMD previewgate, /PH_PLUGIN_CMD clearpreview. Bestehendes Tor-Modell versetzen: /PH_PLUGIN_CMD placegate <ID>, /PH_PLUGIN_CMD removegatemodel <ID>. /PH_PLUGIN_CMD aligngate <ID>."
     },
     "data": {
       "desc": "Hier kannst du gespeicherte Spielerdaten für PH_PLUGIN_NAME ansehen.",
@@ -53,12 +55,18 @@
     "stargate": {
       "menu": {
         "info": "Info / Status",
-        "open": "Stargate öffnen"
+        "open": "Stargate öffnen",
+        "place_gate_dhd": "Positioniere und erstelle Gate mit DHD",
+        "place_gate": "Positioniere und erstelle Gate",
+        "place_dhd": "Positioniere DHD",
+        "delete_gate_dhd": "Gate + DHD löschen",
+        "delete_confirm_title": "Gate und DHD löschen?",
+        "delete_confirm_body": "Das Gate PH_GATE und sein DHD werden vollständig entfernt. Die globale Toradresse wird freigegeben. Wirklich löschen?"
       },
       "info": {
         "panel": {
-          "info": "<b>PH_PLUGIN_NAME</b>\nVersion: PH_PLUGIN_VERSION\nBefehl: /PH_PLUGIN_CMD\nServerübergreifende Reisen mit Inventar und Kleidung im Stargate-Netzwerk.",
-          "status": "<b>Status</b>\nWillkommensnachricht: PH_WELCOME_MESSAGE\nRelay: PH_RELAY_STATUS"
+          "info": "<b>PH_PLUGIN_NAME</b>\nVersion: PH_PLUGIN_VERSION\nBefehl: /PH_PLUGIN_CMD\nLokale Sektorreisen; serverübergreifende Reisen mit Inventar und Kleidung sind optional.",
+          "status": "<b>Status</b>\nWillkommensnachricht: PH_WELCOME_MESSAGE\nRelay: PH_RELAY_STATUS\nServerreisen: PH_TRAVEL_STATUS"
         }
       },
       "settings": {
@@ -84,7 +92,9 @@
       "network": {
         "settings": {
           "title": "Stargate-Netzwerk",
-          "desc": "Verbindung und Netzwerkkennung.",
+          "desc": "Globale Adressreservierung und optionale serverübergreifende Reisen.",
+          "enabled": "Serverübergreifende Reisen aktivieren",
+          "enabled_desc": "Standardmäßig aus. Das Relay bleibt für weltweit eindeutige Toradressen erreichbar; lokale Reisen bleiben möglich.",
           "url": "Relay-Adresse",
           "url_desc": "WebSocket-Adresse des Stargate-Relays.",
           "override": "Netzwerkcode überschreiben",
@@ -93,10 +103,25 @@
           "host_desc": "Öffentliche IP oder DNS-Name dieses Spielservers für die Anwahl."
         },
         "offline": "Stargate-Netzwerk ist nicht verbunden.",
+        "travel_disabled": "Serverübergreifende Stargate-Reisen sind in den Plugin-Einstellungen deaktiviert.",
+        "sector_occupied": "Sektor PH_SECTOR besitzt bereits ein Tor; pro Sektor ist nur eines erlaubt.",
+        "invalid_sector": "Der Sektor des Tores konnte nicht bestimmt werden.",
         "registered": "Stargate PH_GATE wurde hier registriert.",
         "unregistered": "Stargate PH_GATE wurde entfernt.",
         "not_owned": "Stargate PH_GATE gehört nicht zu diesem Server.",
         "list": "Erreichbare Stargates: PH_GATES",
+        "dial_started": "Anwahl von Stargate PH_GATE gestartet.",
+        "dial_chevron": "Chevron PH_CHEVRON von 7 kodiert.",
+        "gate_closed": "Wurmloch an Stargate PH_GATE geschlossen.",
+        "reason_incoming_priority": "Ein eingehendes Wurmloch hat die ausgehende Einwahl unterbrochen.",
+        "reason_source_busy": "Das Ausgangstor ist bereits beschäftigt.",
+        "reason_gate_unavailable": "Die Zieladresse ist nicht erreichbar.",
+        "reason_gate_offline": "Das Zieltor ist offline.",
+        "reason_same_server": "Das Zieltor liegt auf demselben Server.",
+        "reason_disconnected": "Die Netzwerkverbindung wurde getrennt.",
+        "reason_timeout": "Das Zieltor hat nicht rechtzeitig geantwortet.",
+        "reason_dial_sequence_required": "Plugin und Relay müssen die Einwahlsequenz unterstützen. Bitte beide aktualisieren.",
+        "reason_dial_lookup_failed": "Die Zieladresse konnte nicht geprüft werden.",
         "dial_free": "Wurmloch zu PH_TARGET ist frei.",
         "dial_blocked": "Stargate PH_GATE ist belegt.",
         "dial_failed": "Anwahl fehlgeschlagen: PH_REASON",
@@ -109,6 +134,8 @@
         "error": "Stargate-Netzwerkfehler: PH_REASON",
         "status_online": "verbunden",
         "status_offline": "nicht verbunden",
+        "status_enabled": "aktiviert",
+        "status_disabled": "deaktiviert",
         "trust_header": "Spielerbeobachtungen für PH_UID:",
         "trust_empty": "Für PH_UID sind keine Spielerbeobachtungen gespeichert.",
         "trust_row": "Server PH_SERVER: PH_SECONDS Sekunden Spielzeit, Gruppe PH_GROUP.",
@@ -125,6 +152,33 @@
         "warp_arrived": "Du bist durch Stargate PH_GATE angekommen.",
         "warp_failed": "Stargate-Reise fehlgeschlagen: PH_REASON"
       },
+      "sector": {
+        "address": "Sektor PH_SECTOR",
+        "unavailable": "Dieses lokale Sektortor ist nicht erreichbar.",
+        "busy": "Quell- oder Zieltor ist bereits beschäftigt.",
+        "started": "Lokale Sektoranwahl gestartet.",
+        "arrived": "Lokale Stargate-Reise abgeschlossen.",
+        "database_error": "Lokale Anwahl fehlgeschlagen; siehe Server-Log.",
+        "placement_admin_only": "Nur Administratoren dürfen ein Stargate aufstellen.",
+        "placement_direction": "Schau beim Aufstellen waagerecht in die gewünschte Tor-Richtung.",
+        "placement_boundary": "Der automatische Ankunftspunkt läge in einem anderen Sektor. Stelle das Tor etwas weiter von der Sektorgrenze entfernt auf.",
+        "placement_ground": "An dieser Position konnte kein gültiger Ankunftspunkt vor dem Tor bestimmt werden.",
+        "placement_overlap": "Hier würde die Durchgangszone ein vorhandenes Tor überlappen.",
+        "placement_database_error": "Das Tor konnte nicht vorbereitet werden; siehe Server-Log.",
+        "placement_placed": "Tor-Modell und lokaler Ankunftspunkt sind eingerichtet. Setze bei Bedarf ein DHD mit /sg placedhd <ID>.",
+        "placement_placed_with_dhd": "Tor, Ankunftspunkt und DHD sind eingerichtet.",
+        "placement_moved": "Das Tor und sein Ankunftspunkt wurden versetzt; die Adresse bleibt gleich.",
+        "placement_moved_with_dhd": "Tor, Ankunftspunkt und DHD wurden versetzt; die Adresse bleibt gleich.",
+        "placement_dhd_placed": "Das DHD wurde an der Oberflächenhöhe platziert.",
+        "placement_missing_gate": "In diesem Sektor steht kein Tor.",
+        "placement_missing_model": "Zu diesem Tor ist kein Modell gespeichert.",
+        "placement_near_gate": "Das DHD muss höchstens 16 Meter vom Sektortor entfernt stehen.",
+        "placement_busy": "Das Tor ist gerade belegt oder ein Transfer ist noch offen.",
+        "placement_occupied": "In diesem Sektor steht bereits ein Tor.",
+        "placement_changed": "Die Position oder der Sektorzustand hat sich geändert. Bitte erneut versuchen.",
+        "placement_pending": "Die Oberflächenhöhe wird bereits bestimmt.",
+        "placement_surface": "An der DHD-Position wurde keine geeignete Oberfläche gefunden."
+      },
       "trust": {
         "settings": {
           "title": "Verbotene Aktionen",
@@ -134,6 +188,85 @@
         },
         "change_mode_title": "Aktion nicht erlaubt",
         "change_mode_forbidden": "Der Wechsel des Spielmodus ist in diesem Stargate-Netzwerk verboten."
+      },
+      "dhd_model": {
+        "usage": "Verwendung: /sg placedhd <lokale Tor-ID> oder /sg removedhd <lokale Tor-ID>.",
+        "missing_gate": "Dieses lokale Tor existiert nicht: PH_GATE.",
+        "near_gate": "Stelle dich höchstens 16 Meter vom Tor entfernt auf.",
+        "saved": "DHD-Modell für PH_GATE 2,5 Meter vor dir platziert. Interagiere mit dem Modell für die Zielauswahl.",
+        "removed": "DHD-Modell für PH_GATE entfernt. Alte Objektbindungen bleiben bestehen.",
+        "horizontal": "Sieh für die Platzierung leicht waagerecht.",
+        "database_error": "Das DHD-Modell konnte nicht gespeichert werden.",
+        "render_error": "Das DHD-Modell konnte nicht geladen werden; Details im Serverlog."
+      },
+      "dhd": {
+        "title": "DHD · Stargate PH_GATE",
+        "description": "Wähle eine erreichbare Toradresse und starte die Einwahl.",
+        "legend": "Ein geöffnetes Wurmloch bleibt eine Minute bestehen.",
+        "previous": "Zurück",
+        "next": "Weiter",
+        "refresh": "Aktualisieren",
+        "dial": "Anwählen",
+        "loading": "Toradressen werden geladen …",
+        "load_failed": "Toradressen konnten nicht geladen werden. Bitte aktualisieren.",
+        "empty": "Keine entfernten Tore erreichbar.",
+        "choose": "Bitte eine Zieladresse auswählen.",
+        "selected": "Ziel: PH_GATE",
+        "page": "Seite PH_PAGE / PH_TOTAL",
+        "state_idle": "Bereit",
+        "state_outgoing": "Einwahl läuft",
+        "state_incoming": "Eingehende Verbindung wird aufgebaut",
+        "state_open_incoming": "Wurmloch offen · eingehend",
+        "state_open_outgoing": "Wurmloch offen · ausgehend",
+        "state_offline": "Netzwerk nicht verfügbar",
+        "cancelled": "DHD-Auswahl abgebrochen.",
+        "usage_bind": "Verwendung: /sg binddhd <lokale Tor-ID>.",
+        "select_bind": "Benutze innerhalb von 60 Sekunden den Gegenstand, der als DHD dienen soll. /sg canceldhd bricht ab.",
+        "select_unbind": "Benutze innerhalb von 60 Sekunden das DHD, dessen Verknüpfung entfernt werden soll.",
+        "expired": "Die DHD-Auswahl ist abgelaufen. Bitte erneut starten.",
+        "unavailable": "Dieses DHD ist nicht verfügbar oder zu weit entfernt.",
+        "near_gate": "Das DHD muss höchstens 16 Meter vom lokalen Tor entfernt sein.",
+        "bound": "DHD mit dem Tor verknüpft. Benutze es erneut, um die Zielauswahl zu öffnen.",
+        "already_bound": "Dieser Gegenstand ist bereits verknüpft oder das Tor existiert nicht mehr.",
+        "unbound": "DHD-Verknüpfung entfernt.",
+        "not_bound": "Dieser Gegenstand ist kein verknüpftes DHD.",
+        "database_error": "Die DHD-Verknüpfung konnte nicht verarbeitet werden."
+      },
+      "horizon": {
+        "usage": "Verwendung: /sg sethorizon <lokales Tor> [X-Breite Y-Höhe Z-Tiefe] (Meter); /sg showhorizon <Tor>; /sg removehorizon <Tor>. /sg aligngate <ID>.",
+        "missing_gate": "Dieses lokale Tor existiert nicht.",
+        "missing_zone": "Dieses Tor hat noch keine Durchgangszone.",
+        "dimensions": "Verwende drei endliche Größen zwischen 0.5 und 8 Metern, mit Dezimalpunkt.",
+        "near_gate": "Stelle dich zum Festlegen der Durchgangszone höchstens 16 Meter vom lokalen Tor entfernt auf.",
+        "overlap": "Die Durchgangszone überschneidet sich mit einer anderen Torzone. Wähle einen anderen Standort oder andere Größen.",
+        "saved": "Durchgangszone an deinen Füßen gespeichert (Weltachsen X/Y/Z). Verlasse die Zone vor dem Testen des Eintritts.",
+        "removed": "Durchgangszone entfernt.",
+        "preview": "Blaue Durchgangszone für dich 30 Sekunden sichtbar. Standardgröße: X=3, Y=3, Z=1 Meter; der Boden hat 0.2 Meter Toleranz.",
+        "database_error": "Die Durchgangszone konnte nicht gespeichert werden.",
+        "usage_align": "/sg aligngate <Gate-ID>: Stelle dich am gewünschten Ankunftspunkt mittig 1–4 m vor die Vorderseite des Tor-Modells. Sorge dort und durch das Tor für begehbaren Boden.",
+        "edit_busy": "Einrichtung gesperrt: Das Gate muss mit dem Netzwerk verbunden und vollständig frei sein; laufende Transfers müssen abgeschlossen sein.",
+        "aligned_locked": "Dieses Tor ist am Modell ausgerichtet. Entferne zuerst ausdrücklich seine Zone mit /sg removehorizon <Gate-ID>, bevor du eine freie Zone anlegst.",
+        "missing_model": "Für dieses Gate ist noch kein dauerhaftes Modell aufgestellt. Zuerst /sg placegate <Gate-ID> verwenden.",
+        "arrival_front": "Der Ankunftspunkt muss mittig 1–4 m vor der Torvorderseite liegen, auf passender Höhe zur Öffnung. Stelle dich auf den vorgesehenen Boden oder die Plattform und wiederhole /sg aligngate <Gate-ID>.",
+        "sector_boundary": "Der Ankunftspunkt läge in einem anderen Sektor. Wähle einen Punkt im Sektor dieses Tores.",
+        "aligned": "Tor ausgerichtet: Dein Standpunkt ist jetzt der Ankunftspunkt, mit Blick aus der Torvorderseite heraus. Der runde Durchgang folgt dem Modell; die alte Zone wurde ersetzt.",
+        "aligned_preview": "Die blaue Umrandung zeigt für 30 Sekunden den gedrehten Begrenzungsrahmen der Öffnung. Der eigentliche Auslöser ist rund und prüft die Körpermitte, nicht die Ecken des Rahmens."
+      },
+      "preview": {
+        "shown": "Tor-Vorschau an deinen Füßen platziert. Gehe einige Schritte zurück: Die Vorderseite zeigt zu dir. Nur für dich sichtbar, ohne Kollision/Reisefunktion; verschwindet nach 2 Minuten. /sg clearpreview entfernt sie sofort.",
+        "removed": "Tor-Vorschau entfernt.",
+        "horizontal": "Bitte schaue zum Platzieren ungefähr waagerecht.",
+        "failed": "Die Tor-Vorschau konnte nicht geladen werden. Bitte Serverprotokoll prüfen."
+      },
+      "visual": {
+        "usage": "Tor-Modell: /sg placegate <Gate-ID> oder /sg removegatemodel <Gate-ID>. Aufstellen an deinen Füßen und in horizontaler Blickrichtung.",
+        "missing_gate": "Das Gate PH_GATE ist auf diesem Server nicht registriert.",
+        "horizontal": "Bitte aufrecht und ungefähr waagerecht schauen, um das Tor auszurichten.",
+        "saved": "Modell für Gate PH_GATE dauerhaft aufgestellt (ca. 6,1 m hoch). Gehe zurück, um die Vorderseite zu sehen. Spieler in der Nähe sehen es ebenfalls. Ankunftspunkt und Durchgangszone bleiben an ihren bisherigen Positionen; verwende /sg aligngate PH_GATE am gewünschten Ankunftspunkt, um sie am Modell auszurichten.",
+        "removed": "Modell für Gate PH_GATE entfernt. Registrierung, DHD, Ankunftspunkt und Durchgangszone bleiben erhalten.",
+        "database_error": "Das Tor-Modell konnte nicht gespeichert oder entfernt werden. Bitte Serverlog prüfen.",
+        "render_error": "Das Tor-Modell konnte nicht angezeigt werden. Bitte Serverlog prüfen; eine bereits gespeicherte Platzierung bleibt erhalten.",
+        "aligned_locked": "Dieses Tor hat einen ausgerichteten Durchgang. Entferne zuerst /sg removehorizon PH_GATE, versetze/entferne dann das Modell und richte es mit /sg aligngate PH_GATE erneut ein."
       }
     }
   }

@@ -1,0 +1,14 @@
+{
+  "source": "PuddleLoop.mp4",
+  "sourceSha256": "dcf368df7d564976db60cf64d2d783663aee1e1eb359c8a2c6f1b7a7ab0a32ce",
+  "frames": 12,
+  "fps": 20,
+  "durationMs": 600,
+  "peakWhiteMs": 300,
+  "peakWhiteBlend": 0.8,
+  "tilePixels": 384,
+  "columns": 4,
+  "rows": 3,
+  "filter": "crop=2120:2120:860:20,fps=20,trim=end_frame=12,scale=384:384:flags=lanczos,format=rgba,geq=r='r(X,Y)*(1-(.8*sin(PI*clip(T/.6,0,1))))+255*(.8*sin(PI*clip(T/.6,0,1)))':g='g(X,Y)*(1-(.8*sin(PI*clip(T/.6,0,1))))+255*(.8*sin(PI*clip(T/.6,0,1)))':b='b(X,Y)*(1-(.8*sin(PI*clip(T/.6,0,1))))+255*(.8*sin(PI*clip(T/.6,0,1)))':a='255*clip((1.45-1.9*T/.6-hypot(((X-W/2)/(W/2)),((Y-H/2)/(H/2)))+(.10*sin(13*((X-W/2)/(W/2))+4*sin(7*((Y-H/2)/(H/2))))+.07*sin(19*((Y-H/2)/(H/2))-5*((X-W/2)/(W/2)))+.04*sin(37*((X-W/2)/(W/2))+23*((Y-H/2)/(H/2)))))/.22,0,1)',format=rgba,tile=4x3",
+  "sha256": "0340e046201d569be3b322fa41d8806852a074a9915870fd80d43901c9aa3334"
+}

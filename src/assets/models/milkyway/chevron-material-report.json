@@ -1,0 +1,35 @@
+{
+  "chevron-v-frame": {
+    "materials": [
+      "Chevron_A"
+    ],
+    "triangles": 2364,
+    "vertices": 1390,
+    "sha256": "5ec9c5833f92eca8daeff317dc9e16719f97f59b951587062bbfb1db74d025a9"
+  },
+  "chevron-v-strips": {
+    "materials": [
+      "Chevron_Light"
+    ],
+    "triangles": 432,
+    "vertices": 432,
+    "sha256": "465c17c99edd4cdca2809a70b4a5a8b0eecc0c9c50c02898a4decc16564ec7fe"
+  },
+  "chevron-fixed-frame": {
+    "materials": [
+      "Chevron_Block_Arm"
+    ],
+    "triangles": 112,
+    "vertices": 64,
+    "sha256": "b8a8e28e034f799407b013319a9a0710af2ec3561e2875b3f5d152c2eb065705"
+  },
+  "chevron-fixed-light": {
+    "materials": [
+      "Chevron_Block_Light"
+    ],
+    "triangles": 3104,
+    "vertices": 1556,
+    "sha256": "892148f44b0cccc1922cd4d371969021b6b5e06c09abdeb45ae9e177edcc9fcd"
+  },
+  "active_triangles_per_gate": 196107
+}

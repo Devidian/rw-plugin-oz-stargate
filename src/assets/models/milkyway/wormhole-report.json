@@ -1,0 +1,24 @@
+{
+  "articulated-wormhole-surface.obj": {
+    "bytes": 214990,
+    "sha256": "3b95a32fcd280edd230944bce52f7d110b9dc4fe8a8d592745b4347f0308554c",
+    "vertices": 1921,
+    "triangles": 3744,
+    "radius": 2.31
+  },
+  "articulated-wormhole-surge.obj": {
+    "bytes": 215949,
+    "sha256": "a25d7bb330a9c0a5e569556f1b4a3ab5c81f47e9a56b3415c492b2136b48698c",
+    "vertices": 1921,
+    "triangles": 3744,
+    "radius": 2.31
+  },
+  "wormhole-water.png": {
+    "bytes": 299279,
+    "sha256": "7763c6563c8556c94f566af076ecae4032c5051ccd1b112ae33216726c6709e3"
+  },
+  "wormhole-ripples.png": {
+    "bytes": 102355,
+    "sha256": "5eee280a230398c4700536fa4fccac2701d37e10babe053b94a1bd1c852741ac"
+  }
+}

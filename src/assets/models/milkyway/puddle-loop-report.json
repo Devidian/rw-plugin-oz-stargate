@@ -1,0 +1,23 @@
+{
+  "source": "PuddleLoop.mp4",
+  "sourceSha256": "dcf368df7d564976db60cf64d2d783663aee1e1eb359c8a2c6f1b7a7ab0a32ce",
+  "provenance": "User-provided reference; redistribution license not supplied.",
+  "frames": 140,
+  "fps": 12,
+  "seconds": 11.666666666666666,
+  "tilePixels": 384,
+  "columns": 7,
+  "rows": 10,
+  "atlasCount": 2,
+  "crop": [
+    860,
+    20,
+    2120,
+    2120
+  ],
+  "sha256": {
+    "puddle-loop-0.png": "46e71736445919d3af8107fdc80715289d23035e1fc4059b6c4a851dc56442a7",
+    "puddle-loop-1.png": "bfc8c0b5b9aac73cafa0a64f109c799b133c31fb1b0c1090ab6c4eaadd393386",
+    "puddle-surge.png": "ccfc18697aa3349b2968d112744cbdac1096fcd2ab62fadd15e693d2a1af4ad7"
+  }
+}

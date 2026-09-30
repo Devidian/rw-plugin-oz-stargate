@@ -1,0 +1,15 @@
+{
+  "source": "gate-shade-readable-color.png",
+  "method": "Imagegen edit: reduce broad mottling strongly, retain fine grain; request approximately 3 percent darker mean. Actual image brightness verified separately, not a deterministic numeric transform.",
+  "sha256": "496208ba83880922f7c5c0c053f91903e3fbca167b01a24a3304db6034164265",
+  "size": [
+    1254,
+    1254
+  ],
+  "previousMeanRGB": 94.95,
+  "generatedMeanRGB": 108.75,
+  "previousStddev": 14.07,
+  "generatedStddev": 9.47,
+  "materialTint": 0.85,
+  "nominalTintedMeanRGB": 92.44
+}

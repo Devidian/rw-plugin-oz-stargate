@@ -1,0 +1,237 @@
+{
+  "sourceArchiveSha256": "8d9f9a91305d9dd5a4245f12644c9c01c673cb6596ecc148b041fd4a303590aa",
+  "sourceBlendSha256": "a90ada3743ecb7cbbde078359dbb00f2e67be585f3c449583ddb432b7992ce9e",
+  "blender": "3.3.15",
+  "scale": 0.53,
+  "sourceZMin": -2.597103,
+  "sourceYCenter": -3.55,
+  "modifiers": "mirror on base; subdivision disabled; selected collapse ratios; planar key dissolve",
+  "parts": {
+    "supplied-dhd-body": {
+      "vertices": 5487,
+      "triangles": 10401,
+      "bytes": 646598,
+      "sha256": "0e87b150c9d93c34e7f9a7fedc49e53f3b42b2b9124e69b46473950ae589b232",
+      "objects": {
+        "DHD base": {
+          "vertices": 4232,
+          "triangles": 7934,
+          "decimation": 0.35
+        },
+        "DHD flat top": {
+          "vertices": 224,
+          "triangles": 444,
+          "decimation": 1
+        },
+        "DHD ring": {
+          "vertices": 464,
+          "triangles": 923,
+          "decimation": 1
+        },
+        "DHD symbol house": {
+          "vertices": 567,
+          "triangles": 1100,
+          "decimation": 0.65
+        }
+      }
+    },
+    "supplied-dhd-accents": {
+      "vertices": 4904,
+      "triangles": 7971,
+      "bytes": 686178,
+      "sha256": "caff762ba7d788e1e9b2cfd5441a48fba9e3690439fe264bf7cd4c19e9f7376d",
+      "objects": {
+        "DHD ring accents": {
+          "vertices": 3543,
+          "triangles": 5665,
+          "decimation": 0.25
+        },
+        "DHD activation dome ring": {
+          "vertices": 1361,
+          "triangles": 2306,
+          "decimation": 0.35
+        }
+      }
+    },
+    "supplied-dhd-keys": {
+      "vertices": 7551,
+      "triangles": 14286,
+      "bytes": 463651,
+      "sha256": "238755f76600bbae8fc3eedf2367d56fa8567cb95bd500fff302cbba385a4bbf",
+      "objects": {
+        "DHD buttons": {
+          "vertices": 7551,
+          "triangles": 14286,
+          "decimation": 1
+        }
+      }
+    },
+    "supplied-dhd-symbols": {
+      "vertices": 9155,
+      "triangles": 10917,
+      "bytes": 455159,
+      "sha256": "53d775c1459ec72411ac28fd8d7a228c4095e3d46f3fbde1dbb588693732eddf",
+      "objects": {
+        "DHD symbols inner": {
+          "vertices": 2889,
+          "triangles": 5298,
+          "decimation": 1
+        },
+        "DHD symbols outer": {
+          "vertices": 6266,
+          "triangles": 5619,
+          "decimation": 1
+        }
+      }
+    },
+    "supplied-dhd-activate": {
+      "vertices": 161,
+      "triangles": 288,
+      "bytes": 8551,
+      "sha256": "20a3b61cfe952a0589b1c7be09860828e2fa66e649f748df754ff852e06a56ea",
+      "objects": {
+        "DHD activation dome": {
+          "vertices": 161,
+          "triangles": 288,
+          "decimation": 1
+        }
+      }
+    }
+  },
+  "keyGroups": {
+    "supplied-dhd-keys-0": {
+      "vertices": 227,
+      "triangles": 450,
+      "bytes": 12735,
+      "sha256": "3b17570d02a7fe8b04fdaeb3add55ade39e634cf0319b5d7237aa04d189a9265",
+      "center": [
+        -0.32428,
+        0.918304,
+        0.006542
+      ]
+    },
+    "supplied-dhd-keys-1": {
+      "vertices": 227,
+      "triangles": 450,
+      "bytes": 12580,
+      "sha256": "1583efbf82f35aa52378fb4c576fd4da35567ddd554cd46475538b9bcef9c06e",
+      "center": [
+        0.327085,
+        0.886595,
+        -0.046167
+      ]
+    },
+    "supplied-dhd-keys-2": {
+      "vertices": 228,
+      "triangles": 452,
+      "bytes": 12813,
+      "sha256": "b9a15eda127c7549e2bdb864b850453934bd71e811022dbb36a852656dd8b23f",
+      "center": [
+        -0.036836,
+        0.723898,
+        -0.316779
+      ]
+    },
+    "supplied-dhd-keys-3": {
+      "vertices": 224,
+      "triangles": 444,
+      "bytes": 12360,
+      "sha256": "f624dc979e282dafb17ebebcaa083dac0254a32848586f505993f1b5915a7bed",
+      "center": [
+        -0.023879,
+        1.060458,
+        0.243426
+      ]
+    },
+    "supplied-dhd-keys-4": {
+      "vertices": 170,
+      "triangles": 300,
+      "bytes": 8675,
+      "sha256": "360f061c9e18509511316cb6d2544a521d223f428b4c925dfc091cd921346be8",
+      "center": [
+        0.107991,
+        1.022851,
+        0.068744
+      ]
+    },
+    "supplied-dhd-keys-5": {
+      "vertices": 170,
+      "triangles": 302,
+      "bytes": 8863,
+      "sha256": "e0a802105b3ee7e4adee52561e0e8f0e8c457001bbc044d163078de06402ac51",
+      "center": [
+        0.150422,
+        0.876829,
+        -0.174277
+      ]
+    },
+    "supplied-dhd-keys-6": {
+      "vertices": 170,
+      "triangles": 301,
+      "bytes": 9024,
+      "sha256": "f10503c62ced75ad98cf9be9acbe3b2c43d663cefd84529ec8400e8b79e1db32",
+      "center": [
+        -0.168313,
+        0.89427,
+        -0.145251
+      ]
+    },
+    "supplied-dhd-keys-unlit": {
+      "vertices": 6135,
+      "triangles": 11587,
+      "bytes": 375178,
+      "sha256": "def481b471eacaf9421508c599f632198e88eb5a052d3d70a1ba6cfcfaf34e9e"
+    }
+  },
+  "symbolGroups": {
+    "supplied-dhd-symbols-0": {
+      "vertices": 426,
+      "triangles": 343,
+      "bytes": 17552,
+      "sha256": "9229d68ec52a587e9343dc1890d88138fabb09af242cfe3c05131fe920740f67"
+    },
+    "supplied-dhd-symbols-1": {
+      "vertices": 276,
+      "triangles": 219,
+      "bytes": 11245,
+      "sha256": "a950b3487f331a87f33b5a052173607f113a929a4ebfc85946000383f42f5574"
+    },
+    "supplied-dhd-symbols-2": {
+      "vertices": 471,
+      "triangles": 410,
+      "bytes": 20238,
+      "sha256": "d950cd18bf9f725613de6e4c50de53d0db817e4276975ad030dea1db39b7788d"
+    },
+    "supplied-dhd-symbols-3": {
+      "vertices": 140,
+      "triangles": 128,
+      "bytes": 5795,
+      "sha256": "0eaf9d57740722496c6cb02f1b674c7ef30da49e45ab90ebc45230dd721f75c0"
+    },
+    "supplied-dhd-symbols-4": {
+      "vertices": 196,
+      "triangles": 362,
+      "bytes": 10391,
+      "sha256": "6a0077a4ac95a71c80cadf571b77b57008fd94b65e2e4c6ab9f012892b1a7570"
+    },
+    "supplied-dhd-symbols-5": {
+      "vertices": 209,
+      "triangles": 383,
+      "bytes": 11286,
+      "sha256": "a429e4cb26c17af2aeea13d649097fa0e4f8e850703b08bc4eea8d4b10fb7ef4"
+    },
+    "supplied-dhd-symbols-6": {
+      "vertices": 80,
+      "triangles": 144,
+      "bytes": 4207,
+      "sha256": "3d9d6c64c5db657c98c404a6153203d14f651f4274749958609c876fc8ecf321"
+    },
+    "supplied-dhd-symbols-unlit": {
+      "vertices": 7357,
+      "triangles": 8928,
+      "bytes": 367058,
+      "sha256": "0f9f856d3e6b129012cfc722c8dee8c037b625cf69e0a7dc4d2b1daa6743e5b0"
+    }
+  },
+  "totalTriangles": 43863
+}

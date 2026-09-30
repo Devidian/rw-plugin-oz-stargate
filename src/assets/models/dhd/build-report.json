@@ -1,0 +1,25 @@
+{
+  "source": "Original parametric geometry; no third-party model imported",
+  "parts": {
+    "dhd-body": {
+      "vertices": 5520,
+      "triangles": 1840,
+      "sha256": "6c3241a86d972bde10e6a73737e349a3a5a9d1339e00939d6d8e950945a5d0e1"
+    },
+    "dhd-keys": {
+      "vertices": 432,
+      "triangles": 144,
+      "sha256": "d61212c968b450e04260bef30b6bff136801b033d923c2bbf319c73a112bfae5"
+    },
+    "dhd-key-markers": {
+      "vertices": 270,
+      "triangles": 90,
+      "sha256": "eb09030d8ffd0763e2e4a3aa055a38c1b2ef88fa91c051be42fb9b6707622c0a"
+    },
+    "dhd-activate": {
+      "vertices": 864,
+      "triangles": 288,
+      "sha256": "551891df53bf27a4a44f9cfc17219cabdb11727b5c3d8ea6ba1ebe86b795cda7"
+    }
+  }
+}

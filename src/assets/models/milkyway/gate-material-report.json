@@ -1,0 +1,50 @@
+{
+  "projection": "dominant face axis, 3.6 source metres per 4m authored reference tile",
+  "archiveSha256": "7655f3b600c75d64ac0361c279f7d6e7771608ed2345085953bf3abb03c3b3e3",
+  "files": {
+    "gate-original-color.jpg": {
+      "bytes": 2220273,
+      "sha256": "d339f6a115ce65a91f3649bded2374dcd5a56a550cc414d0dcb039ba9e0e0508"
+    },
+    "textured-milkyway-preview.obj": {
+      "bytes": 13018753,
+      "sha256": "3abaa15d0f91107bc596dd433965e190023774a67dd9c9fe232bfee6ba073515",
+      "vertices": 94025,
+      "triangles": 156395,
+      "uvs": 178071,
+      "sourceSha256": "54702a7922cbcb84079f353d3b79108511f8f2f6827e1f04f94320e56a4298b3"
+    },
+    "textured-articulated-body.obj": {
+      "bytes": 9959764,
+      "sha256": "7b8636c2348cabafebf56c5f64707d02977334f8ca6f0b1d0866e7735e7de0c3",
+      "vertices": 73885,
+      "triangles": 119999,
+      "uvs": 137176,
+      "sourceSha256": "1ec2a96c1996176814db4494beb159eb5f4bba43e90c8ac9bb9b33e596773631"
+    },
+    "textured-articulated-ring.obj": {
+      "bytes": 1755051,
+      "sha256": "b8e8fd473e63eca415035490ee8277effdc76b04fa24db4b0a0120705b8a0943",
+      "vertices": 12904,
+      "triangles": 21996,
+      "uvs": 25964,
+      "sourceSha256": "a83f0d0136e70360244450959f94ec9e3a1715ee790256970870ce8fef1964c6"
+    },
+    "textured-articulated-chevron-fixed-frame.obj": {
+      "bytes": 7971,
+      "sha256": "870ade201c41059045bb315cd075b7672123f5db8ca441cc3c1c7db22f0d5cc7",
+      "vertices": 64,
+      "triangles": 112,
+      "uvs": 160,
+      "sourceSha256": "b8a8e28e034f799407b013319a9a0710af2ec3561e2875b3f5d152c2eb065705"
+    },
+    "textured-articulated-chevron-v-frame.obj": {
+      "bytes": 157219,
+      "sha256": "ffb246b22389edea5ba61cfa5f2e4182e2a6eec54c165a880bc6081b62aa13b6",
+      "vertices": 1390,
+      "triangles": 2364,
+      "uvs": 2113,
+      "sourceSha256": "5ec9c5833f92eca8daeff317dc9e16719f97f59b951587062bbfb1db74d025a9"
+    }
+  }
+}

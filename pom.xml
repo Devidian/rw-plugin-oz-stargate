@@ -8,7 +8,7 @@
 
     <groupId>com.github.devidian</groupId>
     <artifactId>rw-plugin-oz-stargate</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 
     <name>OZStargate</name>
     <description>Cross-server Stargate transport</description>
@@ -238,7 +238,7 @@
 								<resource>
 									<directory>${basedir}/src/assets</directory>
 									<includes>
-										<include>*.*</include>
+										<include>**/*</include>
 									</includes>
 								</resource>
 							</resources>

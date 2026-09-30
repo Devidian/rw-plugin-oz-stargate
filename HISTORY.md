@@ -1,5 +1,16 @@
 # History
 
+## Unreleased
+
+## 0.2.0 — 2026-09-30
+
+- Add one persistent gate per sector, local sector addresses and local travel; gate and DHD placement, repositioning and removal are available to administrators in the radial menu.
+- Add a placed DHD with direct interaction, paged destination selection and seven-chevron dialing. Ordinary players enter an open gate to travel; chat travel commands remain administrator debug tools.
+- Add persistent, colliding Milky Way gate and DHD models with animated chevrons, ring, water surface, opening surge, shutdown effect and night lighting. Include model source and license notices.
+- Make cross-server travel opt-in with `network.enabled=false` by default. The relay still reserves globally unique gate addresses.
+- Reject a new incoming transfer before source inventory clearing while its target holds an earlier visitor inventory. Preserve blocked inventory for review instead of overwriting it.
+- Add a per-player Stargate shortcut visibility setting.
+
 ## 0.1.0 — 2026-09-26
 
 - First command-based Stargate release, based on the OZ Maven template, Java 20, PluginAPI 0.9.3.2 and OZ Tools 0.26.2.

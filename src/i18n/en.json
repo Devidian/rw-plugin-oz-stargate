@@ -1,8 +1,10 @@
 {
   "tc": {
+    "shortcut": {"visible": "Show Stargate shortcut in /ozt and inventory"},
     "cmd": {
-      "help": "Help: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. Travel: /PH_PLUGIN_CMD gatelist, /PH_PLUGIN_CMD dial <target> [source], /PH_PLUGIN_CMD warp <target gate>. Admin only: /PH_PLUGIN_CMD registerGate, /PH_PLUGIN_CMD unregisterGate <ID>, /PH_PLUGIN_CMD trust [UID]. Admin test: /PH_PLUGIN_CMD pack, /PH_PLUGIN_CMD unpack, /PH_PLUGIN_CMD recover.",
-      "status": "🔎 Plugin Status\n➡️ Plugin version: PH_VERSION\n➡️ Installed languages: PH_LANG_AVAILABLE\n➡️ Your language: PH_LANGUAGE\n➡️ Used language: PH_USEDLANG\n➡️ Translated by: Devidian"
+      "help": "Help: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. To travel, use the gate DHD, choose a destination, then enter the passage zone once the outgoing wormhole opens.",
+      "status": "🔎 Plugin Status\n➡️ Plugin version: PH_VERSION\n➡️ Installed languages: PH_LANG_AVAILABLE\n➡️ Your language: PH_LANGUAGE\n➡️ Used language: PH_USEDLANG\n➡️ Translated by: Devidian",
+      "help_admin": "Help: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. Admin debug travel: /PH_PLUGIN_CMD gatelist, /PH_PLUGIN_CMD dial <target> [source], /PH_PLUGIN_CMD warp <target gate>. New gate with ID, model and arrival point: /PH_PLUGIN_CMD placegate. Admin only: /PH_PLUGIN_CMD registerGate, /PH_PLUGIN_CMD unregisterGate <ID>, /PH_PLUGIN_CMD trust [UID]. Admin test: /PH_PLUGIN_CMD pack, /PH_PLUGIN_CMD unpack, /PH_PLUGIN_CMD recover. DHD management (admins): /PH_PLUGIN_CMD placedhd <ID>, /PH_PLUGIN_CMD removedhd <ID>, /PH_PLUGIN_CMD binddhd <ID>, /PH_PLUGIN_CMD unbinddhd, /PH_PLUGIN_CMD canceldhd. Passage zones (admins): /PH_PLUGIN_CMD sethorizon <ID> [X Y Z], /PH_PLUGIN_CMD showhorizon <ID>, /PH_PLUGIN_CMD removehorizon <ID>. Model preview: /PH_PLUGIN_CMD previewgate, /PH_PLUGIN_CMD clearpreview. Move existing gate model: /PH_PLUGIN_CMD placegate <ID>, /PH_PLUGIN_CMD removegatemodel <ID>. /PH_PLUGIN_CMD aligngate <ID>."
     },
     "data": {
       "desc": "Here you can view stored player data for PH_PLUGIN_NAME.",
@@ -53,12 +55,18 @@
     "stargate": {
       "menu": {
         "info": "Info / Status",
-        "open": "Open Stargate"
+        "open": "Open Stargate",
+        "place_gate_dhd": "Position and create gate with DHD",
+        "place_gate": "Position and create gate",
+        "place_dhd": "Position DHD",
+        "delete_gate_dhd": "Delete gate + DHD",
+        "delete_confirm_title": "Delete gate and DHD?",
+        "delete_confirm_body": "Gate PH_GATE and its DHD will be removed completely. The global gate address will be released. Delete it?"
       },
       "info": {
         "panel": {
-          "info": "<b>PH_PLUGIN_NAME</b>\nVersion: PH_PLUGIN_VERSION\nCommand: /PH_PLUGIN_CMD\nCross-server travel with inventory and clothing through the Stargate Network.",
-          "status": "<b>Status</b>\nWelcome message: PH_WELCOME_MESSAGE\nRelay: PH_RELAY_STATUS"
+          "info": "<b>PH_PLUGIN_NAME</b>\nVersion: PH_PLUGIN_VERSION\nCommand: /PH_PLUGIN_CMD\nLocal sector travel; cross-server travel with inventory and clothing is optional.",
+          "status": "<b>Status</b>\nWelcome message: PH_WELCOME_MESSAGE\nRelay: PH_RELAY_STATUS\nCross-server travel: PH_TRAVEL_STATUS"
         }
       },
       "settings": {
@@ -84,7 +92,9 @@
       "network": {
         "settings": {
           "title": "Stargate network",
-          "desc": "Connection and network identity.",
+          "desc": "Global address reservation and optional cross-server travel.",
+          "enabled": "Enable cross-server travel",
+          "enabled_desc": "Off by default. The relay remains available for globally unique gate addresses; local travel remains possible.",
           "url": "Relay URL",
           "url_desc": "WebSocket URL of the Stargate relay.",
           "override": "Override network code",
@@ -93,10 +103,25 @@
           "host_desc": "Public IP or DNS name of this game server for dialing."
         },
         "offline": "Stargate network is disconnected.",
+        "travel_disabled": "Cross-server Stargate travel is disabled in the plugin settings.",
+        "sector_occupied": "Sector PH_SECTOR already has a gate; only one is allowed per sector.",
+        "invalid_sector": "The gate sector could not be determined.",
         "registered": "Stargate PH_GATE was registered here.",
         "unregistered": "Stargate PH_GATE was removed.",
         "not_owned": "Stargate PH_GATE does not belong to this server.",
         "list": "Reachable Stargates: PH_GATES",
+        "dial_started": "Dialing Stargate PH_GATE.",
+        "dial_chevron": "Chevron PH_CHEVRON of 7 encoded.",
+        "gate_closed": "Wormhole at Stargate PH_GATE closed.",
+        "reason_incoming_priority": "An incoming wormhole interrupted the outgoing dialing sequence.",
+        "reason_source_busy": "The source gate is already busy.",
+        "reason_gate_unavailable": "The destination address is unavailable.",
+        "reason_gate_offline": "The destination gate is offline.",
+        "reason_same_server": "The destination gate is on the same server.",
+        "reason_disconnected": "The network connection was lost.",
+        "reason_timeout": "The destination gate did not respond in time.",
+        "reason_dial_sequence_required": "Both plugin and relay must support dialing sequences. Please update both.",
+        "reason_dial_lookup_failed": "The destination address could not be checked.",
         "dial_free": "Wormhole to PH_TARGET is available.",
         "dial_blocked": "Stargate PH_GATE is busy.",
         "dial_failed": "Dial failed: PH_REASON",
@@ -109,6 +134,8 @@
         "error": "Stargate network error: PH_REASON",
         "status_online": "connected",
         "status_offline": "disconnected",
+        "status_enabled": "enabled",
+        "status_disabled": "disabled",
         "trust_header": "Player observations for PH_UID:",
         "trust_empty": "No player observations are stored for PH_UID.",
         "trust_row": "Server PH_SERVER: PH_SECONDS seconds played, group PH_GROUP.",
@@ -125,6 +152,33 @@
         "warp_arrived": "You arrived through Stargate PH_GATE.",
         "warp_failed": "Stargate travel failed: PH_REASON"
       },
+      "sector": {
+        "address": "Sector PH_SECTOR",
+        "unavailable": "This local sector gate is unavailable.",
+        "busy": "The source or target gate is already busy.",
+        "started": "Dialing the local sector gate.",
+        "arrived": "Local Stargate travel completed.",
+        "database_error": "Local dialing failed; see the server log.",
+        "placement_admin_only": "Only administrators may place a Stargate.",
+        "placement_direction": "Look horizontally in the desired gate direction when placing it.",
+        "placement_boundary": "The automatic arrival point would cross a sector boundary. Place the gate farther from that boundary.",
+        "placement_ground": "No valid arrival point could be determined in front of this gate position.",
+        "placement_overlap": "The passage here would overlap an existing gate.",
+        "placement_database_error": "The gate could not be prepared; see the server log.",
+        "placement_placed": "Gate model and local arrival point are ready. Place a DHD with /sg placedhd <ID> if needed.",
+        "placement_placed_with_dhd": "Gate, arrival point and DHD are ready.",
+        "placement_moved": "The gate and arrival point were moved; the address is unchanged.",
+        "placement_moved_with_dhd": "Gate, arrival point and DHD were moved; the address is unchanged.",
+        "placement_dhd_placed": "The DHD was placed at the surface height.",
+        "placement_missing_gate": "There is no gate in this sector.",
+        "placement_missing_model": "No model is stored for this gate.",
+        "placement_near_gate": "The DHD must be within 16 metres of the sector gate.",
+        "placement_busy": "The gate is busy or a transfer is still active.",
+        "placement_occupied": "There is already a gate in this sector.",
+        "placement_changed": "The position or sector state changed. Please try again.",
+        "placement_pending": "The surface height is already being measured.",
+        "placement_surface": "No suitable surface was found at the DHD position."
+      },
       "trust": {
         "settings": {
           "title": "Forbidden actions",
@@ -134,6 +188,85 @@
         },
         "change_mode_title": "Action not allowed",
         "change_mode_forbidden": "Changing game mode is forbidden in this Stargate network."
+      },
+      "dhd_model": {
+        "usage": "Usage: /sg placedhd <local gate ID> or /sg removedhd <local gate ID>.",
+        "missing_gate": "This local gate does not exist: PH_GATE.",
+        "near_gate": "Stand within 16 metres of the gate.",
+        "saved": "DHD model for PH_GATE placed 2.5 metres in front of you. Interact with it to choose a destination.",
+        "removed": "DHD model for PH_GATE removed. Existing object bindings remain.",
+        "horizontal": "Look mostly horizontally when placing the model.",
+        "database_error": "Could not save the DHD model.",
+        "render_error": "Could not load the DHD model; check the server log."
+      },
+      "dhd": {
+        "title": "DHD · Stargate PH_GATE",
+        "description": "Choose an available gate address and start dialing.",
+        "legend": "An open wormhole remains active for one minute.",
+        "previous": "Previous",
+        "next": "Next",
+        "refresh": "Refresh",
+        "dial": "Dial",
+        "loading": "Loading gate addresses …",
+        "load_failed": "Could not load gate addresses. Please refresh.",
+        "empty": "No remote gates available.",
+        "choose": "Select a destination address.",
+        "selected": "Destination: PH_GATE",
+        "page": "Page PH_PAGE / PH_TOTAL",
+        "state_idle": "Ready",
+        "state_outgoing": "Dialing",
+        "state_incoming": "Establishing incoming connection",
+        "state_open_incoming": "Wormhole open · incoming",
+        "state_open_outgoing": "Wormhole open · outgoing",
+        "state_offline": "Network unavailable",
+        "cancelled": "DHD selection cancelled.",
+        "usage_bind": "Usage: /sg binddhd <local gate ID>.",
+        "select_bind": "Within 60 seconds, interact with the object to use as a DHD. /sg canceldhd cancels selection.",
+        "select_unbind": "Within 60 seconds, interact with the DHD whose link should be removed.",
+        "expired": "DHD selection expired. Please start again.",
+        "unavailable": "This DHD is unavailable or too far away.",
+        "near_gate": "The DHD must be within 16 metres of the local gate.",
+        "bound": "DHD linked to gate. Interact again to open the destination list.",
+        "already_bound": "This object is already linked or the gate no longer exists.",
+        "unbound": "DHD link removed.",
+        "not_bound": "This object is not a linked DHD.",
+        "database_error": "Could not process the DHD link."
+      },
+      "horizon": {
+        "usage": "Usage: /sg sethorizon <local gate> [X width Y height Z depth] (metres); /sg showhorizon <gate>; /sg removehorizon <gate>. /sg aligngate <ID>.",
+        "missing_gate": "This local gate does not exist.",
+        "missing_zone": "This gate has no passage zone yet.",
+        "dimensions": "Use three finite dimensions between 0.5 and 8 metres, with a decimal point.",
+        "near_gate": "Stand within 16 metres of the local gate to set its passage zone.",
+        "overlap": "The passage zone overlaps another gate zone. Choose another location or size.",
+        "saved": "Passage zone saved at your feet (world axes X/Y/Z). Leave the zone before testing entry.",
+        "removed": "Passage zone removed.",
+        "preview": "Blue passage-zone preview visible to you for 30 seconds. Default size: X=3, Y=3, Z=1 metres; the floor includes 0.2 metres of tolerance.",
+        "database_error": "Could not save the passage zone.",
+        "usage_align": "/sg aligngate <gate ID>: Stand at the intended arrival position, centred 1–4 m in front of the gate model. Provide walkable ground there and through the gate.",
+        "edit_busy": "Setup locked: the gate must be connected to the network and idle, with all transfers completed.",
+        "aligned_locked": "This gate is aligned to its model. Explicitly remove its zone with /sg removehorizon <gate ID> before creating a free-standing zone.",
+        "missing_model": "This gate has no permanent model yet. Use /sg placegate <gate ID> first.",
+        "arrival_front": "The arrival point must be centred 1–4 m in front of the gate, at a height matching its opening. Stand on the intended ground/platform and repeat /sg aligngate <gate ID>.",
+        "sector_boundary": "The arrival point would be in another sector. Choose a point in this gate's sector.",
+        "aligned": "Gate aligned: your position is now the arrival point, facing out of the gate front. The circular passage follows the model; the old zone was replaced.",
+        "aligned_preview": "The blue outline shows the rotated bounding frame of the opening for 30 seconds. The actual trigger is circular and checks the body centre, not the frame corners."
+      },
+      "preview": {
+        "shown": "Gate preview placed at your feet. Walk backwards to see the front. Visible only to you, without collision or travel; disappears after 2 minutes. /sg clearpreview removes it immediately.",
+        "removed": "Gate preview removed.",
+        "horizontal": "Please look approximately horizontally to place the preview.",
+        "failed": "Could not load the gate preview. Please check the server log."
+      },
+      "visual": {
+        "usage": "Gate model: /sg placegate <gate ID> or /sg removegatemodel <gate ID>. Placement uses your feet position and horizontal facing.",
+        "missing_gate": "Gate PH_GATE is not registered on this server.",
+        "horizontal": "Please look roughly horizontally to orient the upright gate.",
+        "saved": "Model for gate PH_GATE placed permanently (about 6.1 m tall). Step back to see its front. Nearby players can also see it. Arrival and passage remain at their previous positions; use /sg aligngate PH_GATE at the intended arrival point to align them with the model.",
+        "removed": "Model for gate PH_GATE removed. Registration, DHD, arrival and passage zone are retained.",
+        "database_error": "Could not save or remove the gate model. Please check the server log.",
+        "render_error": "Could not display the gate model. Please check the server log; any saved placement is retained.",
+        "aligned_locked": "This gate has an aligned passage. First use /sg removehorizon PH_GATE, then move/remove the model and set it up again with /sg aligngate PH_GATE."
       }
     }
   }

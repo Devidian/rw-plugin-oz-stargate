@@ -40,6 +40,18 @@ public final class LocalGateStore {
         }
     }
 
+    /** Update only the arrival transform; the registered relay identity is unchanged. */
+    public synchronized boolean move(String id, Vector3f position, Quaternion rotation) throws SQLException {
+        try (PreparedStatement statement = database.prepareStatement(
+                "UPDATE stargates SET pos_x=?,pos_y=?,pos_z=?,rot_x=?,rot_y=?,rot_z=?,rot_w=? WHERE gate_id=?")) {
+            statement.setFloat(1, position.x); statement.setFloat(2, position.y); statement.setFloat(3, position.z);
+            statement.setFloat(4, rotation.x); statement.setFloat(5, rotation.y);
+            statement.setFloat(6, rotation.z); statement.setFloat(7, rotation.w);
+            statement.setString(8, id);
+            return statement.executeUpdate() == 1;
+        }
+    }
+
     public synchronized boolean exists(String id) throws SQLException {
         try (PreparedStatement statement = database.prepareStatement("SELECT 1 FROM stargates WHERE gate_id=?")) {
             statement.setString(1, id);

@@ -1,6 +1,16 @@
 package de.omegazirkel.risingworld.stargate.runtime;
 
 import de.omegazirkel.risingworld.OZStargate;
+import de.omegazirkel.risingworld.stargate.dhd.DhdService;
+import de.omegazirkel.risingworld.stargate.dhd.DhdModelService;
+import de.omegazirkel.risingworld.stargate.horizon.HorizonService;
+import de.omegazirkel.risingworld.stargate.visual.GatePreviewService;
+import de.omegazirkel.risingworld.stargate.visual.GateVisualService;
+import de.omegazirkel.risingworld.stargate.sector.GatePlacementService;
+import net.risingworld.api.events.player.PlayerChangePositionEvent;
+import net.risingworld.api.events.player.PlayerObjectInteractionEvent;
+import net.risingworld.api.events.player.PlayerGameObjectInteractionEvent;
+import net.risingworld.api.events.player.PlayerDisconnectEvent;
 import de.omegazirkel.risingworld.stargate.PluginGUI;
 import de.omegazirkel.risingworld.stargate.PluginSettings;
 import de.omegazirkel.risingworld.stargate.inventory.InventorySnapshotService;
@@ -26,10 +36,16 @@ public final class StargatePlayerEventHandler {
     private final InventorySnapshotService inventories;
     private final GateNetworkClient network;
     private final TransferService transfers;
+    private final DhdService dhd;
+    private final DhdModelService dhdModels;
+    private final HorizonService horizons;
+    private final GatePreviewService previews;
+    private final GateVisualService visuals;
+    private final GatePlacementService placement;
     private final Colors colors = Colors.getInstance();
 
     StargatePlayerEventHandler(OZStargate plugin, String pluginName, PluginSettings settings, I18n i18n,
-            PluginGUI gui, InventorySnapshotService inventories, GateNetworkClient network, TransferService transfers) {
+            PluginGUI gui, InventorySnapshotService inventories, GateNetworkClient network, TransferService transfers, DhdService dhd, DhdModelService dhdModels, HorizonService horizons, GatePreviewService previews, GateVisualService visuals, GatePlacementService placement) {
         this.plugin = plugin;
         this.pluginName = pluginName;
         this.settings = settings;
@@ -38,6 +54,12 @@ public final class StargatePlayerEventHandler {
         this.inventories = inventories;
         this.network = network;
         this.transfers = transfers;
+        this.dhd = dhd;
+        this.dhdModels = dhdModels;
+        this.horizons = horizons;
+        this.previews = previews;
+        this.visuals = visuals;
+        this.placement = placement;
     }
 
     public void onPlayerCommand(PlayerCommandEvent event) {
@@ -52,10 +74,33 @@ public final class StargatePlayerEventHandler {
         }
         String[] args = commandParts[1].trim().split("\\s+");
         String subcommand = args[0].toLowerCase(java.util.Locale.ROOT);
+        if (subcommand.equals("placegate") && args.length == 1) {
+            placement.create(player);
+            return;
+        }
+        if (subcommand.equals("placegate") || subcommand.equals("removegatemodel")) {
+            visuals.command(player, subcommand, args);
+            return;
+        }
+        if (subcommand.equals("placedhd") || subcommand.equals("removedhd")) {
+            dhdModels.command(player, subcommand, args);
+            return;
+        }
+        if (subcommand.equals("previewgate") || subcommand.equals("clearpreview")) {
+            previews.command(player, subcommand.equals("clearpreview"));
+            return;
+        }
+        if (subcommand.equals("aligngate") || subcommand.equals("sethorizon") || subcommand.equals("showhorizon") || subcommand.equals("removehorizon")) {
+            horizons.command(player, subcommand, args);
+            return;
+        }
+        if (subcommand.equals("binddhd") || subcommand.equals("unbinddhd") || subcommand.equals("canceldhd")) {
+            dhd.command(player, subcommand, args.length >= 2 ? args[1] : null);
+            return;
+        }
         if (subcommand.equals("registergate") || subcommand.equals("unregistergate")
                 || subcommand.equals("gatelist") || subcommand.equals("dial") || subcommand.equals("trust") || subcommand.equals("warp")) {
-            if ((subcommand.equals("registergate") || subcommand.equals("unregistergate")
-                    || subcommand.equals("trust")) && !player.isAdmin()) {
+            if (!player.isAdmin()) {
                 player.sendTextMessage(i18n.get("tc.stargate.inventory.admin_only", player));
                 return;
             }
@@ -102,15 +147,28 @@ public final class StargatePlayerEventHandler {
         switch (subcommand) {
             case "info", "status" -> PluginInfoStatusProviders.show(player, pluginName);
             case "help" -> player.sendTextMessage(colors.okay + plugin.getName() + ":> " + colors.endTag
-                    + i18n.get("tc.cmd.help", player).replace("PH_PLUGIN_CMD", StargatePluginRuntime.COMMAND));
+                    + i18n.get(player.isAdmin() ? "tc.cmd.help_admin" : "tc.cmd.help", player).replace("PH_PLUGIN_CMD", StargatePluginRuntime.COMMAND));
             case "open" -> gui.openMainMenu(player);
             default -> player.sendTextMessage(i18n.get("tc.err.cmd.unknown", player)
                     .replace("PH_PLUGIN_CMD", StargatePluginRuntime.COMMAND));
         }
     }
 
+    public void onPlayerObjectInteraction(PlayerObjectInteractionEvent event) { dhd.interact(event); }
+    public void onPlayerGameObjectInteraction(PlayerGameObjectInteractionEvent event) { dhdModels.interact(event); }
+    public void onPlayerDisconnect(PlayerDisconnectEvent event) {
+        previews.disconnect(event.getPlayer());
+        visuals.disconnect(event.getPlayer());
+        dhdModels.disconnect(event.getPlayer());
+        horizons.disconnect(event.getPlayer());
+        dhd.disconnect(event.getPlayer());
+    }
+    public void onPlayerChangePosition(PlayerChangePositionEvent event) { horizons.move(event); }
+
     public void onPlayerSpawn(PlayerSpawnEvent event) {
+        horizons.reset(event.getPlayer());
         transfers.onSpawn(event.getPlayer());
+        visuals.onSpawn(event.getPlayer());
         network.updatePlayer(event.getPlayer());
         if (!settings.enableWelcomeMessage) {
             return;

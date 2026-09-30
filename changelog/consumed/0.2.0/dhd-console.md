@@ -1,0 +1,2 @@
+Add persistent world-object DHD bindings, administrator bind/unbind selection, and a Tools-based modal with remote address selection, pagination, refresh, gate state and seven-chevron progress. Revalidate console identity/proximity and gate ownership before actions; reject duplicate pending dials. Keep player chat travel until event horizons are accepted.
+Correct absolute positioning for chevrons, address rows and action buttons after native screenshot revealed flow offsets pushing controls outside the panel.

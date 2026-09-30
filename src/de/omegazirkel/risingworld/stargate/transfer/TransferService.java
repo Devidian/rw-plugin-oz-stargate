@@ -32,6 +32,9 @@ public final class TransferService {
     private final GateNetworkClient network;
     private final I18n i18n;
     private final Gson gson = new Gson();
+    private java.util.function.Consumer<Player> arrivalObserver = player -> { };
+
+    public void setArrivalObserver(java.util.function.Consumer<Player> observer) { arrivalObserver = observer; }
 
     public TransferService(OZStargate plugin, TransferStore store, InventorySnapshotStore manualEscrow,
             LocalGateStore gates, GateNetworkClient network, I18n i18n) {
@@ -100,6 +103,10 @@ public final class TransferService {
             Transfer existing = store.byId(id);
             if (existing == null) {
                 if (manualEscrow.escrow(uid) != null || manualEscrow.legacyRecovery(uid) != null) {
+                    network.transfer("transferInterrupted", id, Map.of("transferId", id)); return;
+                }
+                Base base = store.base(uid);
+                if (base != null && base.state().equals("HELD")) {
                     network.transfer("transferInterrupted", id, Map.of("transferId", id)); return;
                 }
                 Player alreadyOnline = Server.getPlayerByUID(uid);
@@ -351,6 +358,7 @@ public final class TransferService {
         if (gate == null) throw new IllegalStateException("Arrival gate removed");
         player.setPosition(gate.position());
         player.setRotation(gate.rotation());
+        arrivalObserver.accept(player);
         Server.savePlayers();
     }
 

@@ -38,6 +38,8 @@ public class StargatePluginInfoStatusProvider implements PluginInfoStatusProvide
         return t().get("tc.stargate.info.panel.status", player)
                 .replace("PH_PLUGIN_NAME", pluginName)
                 .replace("PH_WELCOME_MESSAGE", String.valueOf(settings.enableWelcomeMessage))
+                .replace("PH_TRAVEL_STATUS", t().get(settings.networkEnabled
+                        ? "tc.stargate.network.status_enabled" : "tc.stargate.network.status_disabled", player))
                 .replace("PH_RELAY_STATUS", t().get(network.isReady()
                         ? "tc.stargate.network.status_online" : "tc.stargate.network.status_offline", player));
     }

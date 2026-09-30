@@ -31,6 +31,7 @@ public class PluginSettings {
 	public String relayAdvertisedHost = "";
 	public String networkCodeOverride = "";
 	public String networkCodeTrusted = "";
+	public boolean networkEnabled = false;
 	public boolean forbidChangeGameMode = true;
 	private Path settingsFile;
 	private java.util.Map<String, String> currentSettings = new LinkedHashMap<>();
@@ -75,6 +76,8 @@ public class PluginSettings {
 			relayAdvertisedHost = settings.getOrDefault("relay.advertisedHost", "").trim();
 			networkCodeOverride = settings.getOrDefault("networkCode.override", "").trim();
 			networkCodeTrusted = settings.getOrDefault("networkCode.trusted", "").trim();
+			networkEnabled = Boolean.parseBoolean(settings.getOrDefault("network.enabled",
+					defaults.getOrDefault("network.enabled", "false")));
 			forbidChangeGameMode = Boolean.parseBoolean(settings.getOrDefault("forbiddenActions.ChangeGameMode",
 					defaults.getOrDefault("forbiddenActions.ChangeGameMode", "true")));
 			logger().info(plugin.getName() + " Plugin settings loaded");
@@ -101,6 +104,8 @@ public class PluginSettings {
 						AdminSettingsType.BOOLEAN),
 				AdminSettingsEntry.group("network", i18n.get("tc.stargate.network.settings.title"),
 						i18n.get("tc.stargate.network.settings.desc")),
+				entry("network.enabled", i18n.get("tc.stargate.network.settings.enabled"),
+						i18n.get("tc.stargate.network.settings.enabled_desc"), AdminSettingsType.BOOLEAN),
 				entry("relay.url", i18n.get("tc.stargate.network.settings.url"),
 						i18n.get("tc.stargate.network.settings.url_desc"), AdminSettingsType.STRING),
 				entry("relay.advertisedHost", i18n.get("tc.stargate.network.settings.host"),

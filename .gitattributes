@@ -1,0 +1,3 @@
+# Preserve supplied third-party notices verbatim, including original spacing.
+src/assets/models/dhd/supplied-dhd-LICENSE.html -whitespace
+src/assets/models/milkyway/SOURCE-NOTICE.txt -whitespace

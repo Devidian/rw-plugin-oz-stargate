@@ -9,10 +9,14 @@ import net.risingworld.api.Plugin;
 import net.risingworld.api.events.EventMethod;
 import net.risingworld.api.events.Listener;
 import net.risingworld.api.events.player.PlayerCommandEvent;
+import net.risingworld.api.events.player.PlayerObjectInteractionEvent;
+import net.risingworld.api.events.player.PlayerGameObjectInteractionEvent;
+import net.risingworld.api.events.player.PlayerDisconnectEvent;
 import net.risingworld.api.events.player.PlayerConnectEvent;
 import net.risingworld.api.events.player.PlayerPermissionGroupChangeEvent;
 import net.risingworld.api.events.player.PlayerChangeGameModeEvent;
 import net.risingworld.api.events.player.PlayerSpawnEvent;
+import net.risingworld.api.events.player.PlayerChangePositionEvent;
 
 /**
  * Rising World entry point. This is intentionally the plugin's only event
@@ -45,6 +49,26 @@ public class OZStargate extends Plugin implements Listener, FileChangeListener {
     @Override
     public void onSettingsChanged(Path settingsPath) {
         runtime.reloadSettings(settingsPath);
+    }
+
+    @EventMethod
+    public void onPlayerChangePosition(PlayerChangePositionEvent event) {
+        runtime.events().onPlayerChangePosition(event);
+    }
+
+    @EventMethod
+    public void onPlayerObjectInteraction(PlayerObjectInteractionEvent event) {
+        runtime.events().onPlayerObjectInteraction(event);
+    }
+
+    @EventMethod
+    public void onPlayerGameObjectInteraction(PlayerGameObjectInteractionEvent event) {
+        runtime.events().onPlayerGameObjectInteraction(event);
+    }
+
+    @EventMethod
+    public void onPlayerDisconnect(PlayerDisconnectEvent event) {
+        runtime.events().onPlayerDisconnect(event);
     }
 
     @EventMethod

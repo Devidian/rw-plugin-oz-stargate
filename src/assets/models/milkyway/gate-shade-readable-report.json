@@ -1,0 +1,25 @@
+{
+  "source": "gate-original-color.jpg",
+  "sourceSha256": "d339f6a115ce65a91f3649bded2374dcd5a56a550cc414d0dcb039ba9e0e0508",
+  "method": "Imagegen edit of original reference: lifted albedo to medium-dark neutral gray, retained mottled character. Generated derivative, not byte-identical exposure transform.",
+  "imagegenId": "01a0da12-8f55-72a2-9bda-90524ed2aa07",
+  "size": [
+    1254,
+    1254
+  ],
+  "sha256": "1fcbc92b50165184e2d8d017b5d43d206b133eb3fea90fe5ca3a2e6c4b97c86d",
+  "materialValues": {
+    "body": [
+      0.08,
+      0.18
+    ],
+    "ring": [
+      0.16,
+      0.26
+    ],
+    "housing": [
+      0.12,
+      0.22
+    ]
+  }
+}

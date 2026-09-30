@@ -1,0 +1,48 @@
+{
+  "removed_degenerate_triangles": 4,
+  "source_sha256": "3a976d4dfd234bc80024a11e3ade84710b4d917946decd9de6ec182bc7a5b641",
+  "tool": "pymeshlab 2025.7.post1",
+  "parts": [
+    {
+      "part": "SG_MW_Main",
+      "source_triangles": 4292637,
+      "requested_triangles": 120000,
+      "triangles": 119999,
+      "vertices": 73885
+    },
+    {
+      "part": "SG_MW_InnerRing_Earth_Giza",
+      "source_triangles": 74614,
+      "requested_triangles": 22000,
+      "triangles": 22000,
+      "vertices": 12904
+    },
+    {
+      "part": "SG_MW_Chevron",
+      "source_triangles": 2796,
+      "requested_triangles": 800,
+      "triangles": 800,
+      "vertices": 392
+    },
+    {
+      "part": "SG_MW_ChevronBlock",
+      "source_triangles": 3216,
+      "requested_triangles": 800,
+      "triangles": 800,
+      "vertices": 412
+    }
+  ],
+  "triangles": 156395,
+  "bounds_min": [
+    -3.074868,
+    0.0,
+    -0.23725
+  ],
+  "bounds_max": [
+    3.074949,
+    6.14313,
+    0.23725
+  ],
+  "bytes": 5903813,
+  "obj_sha256": "54702a7922cbcb84079f353d3b79108511f8f2f6827e1f04f94320e56a4298b3"
+}
