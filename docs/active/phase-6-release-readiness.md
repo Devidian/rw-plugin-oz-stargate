@@ -28,6 +28,12 @@ Public publication remains gated by explicit user authorization in `AGENTS.md`.
   and test-server activation of the candidate.
 - [ ] Verify Git staging and hosted CI after the prepared commits are pushed.
 - [ ] Publish relay then plugin only after explicit release authorization.
+- [x] Resolve the late admin-settings regression on Development: relay off/on
+  followed UI edits, German labels appeared, DHD reopened without
+  `network_disabled`, local destinations remained visible, and no transfer
+  remained active.
+- [ ] Activate the corrected candidate on Demo and verify the DE/EN settings
+  and relay toggle there before release. Publication remains paused.
 
 ## Test state / rollback
 

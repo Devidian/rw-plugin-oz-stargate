@@ -9,6 +9,7 @@
 - Add persistent, colliding Milky Way gate and DHD models with animated chevrons, ring, water surface, opening surge, shutdown effect and night lighting. Include model source and license notices.
 - Make cross-server travel opt-in with `network.enabled=false` by default. The relay still reserves globally unique gate addresses.
 - Reject a new incoming transfer before source inventory clearing while its target holds an earlier visitor inventory. Preserve blocked inventory for review instead of overwriting it.
+- Apply admin changes to `network.enabled` to the relay immediately and show PluginSettings labels and descriptions in the player's selected language.
 - Add a per-player Stargate shortcut visibility setting.
 
 ## 0.1.0 — 2026-09-26
