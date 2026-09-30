@@ -26,8 +26,8 @@ Public publication remains gated by explicit user authorization in `AGENTS.md`.
 - [x] Draft DE/EN forum release and update portfolio source/HTML.
 - [x] Validate exact plugin ZIP, local CI checks, isolated relay transfer smoke
   and test-server activation of the candidate.
-- [ ] Verify Git staging and hosted CI after the prepared commits are pushed.
-- [ ] Publish relay then plugin only after explicit release authorization.
+- [x] Verify Git staging and hosted CI after the prepared commits are pushed.
+- [x] Publish relay then plugin after explicit release authorization.
 - [x] Resolve the late admin-settings regression on Development: relay off/on
   followed UI edits, German labels appeared, DHD reopened without
   `network_disabled`, local destinations remained visible, and no transfer
@@ -38,8 +38,8 @@ Public publication remains gated by explicit user authorization in `AGENTS.md`.
 - [x] Player verified the reduced chat policy and debug switch on Development
   and Demo.
 - [x] Document the rejected Demo-to-Development journey and protect the
-  nonempty visitor base. Publication remains paused.
-- [ ] Obtain release acceptance of the documented limitation: a manual server
+  nonempty visitor base. Keep the remaining limitation documented.
+- [x] Obtain release acceptance of the documented limitation: a manual server
   switch during an unfinished nonempty visit can block a later gate arrival.
 - [x] Player verified that a genuinely empty Development character accepted
   Demo's carried inventory without creating an empty visitor base.
@@ -206,14 +206,14 @@ Both test servers are online with travel enabled and no active transfer.
 The player accepted Demo's German debug label, default-off and enabled chat
 behavior, and the once-only restoration of the native Demo inventory and
 clothing. Read-only SQLite checks found no visitor-base row for this player on
-either test server and no active local transfer. Stop at this player-test
-checkpoint before release preparation continues.
+either test server and no active local transfer. This player-test checkpoint
+was accepted before publication.
 
 ## 0.2.0 preparation
 
 This feature release spans both standalone repositories. The plugin descriptor,
 POM, HISTORY and release notes, plus the relay package, Compose example and
-release notes, are prepared for `0.2.0`; publishing has not been authorized.
+release notes, were prepared for `0.2.0`; the user authorized publication.
 The plugin requires OZ Tools 0.26.2 and PluginAPI 0.9.3.2. The forum draft is
 `../../../docs/forum/release-2026-09-30-stargate-0.2.0.html` from this file.
 The current ZIP SHA-256 is
@@ -227,6 +227,26 @@ all 127 JAR entries found identical file contents in that accepted JAR and the
 final release JAR. Their different SHA-256 values arise from archive metadata.
 Relay
 `yarn test` and its isolated MongoDB transfer smoke passed earlier; the latter
-used a unique test DB and did not replace the running relay. Hosted CI remains
-pending until source is pushed. Do not move either tag while an active transfer
-exists.
+used a unique test DB and did not replace the running relay. Neither release
+tag was moved while an active transfer existed.
+
+## 0.2.0 publication
+
+Relay `main` CI 36768959961 and tag CI 36769139687 passed. The public
+`v0.2.0` GitHub release is neither draft nor prerelease and includes the
+Compose example. DockerHub tag `0.2.0` resolves to
+`sha256:e77cb6e0003a495ddff9ccd561e3c4a4b88d059e3563f46c8c71e05e3dc5270c`
+for linux/amd64 and linux/arm64.
+
+Plugin `main` CI 36768989222 passed. Tag CI 36769574470 validated and built
+the release, and published GitHub Packages, but GitHub returned `Server Error`
+while creating the Release. A one-time recovery workflow downloaded that
+validated tag artifact and published the ZIP in successful run 36770491054.
+The recovery workflow was then removed from `main`; final CI 36770691784
+passed. The public `v0.2.0` GitHub release is neither draft nor prerelease.
+Its downloaded ZIP has SHA-256
+`47325e8c25874ffb13b48c2e4a319169983d3cbc03c73e07ba1612c204baa8cf`
+and passes ZIP integrity. Its embedded JAR has the same 125 runtime entries
+byte-for-byte as the Development-accepted JAR; only the manifest and Maven
+properties metadata differ. The root documentation commit `a1fc85b` is pushed.
+No production game server was changed.
