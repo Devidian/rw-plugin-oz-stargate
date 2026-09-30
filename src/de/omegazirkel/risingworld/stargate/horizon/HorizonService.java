@@ -16,6 +16,7 @@ import de.omegazirkel.risingworld.stargate.transfer.TransferService;
 import de.omegazirkel.risingworld.stargate.transfer.TransferStore;
 import de.omegazirkel.risingworld.stargate.visual.GateVisualPlacement;
 import de.omegazirkel.risingworld.stargate.visual.GateVisualStore;
+import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import net.risingworld.api.utils.Quaternion;
 import de.omegazirkel.risingworld.tools.I18n;
 import net.risingworld.api.Server;
@@ -59,7 +60,7 @@ public final class HorizonService {
     }
 
     public void command(Player player, String command, String[] args) {
-        if (!player.isAdmin()) { player.sendTextMessage(i18n.get("tc.stargate.inventory.admin_only", player)); return; }
+        if (!player.isAdmin()) { StargateChat.debug(player, i18n.get("tc.stargate.inventory.admin_only", player)); return; }
         if (args.length < 2) { tell(player, "usage"); return; }
         String id = args[1].toUpperCase(Locale.ROOT);
         try {
@@ -177,7 +178,7 @@ public final class HorizonService {
                     player.setPosition(destination.position());
                     player.setRotation(destination.rotation());
                     reset(player);
-                    player.sendTextMessage(i18n.get("tc.stargate.sector.arrived", player));
+                    StargateChat.debug(player, i18n.get("tc.stargate.sector.arrived", player));
                 } catch (SQLException ex) {
                     OZStargate.logger().error("Local Stargate arrival failed: " + ex.getMessage());
                 }
@@ -249,5 +250,5 @@ public final class HorizonService {
         closed = true; movements.clear();
         for (Preview preview : List.copyOf(previews.values())) removePreview(preview);
     }
-    private void tell(Player player, String key) { player.sendTextMessage(i18n.get("tc.stargate.horizon." + key, player)); }
+    private void tell(Player player, String key) { StargateChat.debug(player, i18n.get("tc.stargate.horizon." + key, player)); }
 }

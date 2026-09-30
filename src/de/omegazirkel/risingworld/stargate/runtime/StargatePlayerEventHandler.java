@@ -16,6 +16,7 @@ import de.omegazirkel.risingworld.stargate.PluginSettings;
 import de.omegazirkel.risingworld.stargate.inventory.InventorySnapshotService;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
 import de.omegazirkel.risingworld.stargate.transfer.TransferService;
+import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import de.omegazirkel.risingworld.tools.Colors;
 import de.omegazirkel.risingworld.tools.I18n;
 import de.omegazirkel.risingworld.tools.ui.PluginInfoStatusProviders;
@@ -101,23 +102,23 @@ public final class StargatePlayerEventHandler {
         if (subcommand.equals("registergate") || subcommand.equals("unregistergate")
                 || subcommand.equals("gatelist") || subcommand.equals("dial") || subcommand.equals("trust") || subcommand.equals("warp")) {
             if (!player.isAdmin()) {
-                player.sendTextMessage(i18n.get("tc.stargate.inventory.admin_only", player));
+                StargateChat.debug(player, i18n.get("tc.stargate.inventory.admin_only", player));
                 return;
             }
             switch (subcommand) {
                 case "registergate" -> network.register(player);
                 case "unregistergate" -> {
-                    if (args.length < 2) player.sendTextMessage(i18n.get("tc.stargate.network.usage_unregister", player));
+                    if (args.length < 2) StargateChat.debug(player, i18n.get("tc.stargate.network.usage_unregister", player));
                     else network.unregister(player, args[1]);
                 }
                 case "gatelist" -> network.list(player);
                 case "trust" -> network.trust(player, args.length >= 2 ? args[1] : player.getUID());
                 case "warp" -> {
-                    if (args.length < 2) player.sendTextMessage(i18n.get("tc.stargate.network.usage_warp", player));
+                    if (args.length < 2) StargateChat.debug(player, i18n.get("tc.stargate.network.usage_warp", player));
                     else transfers.warp(player, args[1]);
                 }
                 case "dial" -> {
-                    if (args.length < 2) player.sendTextMessage(i18n.get("tc.stargate.network.usage_dial", player));
+                    if (args.length < 2) StargateChat.debug(player, i18n.get("tc.stargate.network.usage_dial", player));
                     else network.dial(player, args[1], args.length >= 3 ? args[2] : null);
                 }
             }
@@ -125,7 +126,7 @@ public final class StargatePlayerEventHandler {
         }
         if (subcommand.equals("pack") || subcommand.equals("unpack") || subcommand.equals("recover")) {
             if (!player.isAdmin()) {
-                player.sendTextMessage(i18n.get("tc.stargate.inventory.admin_only", player));
+                StargateChat.debug(player, i18n.get("tc.stargate.inventory.admin_only", player));
                 return;
             }
             if (transfers.hasActive(player.getUID())) {
@@ -134,7 +135,7 @@ public final class StargatePlayerEventHandler {
                     transfers.onSpawn(player);
                     return;
                 }
-                player.sendTextMessage(i18n.get("tc.stargate.network.warp_pending", player));
+                StargateChat.debug(player, i18n.get("tc.stargate.network.warp_pending", player));
                 return;
             }
             switch (subcommand) {
@@ -146,10 +147,10 @@ public final class StargatePlayerEventHandler {
         }
         switch (subcommand) {
             case "info", "status" -> PluginInfoStatusProviders.show(player, pluginName);
-            case "help" -> player.sendTextMessage(colors.okay + plugin.getName() + ":> " + colors.endTag
+            case "help" -> StargateChat.debug(player, colors.okay + plugin.getName() + ":> " + colors.endTag
                     + i18n.get(player.isAdmin() ? "tc.cmd.help_admin" : "tc.cmd.help", player).replace("PH_PLUGIN_CMD", StargatePluginRuntime.COMMAND));
             case "open" -> gui.openMainMenu(player);
-            default -> player.sendTextMessage(i18n.get("tc.err.cmd.unknown", player)
+            default -> StargateChat.debug(player, i18n.get("tc.err.cmd.unknown", player)
                     .replace("PH_PLUGIN_CMD", StargatePluginRuntime.COMMAND));
         }
     }
@@ -174,7 +175,7 @@ public final class StargatePlayerEventHandler {
             return;
         }
         Player player = event.getPlayer();
-        player.sendTextMessage(i18n.get("tc.msg.plugin.welcome", player.getSystemLanguage())
+        StargateChat.debug(player, i18n.get("tc.msg.plugin.welcome", player.getSystemLanguage())
                 .replace("PH_PLUGIN_NAME", plugin.getDescription("name"))
                 .replace("PH_PLUGIN_CMD", StargatePluginRuntime.COMMAND)
                 .replace("PH_PLUGIN_VERSION", plugin.getDescription("version")));

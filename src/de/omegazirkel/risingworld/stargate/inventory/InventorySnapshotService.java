@@ -6,6 +6,7 @@ import java.util.Arrays;
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.inventory.InventorySnapshotStore.Escrow;
 import de.omegazirkel.risingworld.stargate.inventory.InventorySnapshotStore.State;
+import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import de.omegazirkel.risingworld.tools.I18n;
 import net.risingworld.api.objects.Clothes;
 import net.risingworld.api.objects.Inventory;
@@ -186,6 +187,6 @@ public final class InventorySnapshotService {
     }
 
     private void message(Player player, String key) {
-        player.sendTextMessage(i18n.get(key, player));
+        StargateChat.debug(player, i18n.get(key, player));
     }
 }

@@ -11,6 +11,7 @@ import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.sector.LocalDialService;
+import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import de.omegazirkel.risingworld.tools.I18n;
 import net.risingworld.api.World;
 import net.risingworld.api.events.player.PlayerObjectInteractionEvent;
@@ -55,7 +56,7 @@ public final class DhdService {
     public void setModelValidator(BiPredicate<Player, String> validator) { modelValidator = validator; }
 
     public void command(Player player, String command, String gateId) {
-        if (!player.isAdmin()) { player.sendTextMessage(i18n.get("tc.stargate.inventory.admin_only", player)); return; }
+        if (!player.isAdmin()) { StargateChat.debug(player, i18n.get("tc.stargate.inventory.admin_only", player)); return; }
         try {
             if (command.equals("canceldhd")) { selections.remove(player.getUID()); tell(player, "cancelled"); return; }
             if (command.equals("binddhd") && (gateId == null || !gates.exists(gateId))) { tell(player, "usage_bind"); return; }
@@ -75,7 +76,7 @@ public final class DhdService {
             Selection selection = selections.remove(player.getUID());
             if (selection != null) {
                 event.setCancelled(true);
-                if (!player.isAdmin()) { player.sendTextMessage(i18n.get("tc.stargate.inventory.admin_only", player)); return; }
+                if (!player.isAdmin()) { StargateChat.debug(player, i18n.get("tc.stargate.inventory.admin_only", player)); return; }
                 if (selection.expiresAt() < System.currentTimeMillis()) { tell(player, "expired"); return; }
                 if (!near(player.getPosition(), object.getWorldPosition(), 4)) { tell(player, "unavailable"); return; }
                 if (selection.gateId() == null) {
@@ -209,7 +210,7 @@ public final class DhdService {
         return x * x + y * y + z * z <= distance * distance;
     }
 
-    private void tell(Player player, String key) { player.sendTextMessage(i18n.get("tc.stargate.dhd." + key, player)); }
+    private void tell(Player player, String key) { StargateChat.debug(player, i18n.get("tc.stargate.dhd." + key, player)); }
     private void databaseError(Player player, SQLException error) {
         OZStargate.logger().error("DHD database failure: " + error.getMessage());
         if (player.isConnected()) tell(player, "database_error");

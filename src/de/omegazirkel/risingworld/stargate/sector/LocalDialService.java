@@ -9,6 +9,7 @@ import java.util.Map;
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
+import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import de.omegazirkel.risingworld.tools.I18n;
 import net.risingworld.api.objects.Player;
 
@@ -157,7 +158,10 @@ public final class LocalDialService {
                 remove(connection); continue;
             }
             if (connection.expired(now)) remove(connection);
-            else if (connection.advance(now)) network.refreshViews();
+            else if (connection.advance(now)) {
+                network.refreshViews();
+                if (connection.open) StargateChat.incoming(connection.target, sectors, i18n);
+            }
         }
         plugin.executeDelayed(0.2f, this::tick);
     }
@@ -169,6 +173,6 @@ public final class LocalDialService {
     }
 
     private void tell(Player player, String key) {
-        if (player != null && player.isConnected()) player.sendTextMessage(i18n.get("tc.stargate.sector." + key, player));
+        if (player != null) StargateChat.debug(player, i18n.get("tc.stargate.sector." + key, player));
     }
 }

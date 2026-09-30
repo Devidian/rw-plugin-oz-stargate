@@ -51,4 +51,21 @@ public class TransferStoreTest {
             assertTrue(store.active().isEmpty());
         }
     }
+
+    @Test public void emptyTargetCanCompleteVisitWithoutCreatingAVisitorBase() throws Exception {
+        try (Connection db = DriverManager.getConnection("jdbc:sqlite::memory:")) {
+            TransferStore store = new TransferStore(db);
+            store.initialize();
+            store.insert(new TransferStore.Transfer("arrival", "player-empty", "IN", "PREPARED", "b", "a", "{}", 0));
+            assertTrue(store.transition("arrival", "PREPARED", "APPLYING"));
+            assertTrue(store.transition("arrival", "APPLYING", "APPLIED"));
+            assertTrue(store.transition("arrival", "APPLIED", "DONE"));
+            assertNull(store.base("player-empty"));
+
+            store.insert(new TransferStore.Transfer("departure", "player-empty", "OUT", "DEPARTING", "b", "a", "{}", 0));
+            assertTrue(store.completeOutgoing(store.byId("departure")));
+            assertNull(store.base("player-empty"));
+            assertTrue(store.active().isEmpty());
+        }
+    }
 }

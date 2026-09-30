@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
+import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import de.omegazirkel.risingworld.tools.I18n;
 import net.risingworld.api.Server;
 import net.risingworld.api.objects.Player;
@@ -51,7 +52,7 @@ public final class GateVisualService {
     }
 
     public void command(Player player, String command, String[] args) {
-        if (!player.isAdmin()) { player.sendTextMessage(i18n.get("tc.stargate.inventory.admin_only", player)); return; }
+        if (!player.isAdmin()) { StargateChat.debug(player, i18n.get("tc.stargate.inventory.admin_only", player)); return; }
         if (closed) return;
         if (args.length != 2) { tell(player, "usage", ""); return; }
         String id = args[1].toUpperCase(Locale.ROOT);
@@ -262,6 +263,6 @@ public final class GateVisualService {
     }
 
     private void tell(Player player, String key, String id) {
-        player.sendTextMessage(i18n.get("tc.stargate.visual." + key, player).replace("PH_GATE", id));
+        StargateChat.debug(player, i18n.get("tc.stargate.visual." + key, player).replace("PH_GATE", id));
     }
 }

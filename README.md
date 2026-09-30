@@ -58,6 +58,14 @@ When a target still holds an earlier visitor inventory, a new cross-server
 arrival is rejected before the source inventory is cleared. Back up native
 Player.db and plugin SQLite databases together before upgrades. Do not change
 plugin or relay versions while a transfer is active.
+An empty target inventory and empty clothing are not kept as a visitor base.
+If a player manually switches servers while a nonempty visitor inventory is
+still present on the previous server, a later arrival there remains blocked
+until that visit is resolved through gate travel. Do not clear visitor-base
+rows manually; they protect the previous local inventory.
+Only incoming wormholes are announced in chat by default, and only to players
+in the gate's sector. Players can enable other Stargate chat messages in their
+personal plugin settings for debugging.
 
 ## Development: phase 5A dialing
 

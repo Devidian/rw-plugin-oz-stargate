@@ -24,7 +24,8 @@
     "settings": {
       "desc": "Hier kannst du spielerbezogene Einstellungen für PH_PLUGIN_NAME anpassen.",
       "empty": "Für PH_PLUGIN_NAME sind noch keine Spieler-Einstellungen verfügbar.",
-      "title": "Plugin Einstellungen für PH_PLUGIN_NAME"
+      "title": "Plugin Einstellungen für PH_PLUGIN_NAME",
+      "debug_messages": "Debug-Meldungen im Chat anzeigen"
     },
     "setting": {
       "enablewelcomemessage": {

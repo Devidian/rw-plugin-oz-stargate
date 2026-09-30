@@ -11,6 +11,7 @@ import java.util.Set;
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
+import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import de.omegazirkel.risingworld.tools.I18n;
 import net.risingworld.api.Server;
 import net.risingworld.api.events.player.PlayerGameObjectInteractionEvent;
@@ -58,7 +59,7 @@ public final class DhdModelService implements AutoCloseable {
     public void start() { plugin.enqueue(this::tick); }
 
     public void command(Player player, String command, String[] args) {
-        if (!player.isAdmin()) { player.sendTextMessage(i18n.get("tc.stargate.inventory.admin_only", player)); return; }
+        if (!player.isAdmin()) { StargateChat.debug(player, i18n.get("tc.stargate.inventory.admin_only", player)); return; }
         if (closed) return;
         if (args.length != 2) { tell(player, "usage", ""); return; }
         String gateId = args[1].toUpperCase(Locale.ROOT);
@@ -280,7 +281,7 @@ public final class DhdModelService implements AutoCloseable {
     }
 
     private void tell(Player player, String key, String gateId) {
-        player.sendTextMessage(i18n.get("tc.stargate.dhd_model." + key, player).replace("PH_GATE", gateId));
+        StargateChat.debug(player, i18n.get("tc.stargate.dhd_model." + key, player).replace("PH_GATE", gateId));
     }
 
     private static double distanceSquared(Vector3f a, Vector3f b) {

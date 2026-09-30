@@ -16,6 +16,7 @@ import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.transfer.TransferStore.Base;
 import de.omegazirkel.risingworld.stargate.transfer.TransferStore.Transfer;
+import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import de.omegazirkel.risingworld.tools.I18n;
 import net.risingworld.api.Server;
 import net.risingworld.api.objects.Clothes;
@@ -266,9 +267,13 @@ public final class TransferService {
             if (!transfer.state().equals("PREPARED")) return;
             Base prior = store.base(transfer.uid());
             if (prior == null) {
-                Map<String, Object> snapshot = capture(player);
-                if (snapshot == null || !store.saveBase(transfer.uid(), decode((String) snapshot.get("inventory")),
-                        decode((String) snapshot.get("clothes")))) throw new IllegalStateException("Cannot save target inventory");
+                // An empty local character has nothing to restore after this visit.
+                // Keep saving nonempty inventories before any incoming mutation.
+                if (!empty(player)) {
+                    Map<String, Object> snapshot = capture(player);
+                    if (snapshot == null || !store.saveBase(transfer.uid(), decode((String) snapshot.get("inventory")),
+                            decode((String) snapshot.get("clothes")))) throw new IllegalStateException("Cannot save target inventory");
+                }
             } else if (prior.state().equals("HELD")) {
                 JsonObject original = new JsonObject();
                 original.addProperty("inventory", Base64.getEncoder().encodeToString(prior.inventory()));
@@ -434,7 +439,7 @@ public final class TransferService {
         String message = i18n.get("tc.stargate.network." + key, player);
         if (variable != null) message = message.replace(variable, value);
         if (key.equals("warp_manual")) player.kick(message);
-        else player.sendTextMessage(message);
+        else StargateChat.debug(player, message);
     }
     private static void log(String context, Exception ex) { OZStargate.logger().error(context + ": " + ex.getMessage()); }
 }

@@ -16,6 +16,7 @@ import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.visual.GateVisualPlacement;
 import de.omegazirkel.risingworld.stargate.visual.GateVisualService;
 import de.omegazirkel.risingworld.stargate.visual.GateVisualStore;
+import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import de.omegazirkel.risingworld.tools.I18n;
 import net.risingworld.api.objects.Player;
 import net.risingworld.api.utils.Quaternion;
@@ -268,6 +269,6 @@ public final class GatePlacementService {
 
     private void tell(Player player, String key) {
         if (player != null && player.isConnected())
-            player.sendTextMessage(i18n.get("tc.stargate.sector.placement_" + key, player));
+            StargateChat.debug(player, i18n.get("tc.stargate.sector.placement_" + key, player));
     }
 }

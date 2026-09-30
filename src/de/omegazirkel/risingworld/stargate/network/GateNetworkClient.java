@@ -21,6 +21,7 @@ import de.omegazirkel.risingworld.stargate.transfer.TransferService;
 import de.omegazirkel.risingworld.stargate.sector.LocalSectorStore;
 import de.omegazirkel.risingworld.stargate.sector.SectorAddress;
 import de.omegazirkel.risingworld.stargate.sector.LocalDialService;
+import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import de.omegazirkel.risingworld.tools.I18n;
 import de.omegazirkel.risingworld.tools.ServerThreadDispatcher;
 import de.omegazirkel.risingworld.tools.WSClientEndpoint;
@@ -374,7 +375,7 @@ public final class GateNetworkClient implements WebSocketHandler {
                         || !previous.connectionId().equals(next.connectionId())) openedTimes.put(gateId, System.nanoTime());
             } else openedTimes.remove(gateId);
             if (next.state().equals("OPEN") && next.direction().equals("INCOMING") && !next.equals(previous)) {
-                for (Player player : Server.getAllPlayers()) tell(player, "incoming", "PH_GATE", gateId);
+                StargateChat.incoming(gateId, sectors, i18n);
             }
         }
         notifyStateObservers();
@@ -485,7 +486,7 @@ public final class GateNetworkClient implements WebSocketHandler {
         for (JsonElement element : observations) {
             JsonObject row = element.getAsJsonObject();
             String group = row.get("permissionGroup").isJsonNull() ? "-" : row.get("permissionGroup").getAsString();
-            player.sendTextMessage(i18n.get("tc.stargate.network.trust_row", player)
+            StargateChat.debug(player, i18n.get("tc.stargate.network.trust_row", player)
                     .replace("PH_SERVER", row.get("serverId").getAsString())
                     .replace("PH_SECONDS", row.get("playTimeSeconds").getAsString())
                     .replace("PH_GROUP", group));
@@ -547,6 +548,6 @@ public final class GateNetworkClient implements WebSocketHandler {
         if (player == null) return;
         String text = i18n.get("tc.stargate.network." + key, player);
         if (variable != null) text = text.replace(variable, replacement == null ? "" : replacement);
-        player.sendTextMessage(text);
+        StargateChat.debug(player, text);
     }
 }

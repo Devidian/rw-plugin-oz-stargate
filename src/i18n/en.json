@@ -24,7 +24,8 @@
     "settings": {
       "desc": "Here you can adjust the player-facing settings for PH_PLUGIN_NAME.",
       "empty": "No player settings are available for PH_PLUGIN_NAME yet.",
-      "title": "Plugin Settings for PH_PLUGIN_NAME"
+      "title": "Plugin Settings for PH_PLUGIN_NAME",
+      "debug_messages": "Show debug messages in chat"
     },
     "setting": {
       "enablewelcomemessage": {

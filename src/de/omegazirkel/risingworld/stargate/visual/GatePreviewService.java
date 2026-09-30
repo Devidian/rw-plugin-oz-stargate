@@ -6,6 +6,7 @@ import java.util.Map;
 
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.tools.I18n;
+import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import net.risingworld.api.objects.Player;
 import net.risingworld.api.utils.Quaternion;
 import net.risingworld.api.utils.Vector3f;
@@ -25,7 +26,7 @@ public final class GatePreviewService {
     }
 
     public void command(Player player, boolean remove) {
-        if (!player.isAdmin()) { player.sendTextMessage(i18n.get("tc.stargate.inventory.admin_only", player)); return; }
+        if (!player.isAdmin()) { StargateChat.debug(player, i18n.get("tc.stargate.inventory.admin_only", player)); return; }
         if (closed) return;
         if (remove) { disconnect(player); tell(player, "removed"); return; }
         Vector3f direction = player.getViewDirection();
@@ -62,5 +63,5 @@ public final class GatePreviewService {
         closed = true;
         for (Preview preview : List.copyOf(previews.values())) remove(preview);
     }
-    private void tell(Player player, String key) { player.sendTextMessage(i18n.get("tc.stargate.preview." + key, player)); }
+    private void tell(Player player, String key) { StargateChat.debug(player, i18n.get("tc.stargate.preview." + key, player)); }
 }

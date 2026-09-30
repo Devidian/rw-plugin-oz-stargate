@@ -22,6 +22,10 @@ public class StargatePlayerPluginSettings extends PlayerPluginSettings {
                         PluginShortcutVisibility.playerSettingKey(pluginLabel)).orElse(true);
     }
 
+    public boolean debugMessagesVisible(Player player) {
+        return StargateChat.debugEnabled(player);
+    }
+
     @Override
     public BasePlayerPluginSettingsPanel createPlayerPluginSettingsUIElement(Player uiPlayer) {
         return new BasePlayerPluginSettingsPanel(uiPlayer, pluginLabel) {
@@ -41,6 +45,17 @@ public class StargatePlayerPluginSettings extends PlayerPluginSettings {
                     redrawContent();
                 }));
                 flexWrapper.addChild(setting);
+                OZUIElement debugSetting = defaultSettingsContainer();
+                debugSetting.addChild(defaultSettingsLabel(I18n.getInstance(pluginLabel)
+                        .get("tc.settings.debug_messages", uiPlayer)));
+                debugSetting.addChild(switchButtons(uiPlayer, debugMessagesVisible(uiPlayer), event -> {
+                    if (OZTools.playerSettings() != null) {
+                        OZTools.playerSettings().setBoolean(uiPlayer.getDbID(),
+                                StargateChat.DEBUG_SETTING, !debugMessagesVisible(uiPlayer));
+                    }
+                    redrawContent();
+                }));
+                flexWrapper.addChild(debugSetting);
             }
 
         };
