@@ -18,10 +18,14 @@ jobs:
           ref: v0.2.0
           sparse-checkout: release-notes
       - name: Download validated tag build
-        env:
-          GH_TOKEN: ${{ github.token }}
+        uses: actions/download-artifact@v6
+        with:
+          name: build-output
+          run-id: 36769574470
+          github-token: ${{ github.token }}
+      - name: Verify release inputs
         run: |
-          gh run download 36769574470 -n build-output
+          find . -maxdepth 2 -type f | sort
           test -s dist/OZStargate-0.2.0.zip
           test -s release-notes/0.2.0.md
       - name: Publish release
