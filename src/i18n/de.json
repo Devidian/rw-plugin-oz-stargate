@@ -31,6 +31,14 @@
         "desc": "Wenn aktiv, sendet dieses Plugin eine Willkommensnachricht, wenn ein Spieler beitritt.",
         "label": "Willkommensnachricht"
       },
+      "forbiddenactions": {
+        "label": "Verbotene Aktionen",
+        "desc": "Schützt das Stargate-Netzwerk vor nicht vorgesehenen Moduswechseln.",
+        "changegamemode": {
+          "label": "Spielmoduswechsel verbieten",
+          "desc": "Verhindert Änderungen des lokalen Spielmodus über Spielbefehle."
+        }
+      },
       "logging": {
         "desc": "Logging-Ausgabe und Detailgrad.",
         "label": "Protokollierung"
@@ -38,6 +46,20 @@
       "loglevel": {
         "desc": "Steuert die Logging-Ausgabe des Plugins.",
         "label": "Log-Level"
+      },
+      "network": {
+        "label": "Stargate-Netzwerk",
+        "desc": "Globale Adressreservierung und optionale serverübergreifende Reisen.",
+        "enabled": {
+          "label": "Serverübergreifende Reisen aktivieren",
+          "desc": "Standardmäßig aus. Das Relay bleibt für weltweit eindeutige Toradressen erreichbar; lokale Reisen bleiben möglich."
+        }
+      },
+      "networkcode": {
+        "override": {
+          "label": "Netzwerkcode überschreiben",
+          "desc": "Optionaler Code zur Zuordnung von Testservern; leer nutzt die automatische Berechnung."
+        }
       },
       "playermessages": {
         "desc": "Nachrichten, die dieses Plugin direkt an Spieler sendet.",
@@ -50,6 +72,16 @@
       "runtime": {
         "desc": "Reload- und Wartungsverhalten zur Laufzeit.",
         "label": "Laufzeit"
+      },
+      "relay": {
+        "url": {
+          "label": "Relay-Adresse",
+          "desc": "WebSocket-Adresse des Stargate-Relays."
+        },
+        "advertisedhost": {
+          "label": "Erreichbarer Spielserver-Host",
+          "desc": "Öffentliche IP oder DNS-Name dieses Spielservers für die Anwahl."
+        }
       }
     },
     "stargate": {

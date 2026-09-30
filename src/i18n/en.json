@@ -31,6 +31,14 @@
         "desc": "If true, this plugin sends a welcome message when a player joins.",
         "label": "Welcome message"
       },
+      "forbiddenactions": {
+        "label": "Forbidden actions",
+        "desc": "Protects the Stargate network against unintended mode changes.",
+        "changegamemode": {
+          "label": "Forbid game-mode changes",
+          "desc": "Prevents local game-mode changes through game commands."
+        }
+      },
       "logging": {
         "desc": "Logging output and verbosity.",
         "label": "Logging"
@@ -38,6 +46,20 @@
       "loglevel": {
         "desc": "Controls plugin logging verbosity.",
         "label": "Log level"
+      },
+      "network": {
+        "label": "Stargate network",
+        "desc": "Global address reservation and optional cross-server travel.",
+        "enabled": {
+          "label": "Enable cross-server travel",
+          "desc": "Off by default. The relay remains available for globally unique gate addresses; local travel remains possible."
+        }
+      },
+      "networkcode": {
+        "override": {
+          "label": "Override network code",
+          "desc": "Optional code for grouping test servers; leave empty for automatic calculation."
+        }
       },
       "playermessages": {
         "desc": "Messages sent directly to players by this plugin.",
@@ -50,6 +72,16 @@
       "runtime": {
         "desc": "Runtime reload and maintenance behavior.",
         "label": "Runtime"
+      },
+      "relay": {
+        "url": {
+          "label": "Relay URL",
+          "desc": "WebSocket URL of the Stargate relay."
+        },
+        "advertisedhost": {
+          "label": "Reachable game-server host",
+          "desc": "Public IP or DNS name of this game server for dialing."
+        }
       }
     },
     "stargate": {

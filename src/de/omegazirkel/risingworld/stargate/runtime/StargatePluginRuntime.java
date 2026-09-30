@@ -146,7 +146,7 @@ public final class StargatePluginRuntime {
         PlayerPluginSettingsOverlay.registerPlayerPluginSettings(playerSettings);
         PlayerPluginSettingsOverlay.registerPlayerPluginData(new StargatePlayerPluginData(pluginName, version));
         PlayerPluginSettingsOverlay.registerPlayerPluginAdminSettings(new PlayerPluginAdminSettings(pluginName, version,
-                settings::adminSettingsEntries, settings::initSettings));
+                settings::adminSettingsEntries, () -> reloadSettings(settings.worldSettingsPath())));
         OZStargate.logger().info("✅ " + plugin.getName() + " Plugin is enabled version:" + version);
     }
 

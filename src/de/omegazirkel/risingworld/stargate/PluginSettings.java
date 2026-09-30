@@ -60,6 +60,10 @@ public class PluginSettings {
 		initSettings(pluginPath.resolve("settings." + safeWorldName() + ".json").toString());
 	}
 
+	public Path worldSettingsPath() {
+		return settingsFile;
+	}
+
 	public void initSettings(String filePath) {
 		settingsFile = Path.of(filePath);
 		Path defaultSettingsFile = settingsFile.resolveSibling("settings.default.json");
