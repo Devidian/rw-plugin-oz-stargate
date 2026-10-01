@@ -1,11 +1,12 @@
 package de.omegazirkel.risingworld.stargate;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.ArrayList;
+import de.omegazirkel.risingworld.stargate.audio.AudioThemeCatalog;
 
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.tools.OZLogger;
@@ -33,6 +34,9 @@ public class PluginSettings {
 	public String networkCodeTrusted = "";
 	public boolean networkEnabled = false;
 	public boolean forbidChangeGameMode = true;
+	public String audioTheme = "silent";
+	public int audioVolume = 70;
+	private Path audioDirectory;
 	private Path settingsFile;
 	private java.util.Map<String, String> currentSettings = new LinkedHashMap<>();
 	private java.util.Map<String, String> defaultSettings = new LinkedHashMap<>();
@@ -57,6 +61,7 @@ public class PluginSettings {
 
 	public void initSettings() {
 		Path pluginPath = Path.of(plugin.getPath() != null ? plugin.getPath() : ".");
+		audioDirectory = pluginPath.resolve("audio");
 		initSettings(pluginPath.resolve("settings." + safeWorldName() + ".json").toString());
 	}
 
@@ -84,6 +89,11 @@ public class PluginSettings {
 					defaults.getOrDefault("network.enabled", "false")));
 			forbidChangeGameMode = Boolean.parseBoolean(settings.getOrDefault("forbiddenActions.ChangeGameMode",
 					defaults.getOrDefault("forbiddenActions.ChangeGameMode", "true")));
+			String selectedTheme = settings.getOrDefault("audio.theme", defaults.getOrDefault("audio.theme", "silent"));
+			audioTheme = availableAudioThemes().contains(selectedTheme) ? selectedTheme : "silent";
+			try { audioVolume = Math.max(0, Math.min(100, Integer.parseInt(settings.getOrDefault("audio.volume",
+					defaults.getOrDefault("audio.volume", "70"))))); }
+			catch (NumberFormatException invalid) { audioVolume = 70; }
 			logger().info(plugin.getName() + " Plugin settings loaded");
 			logger().info("Sending welcome message on login is: " + String.valueOf(enableWelcomeMessage));
 			currentSettings = settings;
@@ -100,7 +110,7 @@ public class PluginSettings {
 
 	public List<AdminSettingsEntry> adminSettingsEntries() {
 		I18n i18n = I18n.getInstance(plugin.getDescription("name"));
-		return Arrays.asList(
+		List<AdminSettingsEntry> entries = new ArrayList<>(Arrays.asList(
 				AdminSettingsEntry.group("playerMessages", i18n.get("tc.setting.playermessages.label"),
 						i18n.get("tc.setting.playermessages.desc")),
 				entry("enableWelcomeMessage", i18n.get("tc.setting.enablewelcomemessage.label"),
@@ -119,7 +129,30 @@ public class PluginSettings {
 				AdminSettingsEntry.group("forbiddenActions", i18n.get("tc.stargate.trust.settings.title"),
 						i18n.get("tc.stargate.trust.settings.desc")),
 				entry("forbiddenActions.ChangeGameMode", i18n.get("tc.stargate.trust.settings.change_mode"),
-						i18n.get("tc.stargate.trust.settings.change_mode_desc"), AdminSettingsType.BOOLEAN));
+						i18n.get("tc.stargate.trust.settings.change_mode_desc"), AdminSettingsType.BOOLEAN)));
+		entries.add(AdminSettingsEntry.group("audio", i18n.get("tc.stargate.audio.settings.title"),
+				i18n.get("tc.stargate.audio.settings.desc")));
+		entries.add(new AdminSettingsEntry("audio.theme", i18n.get("tc.stargate.audio.settings.theme"),
+				i18n.get("tc.stargate.audio.settings.theme_desc"), audioTheme, "silent", AdminSettingsType.SELECT,
+				false, value -> availableAudioThemes().contains(value)
+					&& SettingsFileEditor.writeValue(settingsFile, "audio.theme", value),
+				availableAudioThemes()));
+		entries.add(new AdminSettingsEntry("audio.volume", i18n.get("tc.stargate.audio.settings.volume"),
+				i18n.get("tc.stargate.audio.settings.volume_desc"), Integer.toString(audioVolume), "70",
+				AdminSettingsType.INTEGER, false, value -> {
+					try {
+						int parsed = Integer.parseInt(value);
+						return parsed >= 0 && parsed <= 100
+								&& SettingsFileEditor.writeValue(settingsFile, "audio.volume", Integer.toString(parsed));
+					} catch (NumberFormatException invalid) { return false; }
+				}));
+		return entries;
+	}
+
+	public Path audioDirectory() { return audioDirectory; }
+
+	public List<String> availableAudioThemes() {
+		return AudioThemeCatalog.list(audioDirectory);
 	}
 
 	public synchronized void trustNetworkCode(String code) {

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.3.0 — 2026-10-01
+
+- Add selectable spatial sound themes, a personal sound switch and live administrator volume control. Package only a reproducible `silent` theme with 17 Ogg files; administrators can install their own themes under `audio/<theme>/`.
+- Align DHD lights, ring movement, chevron locks, opening, open loop, passage and shutdown cues with gate state. Local and network targets activate seven incoming chevrons at 400 ms intervals.
+- Open the source gate visually as soon as the target accepts, while preventing passage until the target's 2.8-second activation completes. Local dials check the target at the seventh lock and preempt unfinished outgoing dials there.
+- Play the passage cue for arrivals at the target gate. Hide travelers before teleport or inventory clearing and reveal them after successful arrival and clothing restoration; restore prior visibility after a failed outgoing transfer.
+- Update the plugin's test-only SQLite JDBC dependency to a patched release.
+
 ## 0.2.0 — 2026-09-30
 
 - Add one persistent gate per sector, local sector addresses and local travel; gate and DHD placement, repositioning and removal are available to administrators in the radial menu.

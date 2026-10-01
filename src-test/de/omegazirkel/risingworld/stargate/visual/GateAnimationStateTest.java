@@ -23,8 +23,8 @@ public class GateAnimationStateTest {
 
     @Test public void preemptionIgnoresOldOutgoingProgressAndStopsRing() {
         GateAnimationState incoming = state("INCOMING", "INCOMING", 3, true);
-        assertEquals(7, incoming.locks());
-        assertEquals(incoming, state("INCOMING", "INCOMING", 0, true));
+        assertEquals(3, incoming.locks());
+        assertEquals(0, state("INCOMING", "INCOMING", 0, true).locks());
     }
 
     @Test public void abortClosureOfflineAndUnknownStateAlwaysDark() {

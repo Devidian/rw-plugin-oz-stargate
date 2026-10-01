@@ -2,7 +2,7 @@
 
 Players can hide the Stargate shortcut in the plugin settings. It remains visible by default.
 
-Command-based Rising World Stargate plugin adapted from `rw-plugin-maven-template`. The Tools UI, JSON settings, DE/EN i18n, Info/Status, optional bridges, and single-listener entry point remain in place.
+Rising World Stargate plugin adapted from `rw-plugin-maven-template`. Players travel through local gates or, when administrators enable it, between trusted servers. The Tools UI, JSON settings, DE/EN i18n, Info/Status, optional bridges, and single-listener entry point remain in place.
 
 ## Inventory custody
 
@@ -10,9 +10,9 @@ Admins can use `/sg pack`, `/sg unpack`, and `/sg recover`. Packing serializes i
 
 ## Gate discovery (phase 2)
 
-Admins can use `/sg registerGate` at their current position and `/sg unregisterGate <ID>`. All players can use `/sg gatelist` and `/sg dial <target ID> [source ID]`. The source ID is optional only when exactly one local gate exists. The relay owns globally visible gate IDs; world-local SQLite keeps coordinates and orientation. A target with an incoming dial is reserved for one minute. This phase does not transfer players or inventory.
+Admins can use `/sg registerGate` at their current position and `/sg unregisterGate <ID>`. All players can use `/sg gatelist` and `/sg dial <target ID> [source ID]`. The source ID is optional only when exactly one local gate exists. The relay owns globally visible gate IDs; world-local SQLite keeps coordinates and orientation. An established wormhole has a one-minute travel window.
 
-`settings.<world>.json` contains `relay.url`, the required `relay.advertisedHost` (reachable IPv4 or DNS name), optional `networkCode.override`, `networkCode.trusted`, and `forbiddenActions.ChangeGameMode` (default `true`). The trusted code is written by the relay response and shown read-only in the admin workflow. The computed network code includes the forbidden-action flags; it is a routing value, not a secret. The default relay URL is `wss://sgn.omega-zirkel.de/ws`. Only use this build on Development/test servers.
+`settings.<world>.json` contains `relay.url`, the required `relay.advertisedHost` (reachable IPv4 or DNS name), optional `networkCode.override`, `networkCode.trusted`, and `forbiddenActions.ChangeGameMode` (default `true`). The trusted code is written by the relay response and shown read-only in the admin workflow. The computed network code includes the forbidden-action flags; it is a routing value, not a secret. The default relay URL is `wss://sgn.omega-zirkel.de/ws`. Use the relay only with a controlled group of trusted servers behind TLS.
 
 Phase 3A records a player's UID, name, world play time, and permission group per server when the player connects, spawns, or changes group. Admins can inspect available observations with `/sg trust [UID]`. It does not calculate a trust score or move inventory. With `forbiddenActions.ChangeGameMode=true`, attempted game-mode changes are cancelled and show a localized native error dialog.
 
@@ -32,17 +32,35 @@ manual setup and moving an unaligned model. New model placements put the ring
 about 1.2 m deeper in the ground; stored older models are unchanged. A second
 gate in the same sector is refused. `network.enabled` is off by default and
 controls cross-server travel; the relay stays connected for ID reservation
-and transfer recovery. Local dialing and passage await native player acceptance.
+and transfer recovery.
 
 ## Installation
 
 Requires OZ Tools and PluginAPI 0.9.3.2. Build with Java 20 and `mvn -B clean package`. Deploy `dist/OZStargate/` to `Plugins/OZStargate/`, preserving `settings.<world>.json` and `<world>.db`.
 
-## Installation (0.1.0)
+### Sound themes
 
-Requires OZ Tools 0.26.2 and the Rising World Unity API 0.9.3.2 baseline. Extract the release ZIP into Plugins, preserving world settings and SQLite databases during updates. Configure a private/trusted OZ Stargate Network 0.1.0 relay and a reachable advertised game-server address. Back up both player and plugin databases before rollback; never restore only one side of an in-flight transfer.
+The package contains only `audio/silent/` with 17 silent Ogg Vorbis files. Their
+durations match the privately supplied reference list; the reference recordings
+are not part of the repository or release. Admins can add `audio/<theme>/` with
+the same filenames and choose the folder name in PluginSettings. Reopen the
+admin settings to see newly added folders. Missing files in a selected theme
+fall back to `silent`. Avoid symbolic links and use letters, digits, `_` or `-`
+for folder names. `audio.volume` accepts 0–100% (default 70%), and each player
+can switch Stargate sounds off in personal plugin settings. Added theme files
+survive normal plugin updates when their names do not collide with packaged files.
 
-## 0.2.0 release candidate
+Required filenames: `dhd_1.ogg`, `dhd_2.ogg`, `gate_roll_b.ogg`,
+`gate_roll_c.ogg`, `chevron_out_1.ogg`, `gate_open.ogg`, `open_loop.ogg`,
+`shutdown_b.ogg`, `go_trough.ogg`, `dial_fail.ogg`, and `chevron_1.ogg`
+through `chevron_7.ogg`. Use Ogg Vorbis mono files. Custom sounds are
+administrator supplied content; verify rights before distribution.
+
+## Installation and compatibility
+
+Requires OZ Tools 0.26.2 and the Rising World Unity API 0.9.3.2 baseline. Extract the release ZIP into Plugins, preserving world settings and SQLite databases during updates. Configure a private/trusted OZ Stargate Network 0.3.0 relay and a reachable advertised game-server address. Back up both player and plugin databases before rollback; never restore only one side of an in-flight transfer.
+
+## Gate travel
 
 One gate per sector supports local travel by default. An administrator can
 place or move a gate with its DHD, place either separately, or remove both from
@@ -51,7 +69,7 @@ passage and outward-facing arrival point in one step. Players choose destination
 on the DHD and enter an open wormhole to travel. The models, collision, lighting
 and wormhole animation are included in the plugin package.
 
-Cross-server travel requires OZ Stargate Network 0.2.0 and an explicit
+Cross-server travel requires OZ Stargate Network 0.3.0 and an explicit
 `network.enabled=true` setting on each participating server. With the default
 `false`, the relay is still contacted to reserve globally unique gate IDs.
 When a target still holds an earlier visitor inventory, a new cross-server
@@ -69,7 +87,7 @@ personal plugin settings for debugging.
 
 ## Development: phase 5A dialing
 
-With a phase-5A relay, dialing encodes seven chevrons (default 14 seconds total) before contacting the target. An incoming connection interrupts an unfinished outgoing sequence. Once final connection negotiation or a wormhole is active, both gates are reserved. The wormhole closes after 60 seconds or disconnect; travel remains outgoing-only. No inventory is removed during dialing. Upgrade plugin and relay together: both require dialSequenceVersion=1 for new dials; legacy transfer recovery stays compatible.
+Dialing encodes seven chevrons (default 49 seconds) before contacting the target. After target approval, the source gate opens immediately while the target lights seven chevrons at 400 ms intervals (2.8 seconds total). Travel becomes available only after the target activation ends. A local target is checked only at the seventh source lock; an incoming connection interrupts an unfinished outgoing sequence and resets its lights. Once final connection negotiation or a wormhole is active, both gates are reserved. The wormhole closes 60 seconds after travel becomes available or on disconnect; travel remains outgoing-only. No inventory is removed during dialing. Upgrade plugin and relay together: both require dialSequenceVersion=1 for new dials; legacy transfer recovery stays compatible.
 
 ## Development: phase 5B DHD console
 

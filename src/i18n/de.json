@@ -1,6 +1,8 @@
 {
   "tc": {
-    "shortcut": {"visible": "Stargate-Shortcut in /ozt und Inventar anzeigen"},
+    "shortcut": {
+      "visible": "Stargate-Shortcut in /ozt und Inventar anzeigen"
+    },
     "cmd": {
       "help": "Hilfe: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. Zum Reisen das DHD am Tor benutzen, ein Ziel wählen und nach Öffnung des ausgehenden Wurmlochs die Durchgangszone betreten.",
       "status": "🔎 Plugin Status\n➡️ Plugin version: PH_VERSION\n➡️ Installierte Sprachen: PH_LANG_AVAILABLE\n➡️ Deine Sprache: PH_LANGUAGE\n➡️ Verwendete Sprache: PH_USEDLANG",
@@ -25,7 +27,8 @@
       "desc": "Hier kannst du spielerbezogene Einstellungen für PH_PLUGIN_NAME anpassen.",
       "empty": "Für PH_PLUGIN_NAME sind noch keine Spieler-Einstellungen verfügbar.",
       "title": "Plugin Einstellungen für PH_PLUGIN_NAME",
-      "debug_messages": "Debug-Meldungen im Chat anzeigen"
+      "debug_messages": "Debug-Meldungen im Chat anzeigen",
+      "audio_enabled": "Stargate-Sounds abspielen"
     },
     "setting": {
       "enablewelcomemessage": {
@@ -300,6 +303,16 @@
         "database_error": "Das Tor-Modell konnte nicht gespeichert oder entfernt werden. Bitte Serverlog prüfen.",
         "render_error": "Das Tor-Modell konnte nicht angezeigt werden. Bitte Serverlog prüfen; eine bereits gespeicherte Platzierung bleibt erhalten.",
         "aligned_locked": "Dieses Tor hat einen ausgerichteten Durchgang. Entferne zuerst /sg removehorizon PH_GATE, versetze/entferne dann das Modell und richte es mit /sg aligngate PH_GATE erneut ein."
+      },
+      "audio": {
+        "settings": {
+          "title": "Audio",
+          "desc": "Sound-Theme und Lautstärke für alle Spieler.",
+          "theme": "Sound-Theme",
+          "theme_desc": "Unterordner von audio/; neue Themes erscheinen beim erneuten Öffnen der Einstellungen.",
+          "volume": "Gesamtlautstärke (%)",
+          "volume_desc": "0 bis 100; Standard 70. Änderungen wirken sofort."
+        }
       }
     }
   }

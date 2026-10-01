@@ -1,6 +1,8 @@
 {
   "tc": {
-    "shortcut": {"visible": "Show Stargate shortcut in /ozt and inventory"},
+    "shortcut": {
+      "visible": "Show Stargate shortcut in /ozt and inventory"
+    },
     "cmd": {
       "help": "Help: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. To travel, use the gate DHD, choose a destination, then enter the passage zone once the outgoing wormhole opens.",
       "status": "🔎 Plugin Status\n➡️ Plugin version: PH_VERSION\n➡️ Installed languages: PH_LANG_AVAILABLE\n➡️ Your language: PH_LANGUAGE\n➡️ Used language: PH_USEDLANG\n➡️ Translated by: Devidian",
@@ -25,7 +27,8 @@
       "desc": "Here you can adjust the player-facing settings for PH_PLUGIN_NAME.",
       "empty": "No player settings are available for PH_PLUGIN_NAME yet.",
       "title": "Plugin Settings for PH_PLUGIN_NAME",
-      "debug_messages": "Show debug messages in chat"
+      "debug_messages": "Show debug messages in chat",
+      "audio_enabled": "Play Stargate sounds"
     },
     "setting": {
       "enablewelcomemessage": {
@@ -300,6 +303,16 @@
         "database_error": "Could not save or remove the gate model. Please check the server log.",
         "render_error": "Could not display the gate model. Please check the server log; any saved placement is retained.",
         "aligned_locked": "This gate has an aligned passage. First use /sg removehorizon PH_GATE, then move/remove the model and set it up again with /sg aligngate PH_GATE."
+      },
+      "audio": {
+        "settings": {
+          "title": "Audio",
+          "desc": "Sound theme and volume for all players.",
+          "theme": "Sound theme",
+          "theme_desc": "Subdirectory of audio/; new themes appear when reopening settings.",
+          "volume": "Master volume (%)",
+          "volume_desc": "0 to 100; default 70. Changes apply immediately."
+        }
       }
     }
   }

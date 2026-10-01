@@ -54,9 +54,23 @@ public final class DhdModelService implements AutoCloseable {
         this.network = network;
         for (DhdModelPlacement placement : store.all()) placements.put(placement.gateId(), placement);
         dhd.setModelValidator(this::canUse);
+        network.setDhdVisualStateObserver(this::updateAnimations);
     }
 
     public void start() { plugin.enqueue(this::tick); }
+
+    public Vector3f audioPosition(String gateId) {
+        DhdModelPlacement placement = placements.get(gateId);
+        return placement == null ? null : new Vector3f(placement.x(), placement.y() + 2f, placement.z());
+    }
+
+    private void updateAnimations() {
+        if (closed || renderFailed) return;
+        try {
+            for (Map.Entry<String, Model> entry : models.entrySet())
+                ((AnimatedDhdModel) entry.getValue()).update(network.gateView(entry.getKey()));
+        } catch (RuntimeException ex) { fail(ex); }
+    }
 
     public void command(Player player, String command, String[] args) {
         if (!player.isAdmin()) { StargateChat.debug(player, i18n.get("tc.stargate.inventory.admin_only", player)); return; }
@@ -155,8 +169,7 @@ public final class DhdModelService implements AutoCloseable {
         if (!renderFailed) {
             try {
                 refresh();
-                for (Map.Entry<String, Model> entry : models.entrySet())
-                    ((AnimatedDhdModel) entry.getValue()).update(network.gateView(entry.getKey()));
+                updateAnimations();
             }
             catch (RuntimeException ex) { fail(ex); }
         }
@@ -269,6 +282,7 @@ public final class DhdModelService implements AutoCloseable {
     @Override public void close() {
         if (closed) return;
         closed = true;
+        network.setDhdVisualStateObserver(() -> { });
         for (Viewer viewer : List.copyOf(viewers.values())) disconnect(viewer.player);
         models.clear(); placements.clear();
         assets.close();

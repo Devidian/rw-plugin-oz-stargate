@@ -49,7 +49,7 @@ public class WormholeTransitionTest {
     }
     @Test public void closureDuringRearVortexCancelsBothProtrusions() {
         WormholeTransition transition = new WormholeTransition();
-        assertTrue(transition.sample(view("OPEN", true, NOW - 2_250_000_000L), NOW).rearDepth() > 0);
+        assertTrue(transition.sample(view("OPEN", true, NOW - 2_864_000_000L), NOW).rearDepth() > 0);
         WormholePose closing = transition.sample(view("IDLE", true, 0), NOW);
         assertTrue(closing.visible());
         assertEquals(0f, closing.surgeDepth(), 0f);

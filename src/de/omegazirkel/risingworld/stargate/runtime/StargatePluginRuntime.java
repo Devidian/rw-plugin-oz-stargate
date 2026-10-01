@@ -19,6 +19,7 @@ import de.omegazirkel.risingworld.stargate.dhd.DhdModelService;
 import de.omegazirkel.risingworld.stargate.horizon.HorizonStore;
 import de.omegazirkel.risingworld.stargate.horizon.HorizonService;
 import de.omegazirkel.risingworld.stargate.PluginSettings;
+import de.omegazirkel.risingworld.stargate.audio.GateAudioService;
 import de.omegazirkel.risingworld.stargate.inventory.InventorySnapshotService;
 import de.omegazirkel.risingworld.stargate.inventory.InventorySnapshotStore;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
@@ -61,6 +62,7 @@ public final class StargatePluginRuntime {
     private final GatePreviewService previews;
     private final GateModelAssets modelAssets;
     private final GateVisualService visuals;
+    private final GateAudioService audio;
 
     public StargatePluginRuntime(OZStargate plugin) {
         this.plugin = plugin;
@@ -91,6 +93,7 @@ public final class StargatePluginRuntime {
             throw new IllegalStateException("Cannot initialize Stargate inventory database", ex);
         }
         network = new GateNetworkClient(plugin, settings, i18n, gates, localSectors);
+        audio = new GateAudioService(settings);
         localDial = new LocalDialService(plugin, localSectors, gates, network, i18n);
         network.setLocalDial(localDial);
         TransferService transfers = new TransferService(plugin, transferStore, snapshots, gates, network, i18n);
@@ -100,6 +103,7 @@ public final class StargatePluginRuntime {
             dhdModels = new DhdModelService(plugin, dhdModelStore, gates, dhd,
                     new DhdModelAssets(plugin), i18n, network);
         } catch (SQLException ex) { throw new IllegalStateException("Cannot load DHD models", ex); }
+        audio.setDhdPosition(dhdModels::audioPosition);
         try {
             horizons = new HorizonService(plugin, horizonStore, gates, localSectors, network, localDial, transfers, i18n, visualStore, transferStore);
         } catch (SQLException ex) { throw new IllegalStateException("Cannot load Stargate horizons", ex); }
@@ -107,8 +111,11 @@ public final class StargatePluginRuntime {
         modelAssets = new GateModelAssets(plugin);
         previews = new GatePreviewService(plugin, i18n, modelAssets);
         try {
-            visuals = new GateVisualService(plugin, visualStore, gates, modelAssets, i18n, horizons::isAligned, network);
+            visuals = new GateVisualService(plugin, visualStore, gates, modelAssets, i18n, horizons::isAligned, network, audio);
         } catch (SQLException ex) { throw new IllegalStateException("Cannot load Stargate models", ex); }
+        horizons.setTravelObserver(visuals::travelled);
+        horizons.setArrivalObserver(visuals::arrived);
+        transfers.setArrivalSoundObserver(visuals::arrived);
         network.setGateDeletedObserver(id -> { localDial.gateDeleted(id); horizons.gateDeleted(id); visuals.gateDeleted(id); dhdModels.gateDeleted(id); });
         GatePlacementService placement = new GatePlacementService(plugin, gates, localSectors, visualStore, horizonStore,
                 dhdModelStore, visuals, horizons, dhdModels, network, i18n);
@@ -119,6 +126,7 @@ public final class StargatePluginRuntime {
 
     public void enable() {
         settings.initSettings();
+        audio.reload();
         network.start();
         localDial.start();
         visuals.start();
@@ -152,6 +160,7 @@ public final class StargatePluginRuntime {
 
     public void disable() {
         previews.close();
+        audio.close();
         visuals.close();
         dhdModels.close();
         modelAssets.close();
@@ -174,9 +183,11 @@ public final class StargatePluginRuntime {
         String priorUrl = settings.relayUrl;
         String priorHost = settings.relayAdvertisedHost;
         String priorOverride = settings.networkCodeOverride;
+        String audioThemeBefore = settings.audioTheme;
         boolean priorNetworkEnabled = settings.networkEnabled;
         boolean priorForbiddenMode = settings.forbidChangeGameMode;
         settings.initSettings(settingsPath.toString());
+        if (!Objects.equals(audioThemeBefore, settings.audioTheme)) audio.reload();
         if (!Objects.equals(priorUrl, settings.relayUrl)
                 || !Objects.equals(priorHost, settings.relayAdvertisedHost)
                 || !Objects.equals(priorOverride, settings.networkCodeOverride)

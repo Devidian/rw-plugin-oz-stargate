@@ -34,8 +34,10 @@ public final class TransferService {
     private final I18n i18n;
     private final Gson gson = new Gson();
     private java.util.function.Consumer<Player> arrivalObserver = player -> { };
+    private java.util.function.BiConsumer<Player, String> arrivalSoundObserver = (player, gateId) -> { };
 
     public void setArrivalObserver(java.util.function.Consumer<Player> observer) { arrivalObserver = observer; }
+    public void setArrivalSoundObserver(java.util.function.BiConsumer<Player, String> observer) { arrivalSoundObserver = observer; }
 
     public TransferService(OZStargate plugin, TransferStore store, InventorySnapshotStore manualEscrow,
             LocalGateStore gates, GateNetworkClient network, I18n i18n) {
@@ -148,6 +150,7 @@ public final class TransferService {
             if (player == null || !player.isConnected()) { abort(id); return; }
             if (!matches(player, data(transfer))) { abort(id); tell(player, "warp_changed"); return; }
             if (!store.transition(id, "PREPARED", "CLEARING")) return;
+            player.setInvisible(true);
             clear(player);
             Server.savePlayers();
             if (!empty(player) || !store.transition(id, "CLEARING", "CLEARED")) {
@@ -258,8 +261,10 @@ public final class TransferService {
             JsonObject incoming = data(transfer);
             if (transfer.state().equals("APPLYING")) {
                 if (matches(player, incoming)) {
+                    player.setInvisible(true);
                     finishArrival(player, transfer, incoming);
-                    store.transition(id, "APPLYING", "APPLIED");
+                    if (store.transition(id, "APPLYING", "APPLIED"))
+                        arrivalSoundObserver.accept(player, transfer.gateId());
                     network.transfer("transferDone", id, Map.of("transferId", id));
                 } else tell(player, "warp_manual");
                 return;
@@ -285,6 +290,7 @@ public final class TransferService {
                 tell(player, "warp_manual"); return;
             } else store.baseState(transfer.uid(), "RESTORE_PENDING", "HELD");
             if (!store.transition(id, "PREPARED", "APPLYING")) return;
+            player.setInvisible(true);
             apply(player, transfer, incoming);
         } catch (SQLException | RuntimeException ex) { log("Cannot apply incoming transfer", ex); tell(Server.getPlayerByUID(payload.get("uid").getAsString()), "warp_manual"); }
     }
@@ -327,10 +333,20 @@ public final class TransferService {
 
     private void restoreOutgoing(Player player, Transfer transfer) throws SQLException {
         JsonObject original = data(transfer);
-        if (matches(player, original)) { store.transition(transfer.id(), "ABORTED", "CANCELLED"); tell(player, "warp_restored"); return; }
+        if (matches(player, original)) {
+            if (store.transition(transfer.id(), "ABORTED", "CANCELLED")) restoreVisibility(player, original);
+            tell(player, "warp_restored"); return;
+        }
         if (!empty(player)) { tell(player, "warp_manual"); return; }
-        if (restore(player, original) && store.transition(transfer.id(), "ABORTED", "CANCELLED")) tell(player, "warp_restored");
+        if (restore(player, original) && store.transition(transfer.id(), "ABORTED", "CANCELLED")) {
+            restoreVisibility(player, original);
+            tell(player, "warp_restored");
+        }
         else tell(player, "warp_manual");
+    }
+
+    private static void restoreVisibility(Player player, JsonObject original) {
+        player.setInvisible(original.has("wasInvisible") && original.get("wasInvisible").getAsBoolean());
     }
 
     private void restoreBase(Player player) throws SQLException {
@@ -349,6 +365,7 @@ public final class TransferService {
         if (!restore(player, incoming)) { tell(player, "warp_manual"); return; }
         finishArrival(player, transfer, incoming);
         if (store.transition(transfer.id(), "APPLYING", "APPLIED")) {
+            arrivalSoundObserver.accept(player, transfer.gateId());
             network.transfer("transferDone", transfer.id(), Map.of("transferId", transfer.id()));
             tell(player, "warp_arrived", "PH_GATE", transfer.gateId());
         }
@@ -364,6 +381,7 @@ public final class TransferService {
         player.setPosition(gate.position());
         player.setRotation(gate.rotation());
         arrivalObserver.accept(player);
+        player.setInvisible(false);
         Server.savePlayers();
     }
 
@@ -382,6 +400,7 @@ public final class TransferService {
         snapshot.put("hunger", player.getHunger());
         snapshot.put("thirst", player.getThirst());
         snapshot.put("stamina", player.getStamina());
+        snapshot.put("wasInvisible", player.isInvisible());
         return snapshot;
     }
 

@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
+import de.omegazirkel.risingworld.stargate.audio.GateAudioService;
 import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import de.omegazirkel.risingworld.tools.I18n;
 import net.risingworld.api.Server;
@@ -30,6 +31,7 @@ public final class GateVisualService {
     private final I18n i18n;
     private final Predicate<String> alignedGate;
     private final GateNetworkClient network;
+    private final GateAudioService audio;
     private final Map<String, GateVisualPlacement> placements = new HashMap<>();
     private final Map<String, Model> models = new HashMap<>();
     private final Map<String, Viewer> viewers = new HashMap<>();
@@ -37,9 +39,11 @@ public final class GateVisualService {
     private boolean renderFailed;
 
     public GateVisualService(OZStargate plugin, GateVisualStore store, LocalGateStore gates,
-            GateModelAssets assets, I18n i18n, Predicate<String> alignedGate, GateNetworkClient network) throws SQLException {
+            GateModelAssets assets, I18n i18n, Predicate<String> alignedGate, GateNetworkClient network,
+            GateAudioService audio) throws SQLException {
         this.plugin = plugin; this.store = store; this.gates = gates; this.assets = assets; this.i18n = i18n; this.alignedGate = alignedGate;
         this.network = network;
+        this.audio = audio;
         network.setVisualStateObserver(this::updateAnimations);
         for (GateVisualPlacement placement : store.all()) placements.put(placement.gateId(), placement);
     }
@@ -49,6 +53,7 @@ public final class GateVisualService {
         // that reset while our viewer cache already considered the model visible.
         plugin.enqueue(this::tick);
         plugin.enqueue(this::animationTick);
+        plugin.enqueue(this::audioTick);
     }
 
     public void command(Player player, String command, String[] args) {
@@ -114,6 +119,37 @@ public final class GateVisualService {
                 ((AnimatedGateModel) entry.getValue()).update(network.gateView(entry.getKey()));
             }
         } catch (RuntimeException ex) { failRendering(ex); }
+        syncAudio();
+    }
+
+    private void audioTick() {
+        if (closed) return;
+        syncAudio();
+        plugin.executeDelayed(.1f, this::audioTick);
+    }
+
+    private void syncAudio() {
+        Map<String, Set<Player>> listeners = new HashMap<>();
+        for (Viewer viewer : viewers.values()) for (String id : viewer.gates())
+            listeners.computeIfAbsent(id, ignored -> new HashSet<>()).add(viewer.player());
+        audio.update(placements, listeners, network);
+    }
+
+    public void travelled(String gateId) {
+        GateVisualPlacement placement = placements.get(gateId);
+        if (placement == null) return;
+        Set<Player> listeners = new HashSet<>();
+        for (Viewer viewer : viewers.values()) if (viewer.gates().contains(gateId)) listeners.add(viewer.player());
+        audio.travel(gateId, placement, listeners);
+    }
+
+    public void arrived(Player player, String gateId) {
+        GateVisualPlacement placement = placements.get(gateId);
+        if (placement == null) return;
+        Set<Player> listeners = new HashSet<>();
+        for (Viewer viewer : viewers.values()) if (viewer.gates().contains(gateId)) listeners.add(viewer.player());
+        listeners.add(player);
+        audio.travel(gateId, placement, listeners);
     }
 
     private void animationTick() {
@@ -156,6 +192,7 @@ public final class GateVisualService {
         Set<String> used = new HashSet<>();
         for (Viewer viewer : viewers.values()) used.addAll(viewer.gates());
         models.keySet().removeIf(id -> !used.contains(id));
+        syncAudio();
     }
 
     private void refreshPlayer(Player player) {
@@ -227,6 +264,7 @@ public final class GateVisualService {
     public void gateDeleted(String id) {
         placements.remove(id);
         removeModel(id);
+        syncAudio();
     }
 
     private void removeModel(String id) {
@@ -247,6 +285,7 @@ public final class GateVisualService {
     }
 
     public void disconnect(Player player) {
+        audio.disconnect(player);
         Viewer viewer = viewers.get(player.getUID());
         if (viewer == null || viewer.player() != player) return;
         viewers.remove(player.getUID());

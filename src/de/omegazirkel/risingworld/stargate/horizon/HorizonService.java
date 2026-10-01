@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
@@ -47,6 +49,11 @@ public final class HorizonService {
     private final Map<String, Movement> movements = new HashMap<>();
     private final Map<String, Preview> previews = new HashMap<>();
     private boolean closed;
+    private Consumer<String> travelObserver = gateId -> { };
+    private BiConsumer<Player, String> arrivalObserver = (player, gateId) -> { };
+
+    public void setTravelObserver(Consumer<String> observer) { travelObserver = observer; }
+    public void setArrivalObserver(BiConsumer<Player, String> observer) { arrivalObserver = observer; }
 
     public HorizonService(OZStargate plugin, HorizonStore store, LocalGateStore gates, LocalSectorStore sectors,
             GateNetworkClient network, LocalDialService localDial, TransferService transfers, I18n i18n,
@@ -175,9 +182,17 @@ public final class HorizonService {
                 try {
                     LocalGateStore.Gate destination = gates.gate(localTarget);
                     if (destination == null) return;
-                    player.setPosition(destination.position());
-                    player.setRotation(destination.rotation());
-                    reset(player);
+                    travelObserver.accept(entered);
+                    boolean revealAfterArrival = !player.isInvisible();
+                    if (revealAfterArrival) player.setInvisible(true);
+                    try {
+                        player.setPosition(destination.position());
+                        player.setRotation(destination.rotation());
+                        reset(player);
+                    } finally {
+                        if (revealAfterArrival && player.isConnected()) player.setInvisible(false);
+                    }
+                    arrivalObserver.accept(player, localTarget);
                     StargateChat.debug(player, i18n.get("tc.stargate.sector.arrived", player));
                 } catch (SQLException ex) {
                     OZStargate.logger().error("Local Stargate arrival failed: " + ex.getMessage());
@@ -188,6 +203,7 @@ public final class HorizonService {
             if (window == null || !entered.equals(window.sourceGateId())) return;
             // A single synchronous custody boundary; it also rejects active or ambiguous transfers.
             transfers.warp(player, window.targetGateId());
+            travelObserver.accept(entered);
         });
     }
 

@@ -3,5 +3,6 @@
   "relay": { "url": "wss://sgn.omega-zirkel.de/ws", "advertisedHost": "" },
   "networkCode": { "override": "", "trusted": "" },
   "network": { "enabled": false },
-  "forbiddenActions": { "ChangeGameMode": true }
+  "forbiddenActions": { "ChangeGameMode": true },
+  "audio": { "theme": "silent", "volume": 70 }
 }

@@ -17,6 +17,7 @@ import com.google.gson.JsonParser;
 
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.PluginSettings;
+import de.omegazirkel.risingworld.stargate.audio.GateAudioTiming;
 import de.omegazirkel.risingworld.stargate.transfer.TransferService;
 import de.omegazirkel.risingworld.stargate.sector.LocalSectorStore;
 import de.omegazirkel.risingworld.stargate.sector.SectorAddress;
@@ -54,7 +55,7 @@ public final class GateNetworkClient implements WebSocketHandler {
     public record GateView(String state, String direction, String peerGateId, int chevrons, boolean ready,
             int stepMillis, long stepStartedNanos, long openedNanos) {
         public GateView(String state, String direction, String peerGateId, int chevrons, boolean ready) {
-            this(state, direction, peerGateId, chevrons, ready, 3500, System.nanoTime(), 0);
+            this(state, direction, peerGateId, chevrons, ready, GateAudioTiming.DIAL_STEP_MS, System.nanoTime(), 0);
         }
         public GateView(String state, String direction, String peerGateId, int chevrons, boolean ready,
                 int stepMillis, long stepStartedNanos) {
@@ -62,12 +63,16 @@ public final class GateNetworkClient implements WebSocketHandler {
         }
     }
     private final Map<String, Long> openedTimes = new HashMap<>();
+    private final Map<String, Long> closingTimes = new HashMap<>();
+    private final Map<String, Long> incomingTimes = new HashMap<>();
+    private boolean incomingAnimationTickQueued;
     private record DialTiming(int stepMillis, long startedNanos) { }
     private final Map<String, DialTiming> dialTimings = new HashMap<>();
     private final Map<String, Integer> chevrons = new HashMap<>();
     private final Map<String, String> pendingDials = new HashMap<>();
     private Runnable stateObserver = () -> { };
     private Runnable visualStateObserver = () -> { };
+    private Runnable dhdVisualStateObserver = () -> { };
     private Consumer<String> gateDeletedObserver = id -> { };
     private final Map<String, GateState> gateStates = new HashMap<>();
     private boolean dialSequenceSupported;
@@ -81,9 +86,11 @@ public final class GateNetworkClient implements WebSocketHandler {
 
     public void setStateObserver(Runnable observer) { stateObserver = observer; }
     public void setVisualStateObserver(Runnable observer) { visualStateObserver = observer; }
+    public void setDhdVisualStateObserver(Runnable observer) { dhdVisualStateObserver = observer; }
 
     private void notifyStateObservers() {
         stateObserver.run();
+        dhdVisualStateObserver.run();
         visualStateObserver.run();
     }
 
@@ -99,8 +106,12 @@ public final class GateNetworkClient implements WebSocketHandler {
         return new GateView(state == null ? (pending == null ? "IDLE" : "OUTGOING") : state.state(),
                 state == null ? "OUTGOING" : state.direction(),
                 state == null ? (pending == null ? "" : pending.gateId()) : state.peerGateId(),
-                chevrons.getOrDefault(gateId, 0), isReady() && dialSequenceSupported,
-                timing == null ? 3500 : timing.stepMillis(), timing == null ? 0 : timing.startedNanos(), openedTimes.getOrDefault(gateId, 0L));
+                state != null && "INCOMING".equals(state.state())
+                        ? incomingTimes.containsKey(gateId)
+                                ? Math.min(7, 1 + (int) ((System.nanoTime() - incomingTimes.get(gateId))
+                                        / (GateAudioTiming.INCOMING_CHEVRON_MS * 1_000_000L))) : 0
+                        : chevrons.getOrDefault(gateId, 0), isReady() && dialSequenceSupported,
+                timing == null ? GateAudioTiming.DIAL_STEP_MS : timing.stepMillis(), timing == null ? 0 : timing.startedNanos(), openedTimes.getOrDefault(gateId, 0L));
     }
 
     public void requestAddresses(Player player, Consumer<List<String>> callback) {
@@ -151,6 +162,11 @@ public final class GateNetworkClient implements WebSocketHandler {
         return window;
     }
 
+    public long closingAtNanos(String gateId) {
+        Long local = localDial == null ? null : localDial.closingAtNanos(gateId);
+        return local == null ? closingTimes.getOrDefault(gateId, 0L) : local;
+    }
+
     public boolean transfer(String type, String requestId, Map<String, ?> payload) {
         return isReady() && send(type, requestId, payload, networkCode);
     }
@@ -169,7 +185,7 @@ public final class GateNetworkClient implements WebSocketHandler {
         stopSocket();
         networkCode = null;
         clearRequests();
-        gateStates.clear(); openedTimes.clear();
+        gateStates.clear(); openedTimes.clear(); closingTimes.clear(); incomingTimes.clear();
         dialSequenceSupported = false;
         windows.clear();
         notifyStateObservers();
@@ -180,7 +196,7 @@ public final class GateNetworkClient implements WebSocketHandler {
         dispatcher.close();
         stopSocket();
         clearRequests();
-        gateStates.clear(); openedTimes.clear();
+        gateStates.clear(); openedTimes.clear(); closingTimes.clear(); incomingTimes.clear();
         dialSequenceSupported = false;
         windows.clear();
     }
@@ -230,7 +246,7 @@ public final class GateNetworkClient implements WebSocketHandler {
     }
 
     @Override public void onDisconnected() {
-        dispatcher.dispatch(() -> { networkCode = null; dialSequenceSupported = false; clearRequests(); windows.clear(); gateStates.clear(); openedTimes.clear(); notifyStateObservers(); });
+        dispatcher.dispatch(() -> { networkCode = null; dialSequenceSupported = false; clearRequests(); windows.clear(); gateStates.clear(); openedTimes.clear(); closingTimes.clear(); incomingTimes.clear(); notifyStateObservers(); });
     }
 
     @Override public void onTextMessage(String text) {
@@ -265,8 +281,8 @@ public final class GateNetworkClient implements WebSocketHandler {
                 Player player = Server.getPlayerByUID(pending.playerUid());
                 int chevron = payload.get("chevron").getAsInt();
                 chevrons.put(pending.sourceGateId(), chevron);
-                int stepMs = payload.has("stepMs") ? payload.get("stepMs").getAsInt() : 3500;
-                dialTimings.put(pending.sourceGateId(), new DialTiming(Math.max(1, Math.min(5000, stepMs)), System.nanoTime()));
+                int stepMs = payload.has("stepMs") ? payload.get("stepMs").getAsInt() : GateAudioTiming.DIAL_STEP_MS;
+                dialTimings.put(pending.sourceGateId(), new DialTiming(Math.max(1, Math.min(10000, stepMs)), System.nanoTime()));
                 notifyStateObservers();
                 if (chevron == 0) tell(player, "dial_started", "PH_GATE", pending.gateId());
                 else tell(player, "dial_chevron", "PH_CHEVRON", Integer.toString(chevron));
@@ -328,6 +344,8 @@ public final class GateNetworkClient implements WebSocketHandler {
                     windows.put(request.gateId(), new DialWindow(request.sourceGateId(), request.gateId(),
                             payload.get("host").getAsString(), payload.get("port").getAsInt(),
                             System.currentTimeMillis() + Math.min(60_000L, payload.get("expiresInMs").getAsLong())));
+                    closingTimes.put(request.sourceGateId(), System.nanoTime()
+                            + Math.min(60_000L, payload.get("expiresInMs").getAsLong()) * 1_000_000L);
                     tell(player, "dial_free", "PH_TARGET", payload.get("gateId").getAsString()
                             + " (" + payload.get("host").getAsString() + ":" + payload.get("port").getAsInt() + ")");
                 }
@@ -363,6 +381,8 @@ public final class GateNetworkClient implements WebSocketHandler {
             if (previous == null || !previous.connectionId().equals(next.connectionId())) return;
             gateStates.remove(gateId);
             openedTimes.remove(gateId);
+            closingTimes.remove(gateId);
+            incomingTimes.remove(gateId);
             chevrons.remove(gateId); dialTimings.remove(gateId);
             windows.entrySet().removeIf(entry -> entry.getValue().sourceGateId().equals(gateId));
             if (previous.state().equals("OPEN")) {
@@ -370,9 +390,12 @@ public final class GateNetworkClient implements WebSocketHandler {
             }
         } else {
             gateStates.put(gateId, next);
+            if (!"INCOMING".equals(next.state())) incomingTimes.remove(gateId);
             if (next.state().equals("OPEN")) {
                 if (previous == null || !previous.state().equals("OPEN")
                         || !previous.connectionId().equals(next.connectionId())) openedTimes.put(gateId, System.nanoTime());
+                if (next.direction().equals("INCOMING") && !closingTimes.containsKey(gateId))
+                    closingTimes.put(gateId, System.nanoTime() + GateAudioTiming.OPEN_MS * 1_000_000L);
             } else openedTimes.remove(gateId);
             if (next.state().equals("OPEN") && next.direction().equals("INCOMING") && !next.equals(previous)) {
                 StargateChat.incoming(gateId, sectors, i18n);
@@ -381,18 +404,33 @@ public final class GateNetworkClient implements WebSocketHandler {
         notifyStateObservers();
     }
 
+    private void scheduleIncomingAnimationTick() {
+        if (incomingAnimationTickQueued) return;
+        incomingAnimationTickQueued = true;
+        plugin.executeDelayed(.1f, () -> {
+            incomingAnimationTickQueued = false;
+            if (incomingTimes.isEmpty()) return;
+            dhdVisualStateObserver.run();
+            visualStateObserver.run();
+            scheduleIncomingAnimationTick();
+        });
+    }
+
     private void handleDialIn(JsonObject payload) {
         String gateId = payload.get("gateId").getAsString();
         String dialId = payload.get("dialId").getAsString();
         try {
             GateState state = gateStates.get(gateId);
-            if (!settings.networkEnabled || (localDial != null && !localDial.acceptRemoteIncoming(gateId))
-                    || !gates.exists(gateId) || state == null || !state.state().equals("INCOMING")
-                    || !state.connectionId().equals(dialId)) {
+            if (!settings.networkEnabled || !gates.exists(gateId) || state == null
+                    || !state.state().equals("INCOMING") || !state.connectionId().equals(dialId)
+                    || (localDial != null && !localDial.acceptRemoteIncoming(gateId))) {
                 send("gateBlocked", UUID.randomUUID().toString(), Map.of("gateId", gateId, "dialId", dialId), networkCode);
                 for (Player player : Server.getAllPlayers()) if (player.isAdmin()) tell(player, "incoming_blocked", "PH_GATE", gateId);
                 return;
             }
+            incomingTimes.put(gateId, System.nanoTime());
+            notifyStateObservers();
+            scheduleIncomingAnimationTick();
             send("gateFree", UUID.randomUUID().toString(), Map.of("gateId", gateId, "dialId", dialId), networkCode);
         } catch (SQLException ex) {
             OZStargate.logger().error("Gate availability check failed: " + ex.getMessage());
@@ -514,7 +552,8 @@ public final class GateNetworkClient implements WebSocketHandler {
             if (addresses != null) addresses.accept(null);
             notifyStateObservers(); tell(player, "offline", null, null); return;
         }
-        plugin.executeDelayed(type.equals("dialGate") ? 60f : 15f, () -> {
+        // Seven 7s steps plus the target's 10s reply budget need a little network margin.
+        plugin.executeDelayed(type.equals("dialGate") ? 90f : 15f, () -> {
             if (requests.remove(requestId) != null) {
                 pendingDials.remove(sourceGateId, requestId);
                 if (addresses != null) addresses.accept(null);

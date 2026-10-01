@@ -88,10 +88,7 @@ final class AnimatedDhdModel extends Model {
     }
 
     void update(GateView view) {
-        boolean active = view.ready() && ("OUTGOING".equals(view.state()) || "INCOMING".equals(view.state())
-                || "OPEN".equals(view.state()));
-        int circuits = !active ? 0 : "OUTGOING".equals(view.state())
-                ? Math.min(7, Math.max(1, view.chevrons() + 1)) : 7;
+        int circuits = litCircuits(view);
         if (circuits != activeCircuits) {
             for (int i = 0; i < keyCircuits.length; i++) {
                 keyCircuits[i].setMaterial(i < circuits ? assets.litKeys() : assets.keys());
@@ -100,11 +97,19 @@ final class AnimatedDhdModel extends Model {
             }
             activeCircuits = circuits;
         }
-        boolean nextOpened = active && "OPEN".equals(view.state());
+        boolean nextOpened = view.ready() && "OPEN".equals(view.state());
         if (nextOpened != opened) {
             activation.setMaterial(nextOpened ? assets.activeActivation() : assets.activation());
             activationLight.setActive(nextOpened);
             opened = nextOpened;
         }
+    }
+
+    static int litCircuits(GateView view) {
+        boolean active = view.ready() && ("OUTGOING".equals(view.state()) || "INCOMING".equals(view.state())
+                || "OPEN".equals(view.state()));
+        return !active ? 0 : "OUTGOING".equals(view.state())
+                ? view.stepStartedNanos() == 0 ? 0 : Math.min(7, Math.max(1, view.chevrons() + 1))
+                : "INCOMING".equals(view.state()) ? Math.min(7, Math.max(0, view.chevrons())) : 7;
     }
 }

@@ -7,6 +7,7 @@ import de.omegazirkel.risingworld.tools.ui.OZUIElement;
 import de.omegazirkel.risingworld.tools.ui.PlayerPluginSettings;
 import de.omegazirkel.risingworld.tools.ui.PluginShortcutVisibility;
 import net.risingworld.api.objects.Player;
+import de.omegazirkel.risingworld.stargate.audio.GateAudioService;
 import de.omegazirkel.risingworld.tools.I18n;
 
 public class StargatePlayerPluginSettings extends PlayerPluginSettings {
@@ -56,6 +57,15 @@ public class StargatePlayerPluginSettings extends PlayerPluginSettings {
                     redrawContent();
                 }));
                 flexWrapper.addChild(debugSetting);
+                OZUIElement audioSetting = defaultSettingsContainer();
+                audioSetting.addChild(defaultSettingsLabel(I18n.getInstance(pluginLabel)
+                        .get("tc.settings.audio_enabled", uiPlayer)));
+                audioSetting.addChild(switchButtons(uiPlayer, GateAudioService.enabled(uiPlayer), event -> {
+                    if (OZTools.playerSettings() != null) OZTools.playerSettings().setBoolean(uiPlayer.getDbID(),
+                            GateAudioService.PLAYER_ENABLED_KEY, !GateAudioService.enabled(uiPlayer));
+                    redrawContent();
+                }));
+                flexWrapper.addChild(audioSetting);
             }
 
         };

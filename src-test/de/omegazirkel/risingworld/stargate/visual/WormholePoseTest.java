@@ -10,7 +10,8 @@ public class WormholePoseTest {
         return new GateView(state, "OUTGOING", "peer", 7, ready, 5000, 0, opened);
     }
     private WormholePose at(double seconds) {
-        return WormholePose.sample(view("OPEN", true, OPENED), OPENED + (long) (seconds * 1_000_000_000L));
+        return WormholePose.sample(view("OPEN", true, OPENED), OPENED
+                + (long) (seconds * WormholePose.OPEN_AUDIO_SECONDS / WormholePose.SURGE_END * 1_000_000_000L));
     }
 
     @Test public void onlyAuthoritativeReadyOpenShowsWater() {
@@ -46,6 +47,11 @@ public class WormholePoseTest {
         assertEquals(1f, restored.radiusScale(), 0f);
         assertEquals(0f, restored.surgeDepth(), 0f);
         assertEquals(0f, restored.rearDepth(), 0f);
+    }
+
+    @Test public void openingSettlesWithReferenceClip() {
+        assertTrue(WormholePose.sample(view("OPEN", true, OPENED), OPENED + 3_000_000_000L).rearDepth() > 0);
+        assertEquals(0f, WormholePose.sample(view("OPEN", true, OPENED), OPENED + 3_373_000_000L).rearDepth(), 0f);
     }
 
     @Test public void closedNetworkStateProvidesNoActiveWormhole() {
