@@ -68,4 +68,28 @@ public class TransferStoreTest {
             assertTrue(store.active().isEmpty());
         }
     }
+
+    @Test public void arrivalVisibilityRecoverySurvivesReopenAndClearsOnlyItsTransfer() throws Exception {
+        Path path = Files.createTempFile("stargate-arrival-test", ".db");
+        try {
+            try (Connection db = DriverManager.getConnection("jdbc:sqlite:" + path)) {
+                TransferStore store = new TransferStore(db);
+                store.initialize();
+                store.markArrivalPending("player", "arrival-1");
+                assertEquals(1_000L, store.arrivalScreenStart("player", "arrival-1", 1_000L));
+            }
+            try (Connection db = DriverManager.getConnection("jdbc:sqlite:" + path)) {
+                TransferStore store = new TransferStore(db);
+                store.initialize();
+                assertEquals("arrival-1", store.pendingArrival("player"));
+                assertEquals(1_000L, store.arrivalScreenStart("player", "arrival-1", 9_000L));
+                store.clearPendingArrival("player", "other-arrival");
+                assertEquals("arrival-1", store.pendingArrival("player"));
+                store.clearPendingArrival("player", "arrival-1");
+                assertNull(store.pendingArrival("player"));
+                store.clearArrivalScreen("player", "arrival-1");
+                assertEquals(9_000L, store.arrivalScreenStart("player", "arrival-1", 9_000L));
+            }
+        } finally { Files.deleteIfExists(path); }
+    }
 }

@@ -4,9 +4,9 @@
       "visible": "Stargate-Shortcut in /ozt und Inventar anzeigen"
     },
     "cmd": {
-      "help": "Hilfe: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. Zum Reisen das DHD am Tor benutzen, ein Ziel wählen und nach Öffnung des ausgehenden Wurmlochs die Durchgangszone betreten.",
+      "help": "Hilfe: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help, /PH_PLUGIN_CMD gatelist. Zum Reisen das DHD am Tor benutzen, ein Ziel wählen und nach Öffnung des ausgehenden Wurmlochs die Durchgangszone betreten.",
       "status": "🔎 Plugin Status\n➡️ Plugin version: PH_VERSION\n➡️ Installierte Sprachen: PH_LANG_AVAILABLE\n➡️ Deine Sprache: PH_LANGUAGE\n➡️ Verwendete Sprache: PH_USEDLANG",
-      "help_admin": "Hilfe: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. Admin-Debug-Reisen: /PH_PLUGIN_CMD gatelist, /PH_PLUGIN_CMD dial <Ziel> [Quelle], /PH_PLUGIN_CMD warp <Zieltor>. Neues Tor samt ID, Modell und Ankunftspunkt: /PH_PLUGIN_CMD placegate. Nur Admins: /PH_PLUGIN_CMD registerGate, /PH_PLUGIN_CMD unregisterGate <ID>, /PH_PLUGIN_CMD trust [UID]. Admin-Test: /PH_PLUGIN_CMD pack, /PH_PLUGIN_CMD unpack, /PH_PLUGIN_CMD recover. DHD-Verwaltung (Admins): /PH_PLUGIN_CMD placedhd <ID>, /PH_PLUGIN_CMD removedhd <ID>, /PH_PLUGIN_CMD binddhd <ID>, /PH_PLUGIN_CMD unbinddhd, /PH_PLUGIN_CMD canceldhd. Durchgangszonen (Admins): /PH_PLUGIN_CMD sethorizon <ID> [X Y Z], /PH_PLUGIN_CMD showhorizon <ID>, /PH_PLUGIN_CMD removehorizon <ID>. Modell-Vorschau: /PH_PLUGIN_CMD previewgate, /PH_PLUGIN_CMD clearpreview. Bestehendes Tor-Modell versetzen: /PH_PLUGIN_CMD placegate <ID>, /PH_PLUGIN_CMD removegatemodel <ID>. /PH_PLUGIN_CMD aligngate <ID>."
+      "help_admin": "Hilfe: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help, /PH_PLUGIN_CMD gatelist. Admin-Debug-Reisen: /PH_PLUGIN_CMD dial <Ziel> [Quelle], /PH_PLUGIN_CMD warp <Zieltor>. Neues Tor samt ID, Modell und Ankunftspunkt: /PH_PLUGIN_CMD placegate. Nur Admins: /PH_PLUGIN_CMD registerGate, /PH_PLUGIN_CMD unregisterGate <ID>, /PH_PLUGIN_CMD trust [UID]. Admin-Test: /PH_PLUGIN_CMD pack, /PH_PLUGIN_CMD unpack, /PH_PLUGIN_CMD recover. DHD-Verwaltung (Admins): /PH_PLUGIN_CMD placedhd <ID>, /PH_PLUGIN_CMD removedhd <ID>, /PH_PLUGIN_CMD binddhd <ID>, /PH_PLUGIN_CMD unbinddhd, /PH_PLUGIN_CMD canceldhd. Durchgangszonen (Admins): /PH_PLUGIN_CMD sethorizon <ID> [X Y Z], /PH_PLUGIN_CMD showhorizon <ID>, /PH_PLUGIN_CMD removehorizon <ID>. Modell-Vorschau: /PH_PLUGIN_CMD previewgate, /PH_PLUGIN_CMD clearpreview. Bestehendes Tor-Modell versetzen: /PH_PLUGIN_CMD placegate <ID>, /PH_PLUGIN_CMD removegatemodel <ID>. /PH_PLUGIN_CMD aligngate <ID>."
     },
     "data": {
       "desc": "Hier kannst du gespeicherte Spielerdaten für PH_PLUGIN_NAME ansehen.",
@@ -28,9 +28,34 @@
       "empty": "Für PH_PLUGIN_NAME sind noch keine Spieler-Einstellungen verfügbar.",
       "title": "Plugin Einstellungen für PH_PLUGIN_NAME",
       "debug_messages": "Debug-Meldungen im Chat anzeigen",
-      "audio_enabled": "Stargate-Sounds abspielen"
+      "audio_enabled": "Stargate-Sounds abspielen",
+      "travel_screen_disabled": "Reisebildschirm deaktivieren"
     },
     "setting": {
+      "audio": {
+        "label": "Klang",
+        "desc": "Stargate-Klänge und Lautstärke.",
+        "theme": {
+          "label": "Klangthema",
+          "desc": "Unterordner von audio/; neue Themen erscheinen beim erneuten Öffnen der Einstellungen."
+        },
+        "volume": {
+          "label": "Gesamtlautstärke (%)",
+          "desc": "0 bis 100; Standard 70. Änderungen wirken sofort."
+        }
+      },
+      "discovery": {
+        "label": "Stargate-Entdeckung",
+        "desc": "Automatische Suche nach einem neuen Tor in einem freien Sektor.",
+        "successpercent": {
+          "label": "Erfolgswahrscheinlichkeit (%)",
+          "desc": "0 bis 100 Prozent; Standardwert 75."
+        },
+        "radiussectors": {
+          "label": "Suchradius (Sektoren)",
+          "desc": "Kreisförmiger Radius von 2 bis 50 Sektoren; Standardwert 10."
+        }
+      },
       "enablewelcomemessage": {
         "desc": "Wenn aktiv, sendet dieses Plugin eine Willkommensnachricht, wenn ein Spieler beitritt.",
         "label": "Willkommensnachricht"
@@ -128,24 +153,28 @@
       "network": {
         "settings": {
           "title": "Stargate-Netzwerk",
-          "desc": "Globale Adressreservierung und optionale serverübergreifende Reisen.",
+          "desc": "Lokaler Spielmodus oder Relay mit serverübergreifenden Reisen.",
           "enabled": "Serverübergreifende Reisen aktivieren",
-          "enabled_desc": "Standardmäßig aus. Das Relay bleibt für weltweit eindeutige Toradressen erreichbar; lokale Reisen bleiben möglich.",
+          "enabled_desc": "Standardmäßig aus: lokale Tore funktionieren ohne Relay. Aktiviert: globale Adressen und serverübergreifende Reisen.",
           "url": "Relay-Adresse",
           "url_desc": "WebSocket-Adresse des Stargate-Relays.",
           "override": "Netzwerkcode überschreiben",
           "override_desc": "Optionaler Code zur Zuordnung von Testservern; leer nutzt die automatische Berechnung.",
           "host": "Erreichbarer Spielserver-Host",
-          "host_desc": "Öffentliche IP oder DNS-Name dieses Spielservers für die Anwahl."
+          "host_desc": "Optional: erreichbare öffentliche IP oder DNS-Name. Leer übernimmt die vom Relay erkannte öffentliche IP."
         },
         "offline": "Stargate-Netzwerk ist nicht verbunden.",
+        "host_missing": "Keine öffentliche Server-IP erkannt. Trage in den Stargate-Admin-Einstellungen einen erreichbaren Host ein.",
+        "registered_local": "Lokales Stargate PH_GATE wurde gesetzt. Diese Adresse funktioniert nur auf diesem Server.",
+        "local_gate_only": "Dieses lokale Tor kann nur Tore auf demselben Server anwählen.",
+        "global_gate_offline": "Dieses globale Tor kann nur bei aktivem Stargate-Netzwerk entfernt werden.",
         "travel_disabled": "Serverübergreifende Stargate-Reisen sind in den Plugin-Einstellungen deaktiviert.",
         "sector_occupied": "Sektor PH_SECTOR besitzt bereits ein Tor; pro Sektor ist nur eines erlaubt.",
         "invalid_sector": "Der Sektor des Tores konnte nicht bestimmt werden.",
         "registered": "Stargate PH_GATE wurde hier registriert.",
         "unregistered": "Stargate PH_GATE wurde entfernt.",
         "not_owned": "Stargate PH_GATE gehört nicht zu diesem Server.",
-        "list": "Erreichbare Stargates: PH_GATES",
+        "list": "Bekannte Stargates: PH_GATES",
         "dial_started": "Anwahl von Stargate PH_GATE gestartet.",
         "dial_chevron": "Chevron PH_CHEVRON von 7 kodiert.",
         "gate_closed": "Wurmloch an Stargate PH_GATE geschlossen.",
@@ -237,15 +266,20 @@
       },
       "dhd": {
         "title": "DHD · Stargate PH_GATE",
-        "description": "Wähle eine erreichbare Toradresse und starte die Einwahl.",
+        "description": "Wähle eine bekannte Toradresse, gib eine ID ein oder entdecke ein neues Tor.",
         "legend": "Ein geöffnetes Wurmloch bleibt eine Minute bestehen.",
         "previous": "Zurück",
         "next": "Weiter",
         "refresh": "Aktualisieren",
+        "manual": "ID eingeben",
+        "manual_title": "Stargate-Adresse eingeben",
+        "manual_prompt": "Gib die 16-stellige Tor-ID ein. Sie wird nach erfolgreicher Verbindung gespeichert.",
+        "manual_invalid": "Bitte eine gültige 16-stellige Tor-ID eingeben, die nicht dem Ausgangstor entspricht.",
         "dial": "Anwählen",
+        "discover": "Neues Stargate entdecken",
         "loading": "Toradressen werden geladen …",
         "load_failed": "Toradressen konnten nicht geladen werden. Bitte aktualisieren.",
-        "empty": "Keine entfernten Tore erreichbar.",
+        "empty": "Noch keine Toradressen entdeckt.",
         "choose": "Bitte eine Zieladresse auswählen.",
         "selected": "Ziel: PH_GATE",
         "page": "Seite PH_PAGE / PH_TOTAL",
@@ -267,6 +301,27 @@
         "unbound": "DHD-Verknüpfung entfernt.",
         "not_bound": "Dieser Gegenstand ist kein verknüpftes DHD.",
         "database_error": "Die DHD-Verknüpfung konnte nicht verarbeitet werden."
+      },
+      "discovery": {
+        "settings": {
+          "title": "Stargate-Entdeckung",
+          "desc": "Automatische Suche nach einem neuen Tor in einem freien Sektor.",
+          "success": "Erfolgswahrscheinlichkeit (%)",
+          "success_desc": "0 bis 100 Prozent; Standardwert 75.",
+          "radius": "Suchradius (Sektoren)",
+          "radius_desc": "Kreisförmiger Radius von 2 bis 50 Sektoren; Standardwert 10."
+        },
+        "pending": "Eine Entdeckung läuft bereits.",
+        "offline": "Das Stargate-Netzwerk ist für eine Entdeckung nicht verbunden.",
+        "cooldown": "Nächste Entdeckung in PH_SECONDS Sekunden möglich.",
+        "dialing": "Wähle eine unbekannte Stargate-Adresse …",
+        "failed": "Keine gültige Adresse gefunden. Es wurde kein Tor erstellt.",
+        "no_site": "In der begrenzten Suche wurde kein geeigneter Standort gefunden. Es wurde kein Tor erstellt.",
+        "error": "Die Entdeckung konnte nicht abgeschlossen werden. Bitte später erneut versuchen.",
+        "found": "Neues Stargate PH_GATE mit DHD entdeckt."
+      },
+      "addressbook": {
+        "discovered": "Neue Stargate-Adresse entdeckt: PH_GATE"
       },
       "horizon": {
         "usage": "Verwendung: /sg sethorizon <lokales Tor> [X-Breite Y-Höhe Z-Tiefe] (Meter); /sg showhorizon <Tor>; /sg removehorizon <Tor>. /sg aligngate <ID>.",

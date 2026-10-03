@@ -23,6 +23,8 @@ public final class TransferStore {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS stargate_transfers (transfer_id TEXT PRIMARY KEY, player_uid TEXT NOT NULL, direction TEXT NOT NULL, state TEXT NOT NULL, gate_id TEXT NOT NULL, peer_gate_id TEXT NOT NULL, data TEXT NOT NULL, expires_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS stargate_transfers_uid ON stargate_transfers(player_uid,direction,state)");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS stargate_visitor_base (player_uid TEXT PRIMARY KEY, inventory BLOB NOT NULL, clothes BLOB NOT NULL, state TEXT NOT NULL, updated_at INTEGER NOT NULL)");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS stargate_pending_arrivals (player_uid TEXT PRIMARY KEY, transfer_id TEXT NOT NULL)");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS stargate_arrival_screens (transfer_id TEXT PRIMARY KEY, player_uid TEXT NOT NULL, started_at INTEGER NOT NULL)");
         }
     }
 
@@ -126,6 +128,60 @@ public final class TransferStore {
             statement.setString(1, uid);
             statement.setString(2, state);
             return statement.executeUpdate() == 1;
+        }
+    }
+
+    public synchronized void markArrivalPending(String uid, String transferId) throws SQLException {
+        try (PreparedStatement statement = db.prepareStatement(
+                "INSERT OR REPLACE INTO stargate_pending_arrivals(player_uid,transfer_id) VALUES (?,?)")) {
+            statement.setString(1, uid);
+            statement.setString(2, transferId);
+            statement.executeUpdate();
+        }
+    }
+
+    public synchronized String pendingArrival(String uid) throws SQLException {
+        try (PreparedStatement statement = db.prepareStatement(
+                "SELECT transfer_id FROM stargate_pending_arrivals WHERE player_uid=?")) {
+            statement.setString(1, uid);
+            try (ResultSet rows = statement.executeQuery()) { return rows.next() ? rows.getString(1) : null; }
+        }
+    }
+
+    public synchronized void clearPendingArrival(String uid, String transferId) throws SQLException {
+        try (PreparedStatement statement = db.prepareStatement(
+                "DELETE FROM stargate_pending_arrivals WHERE player_uid=? AND transfer_id=?")) {
+            statement.setString(1, uid);
+            statement.setString(2, transferId);
+            statement.executeUpdate();
+        }
+    }
+
+    public synchronized long arrivalScreenStart(String uid, String transferId, long now) throws SQLException {
+        try (PreparedStatement statement = db.prepareStatement(
+                "INSERT OR IGNORE INTO stargate_arrival_screens(transfer_id,player_uid,started_at) VALUES (?,?,?)")) {
+            statement.setString(1, transferId);
+            statement.setString(2, uid);
+            statement.setLong(3, now);
+            statement.executeUpdate();
+        }
+        try (PreparedStatement statement = db.prepareStatement(
+                "SELECT started_at FROM stargate_arrival_screens WHERE transfer_id=? AND player_uid=?")) {
+            statement.setString(1, transferId);
+            statement.setString(2, uid);
+            try (ResultSet rows = statement.executeQuery()) {
+                if (rows.next()) return rows.getLong(1);
+            }
+        }
+        throw new SQLException("Cannot store incoming travel screen start");
+    }
+
+    public synchronized void clearArrivalScreen(String uid, String transferId) throws SQLException {
+        try (PreparedStatement statement = db.prepareStatement(
+                "DELETE FROM stargate_arrival_screens WHERE transfer_id=? AND player_uid=?")) {
+            statement.setString(1, transferId);
+            statement.setString(2, uid);
+            statement.executeUpdate();
         }
     }
 

@@ -8,6 +8,7 @@ import java.util.Map;
 
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
+import de.omegazirkel.risingworld.stargate.addressbook.AddressBookService;
 import de.omegazirkel.risingworld.stargate.audio.GateAudioTiming;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.ui.StargateChat;
@@ -22,7 +23,7 @@ public final class LocalDialService {
     static final long CONNECT_MS = GateAudioTiming.INCOMING_TOTAL_MS;
 
     static final class Connection {
-        final String source, target;
+        final String source, target, playerUid;
         final long startedAt;
         final long startedNanos;
         long stepNanos;
@@ -33,10 +34,11 @@ public final class LocalDialService {
         boolean connecting;
         boolean open;
         long expiresAt;
-        Connection(String source, String target, long now) {
-            this.source = source; this.target = target; startedAt = now;
+        Connection(String source, String target, String playerUid, long now) {
+            this.source = source; this.target = target; this.playerUid = playerUid; startedAt = now;
             startedNanos = System.nanoTime(); stepNanos = startedNanos;
         }
+        Connection(String source, String target, long now) { this(source, target, null, now); }
         boolean preemptible(String gateId) { return source.equals(gateId) && !connecting; }
         boolean expired(long now) { return open && now >= expiresAt; }
         boolean canTravel(long now) { return open && now < expiresAt; }
@@ -75,6 +77,7 @@ public final class LocalDialService {
     private final GateNetworkClient network;
     private final I18n i18n;
     private final Map<String, Connection> byGate = new HashMap<>();
+    private AddressBookService addressBook;
     private boolean closed;
 
     public LocalDialService(OZStargate plugin, LocalSectorStore sectors, LocalGateStore gates,
@@ -83,6 +86,7 @@ public final class LocalDialService {
     }
 
     public void start() { plugin.executeDelayed(0.2f, this::tick); }
+    public void setAddressBook(AddressBookService addressBook) { this.addressBook = addressBook; }
     public void close() { closed = true; byGate.clear(); network.refreshViews(); }
     public void gateDeleted(String gateId) {
         Connection connection = byGate.get(gateId);
@@ -136,6 +140,7 @@ public final class LocalDialService {
     /** A relay incoming dial interrupts a still-outgoing local sequence. */
     public boolean acceptRemoteIncoming(String gateId) {
         Connection connection = byGate.get(gateId);
+        if (network.isArtificialReserved(gateId)) return false;
         if (connection == null) return true;
         if (connection.preemptible(gateId)) {
             remove(connection);
@@ -148,16 +153,38 @@ public final class LocalDialService {
         try {
             if (source.equals(target) || sectors.addressOf(source) == null) { tell(player, "unavailable"); return; }
             if (byGate.containsKey(source) || network.hasPendingUnregister(source)
-                    || !"IDLE".equals(network.remoteGateView(source).state())) {
+                    || !"IDLE".equals(network.gateView(source).state())) {
                 tell(player, "busy"); return;
             }
-            Connection connection = new Connection(source, target, System.currentTimeMillis());
+            Connection connection = new Connection(source, target, player.getUID(), System.currentTimeMillis());
             byGate.put(source, connection);
             network.refreshViews();
             tell(player, "started");
         } catch (SQLException ex) {
             OZStargate.logger().error("Local Stargate dial failed: " + ex.getMessage());
             tell(player, "database_error");
+        }
+    }
+
+    /** Opens a newly discovered local destination after its outgoing animation has finished. */
+    public boolean connectDiscovered(String playerUid, String source, String target) {
+        try {
+            if (source.equals(target) || sectors.addressOf(source) == null || sectors.addressOf(target) == null
+                    || gates.gate(target) == null || byGate.containsKey(source) || byGate.containsKey(target)
+                    || network.hasPendingUnregister(source) || network.hasPendingUnregister(target)
+                    || !"IDLE".equals(network.remoteGateView(source).state())
+                    || !"IDLE".equals(network.gateView(target).state())) return false;
+            long now = System.currentTimeMillis();
+            Connection connection = new Connection(source, target, playerUid, now);
+            connection.chevrons = 7;
+            connection.beginIncoming(now);
+            byGate.put(source, connection);
+            byGate.put(target, connection);
+            network.refreshViews();
+            return true;
+        } catch (SQLException ex) {
+            OZStargate.logger().error("Discovered Stargate connection failed: " + ex.getMessage());
+            return false;
         }
     }
 
@@ -176,7 +203,7 @@ public final class LocalDialService {
                     try {
                         if (sectors.addressOf(connection.target) == null || gates.gate(connection.target) == null
                                 || network.hasPendingUnregister(connection.target)
-                                || !"IDLE".equals(network.remoteGateView(connection.target).state())) {
+                                || !"IDLE".equals(network.gateView(connection.target).state())) {
                             remove(connection); continue;
                         }
                         Connection outgoing = byGate.get(connection.target);
@@ -192,7 +219,11 @@ public final class LocalDialService {
                     }
                 }
                 network.refreshViews();
-                if (connection.open) StargateChat.incoming(connection.target, sectors, i18n);
+                if (connection.open) {
+                    StargateChat.incoming(connection.target, sectors, i18n);
+                    if (addressBook != null && connection.playerUid != null)
+                        addressBook.discover(net.risingworld.api.Server.getPlayerByUID(connection.playerUid), connection.target);
+                }
             }
         }
         plugin.executeDelayed(byGate.values().stream().anyMatch(connection -> connection.connecting)

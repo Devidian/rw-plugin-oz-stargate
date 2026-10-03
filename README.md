@@ -23,16 +23,19 @@ Phase 3B adds `/sg warp <target gate>` after a successful dial; phase 4 makes it
 Every registered gate owns its world-local `(sectorX, sectorZ)` address. As an
 admin, stand at the intended ring position and look away from its intended
 front (toward the back of the gate), then run
-`/sg placegate` without an ID. An available relay reserves a globally unique
-ID, and the plugin commits the ID, sector, lowered model, aligned passage and
+`/sg placegate` without an ID. With `network.enabled=true`, the relay reserves
+a globally unique ID. In solo/offline mode (`network.enabled=false`), the
+plugin creates a 16-character `LOCAL` address usable only within this world.
+The plugin commits the ID, sector, lowered model, aligned passage and
 an arrival point about 1.2 m in front of the ring together. Arrival faces away
 from the ring. `/sg placedhd <ID>` remains a separate optional step. The
 existing `/sg registerGate` and `/sg placegate <ID>` commands still support
 manual setup and moving an unaligned model. New model placements put the ring
 about 1.2 m deeper in the ground; stored older models are unchanged. A second
-gate in the same sector is refused. `network.enabled` is off by default and
-controls cross-server travel; the relay stays connected for ID reservation
-and transfer recovery.
+gate in the same sector is refused. `network.enabled` is off by default, so
+local gates and local travel work without a relay. Existing global gates are
+kept locally, but require the network to be enabled before removal. `LOCAL`
+addresses stay local if the network is enabled later.
 
 ## Installation
 
@@ -58,20 +61,31 @@ administrator supplied content; verify rights before distribution.
 
 ## Installation and compatibility
 
-Requires OZ Tools 0.26.2 and the Rising World Unity API 0.9.3.2 baseline. Extract the release ZIP into Plugins, preserving world settings and SQLite databases during updates. Configure a private/trusted OZ Stargate Network 0.3.0 relay and a reachable advertised game-server address. Back up both player and plugin databases before rollback; never restore only one side of an in-flight transfer.
+Requires OZ Tools 0.26.2 and the Rising World Unity API 0.9.3.2 baseline. Extract the release ZIP into Plugins, preserving world settings and SQLite databases during updates. Configure a private/trusted OZ Stargate Network 0.4.0 relay and a reachable advertised game-server address. Back up both player and plugin databases before rollback; never restore only one side of an in-flight transfer.
+
+On a fresh installation with no gates, the plugin searches the sector of the
+server's global default spawn for one suitable site and creates a gate with a
+DHD. It uses the same terrain and clearance checks as Discovery, and retries
+in bounded background batches if no site or relay connection is available.
+Existing installations are never seeded later after their gates are removed.
+The new address is learned only when a player reaches its DHD.
 
 ## Gate travel
 
 One gate per sector supports local travel by default. An administrator can
 place or move a gate with its DHD, place either separately, or remove both from
-the radial menu. A placed gate receives a globally unique address, aligned
+the radial menu. A networked gate receives a globally unique address, aligned
 passage and outward-facing arrival point in one step. Players choose destinations
 on the DHD and enter an open wormhole to travel. The models, collision, lighting
 and wormhole animation are included in the plugin package.
 
-Cross-server travel requires OZ Stargate Network 0.3.0 and an explicit
+Cross-server travel requires OZ Stargate Network 0.4.0 and an explicit
 `network.enabled=true` setting on each participating server. With the default
-`false`, the relay is still contacted to reserve globally unique gate IDs.
+`false`, the plugin does not contact the relay and creates local addresses.
+If the advertised host is empty, the plugin asks the relay for the public IPv4
+observed at its WebSocket proxy and saves it after registration. A DNS name
+or a different reachable address can be set manually in the world settings.
+If no public IP is available, gate placement reports this in chat.
 When a target still holds an earlier visitor inventory, a new cross-server
 arrival is rejected before the source inventory is cleared. Back up native
 Player.db and plugin SQLite databases together before upgrades. Do not change
@@ -130,7 +144,20 @@ Bounds persist in the additive `stargate_horizons` table and are removed when th
 
 ## Development: travel command access after phase 5C
 
-`/sg gatelist`, `/sg dial` and `/sg warp` are now admin debug commands. Ordinary players use the linked DHD and passage zone. `/sg help` explains the relevant workflow for the player's role; admins additionally see debug and zone-management commands.
+`/sg gatelist` shows each player's discovered addresses. `/sg dial` and `/sg warp` remain admin debug commands. Ordinary players use the linked DHD and passage zone. `/sg help` explains the relevant workflow for the player's role; admins additionally see debug and zone-management commands.
+
+## Development: discovered address book
+
+Each player's address book starts empty and is scoped to the relay network code.
+Entering a chunk with a valid linked DHD or placed DHD model discovers its gate
+and announces the address in chat. The DHD lists known addresses and offers a
+native dialog for a 16-character gate ID. A manually entered address is learned
+only when its dial opens a connection. `/sg gatelist` shows the same known IDs.
+SQLite caches addresses by network and UID; locally known gates remain dialable
+if the relay disconnects. Pending local discoveries synchronize on reconnect.
+The relay removes deleted gates from all books and broadcasts the removal;
+reconnecting servers replace their cache with the authoritative book. Existing
+books are not populated from the old unrestricted gate list.
 
 ## Development: static Milky Way preview (5D.1)
 

@@ -4,5 +4,6 @@
   "networkCode": { "override": "", "trusted": "" },
   "network": { "enabled": false },
   "forbiddenActions": { "ChangeGameMode": true },
+  "discovery": { "successPercent": 75, "radiusSectors": 10 },
   "audio": { "theme": "silent", "volume": 70 }
 }

@@ -104,6 +104,8 @@ public final class GateVisualService {
         } catch (RuntimeException ex) { failRendering(ex); }
     }
 
+    public boolean hasPlacement(String gateId) { return placements.containsKey(gateId); }
+
     private Model createModel(GateVisualPlacement placement) {
         Model model = assets.createAnimated();
         ((AnimatedGateModel) model).update(network.gateView(placement.gateId()));
@@ -135,11 +137,12 @@ public final class GateVisualService {
         audio.update(placements, listeners, network);
     }
 
-    public void travelled(String gateId) {
+    public void travelled(Player traveler, String gateId) {
         GateVisualPlacement placement = placements.get(gateId);
         if (placement == null) return;
         Set<Player> listeners = new HashSet<>();
-        for (Viewer viewer : viewers.values()) if (viewer.gates().contains(gateId)) listeners.add(viewer.player());
+        for (Viewer viewer : viewers.values()) if (viewer.gates().contains(gateId)
+                && !viewer.player().getUID().equals(traveler.getUID())) listeners.add(viewer.player());
         audio.travel(gateId, placement, listeners);
     }
 
@@ -147,9 +150,14 @@ public final class GateVisualService {
         GateVisualPlacement placement = placements.get(gateId);
         if (placement == null) return;
         Set<Player> listeners = new HashSet<>();
-        for (Viewer viewer : viewers.values()) if (viewer.gates().contains(gateId)) listeners.add(viewer.player());
-        listeners.add(player);
+        for (Viewer viewer : viewers.values()) if (viewer.gates().contains(gateId)
+                && !viewer.player().getUID().equals(player.getUID())) listeners.add(viewer.player());
         audio.travel(gateId, placement, listeners);
+    }
+
+    public void arrivedPlayer(Player player, String gateId) {
+        GateVisualPlacement placement = placements.get(gateId);
+        if (placement != null) audio.travel(gateId, placement, Set.of(player));
     }
 
     private void animationTick() {

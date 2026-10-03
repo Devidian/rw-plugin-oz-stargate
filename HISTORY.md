@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.4.0 — 2026-10-03
+
+- Show the travel tunnel for ten seconds during local travel and for a fresh ten seconds after arrival on another server. Players can disable it personally; arrival sound and visibility wait until travel ends.
+- Bring first-time regular visitors through a local gate when one is available; transfers and later logins keep their existing arrival behavior.
+- Discover gate addresses by entering a DHD chunk, synchronize the personal address book through the relay and allow manual dialing. Known local and remote destinations have distinct DHD button borders; local known destinations remain usable during relay outages.
+- Add bounded background Discovery site scans, configurable chance and radius, five-minute persistent per-player cooldown and seven-chevron dialing before a successful discovery becomes known.
+- Place a first gate and DHD in the global spawn sector on fresh installations when a safe site is found. Existing installations remain unchanged.
+
 ## 0.3.0 — 2026-10-01
 
 - Add selectable spatial sound themes, a personal sound switch and live administrator volume control. Package only a reproducible `silent` theme with 17 Ogg files; administrators can install their own themes under `audio/<theme>/`.

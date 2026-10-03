@@ -36,6 +36,8 @@ public class PluginSettings {
 	public boolean forbidChangeGameMode = true;
 	public String audioTheme = "silent";
 	public int audioVolume = 70;
+	public int discoverySuccessPercent = 75;
+	public int discoveryRadiusSectors = 10;
 	private Path audioDirectory;
 	private Path settingsFile;
 	private java.util.Map<String, String> currentSettings = new LinkedHashMap<>();
@@ -94,6 +96,8 @@ public class PluginSettings {
 			try { audioVolume = Math.max(0, Math.min(100, Integer.parseInt(settings.getOrDefault("audio.volume",
 					defaults.getOrDefault("audio.volume", "70"))))); }
 			catch (NumberFormatException invalid) { audioVolume = 70; }
+			discoverySuccessPercent = boundedInt(settings, defaults, "discovery.successPercent", 75, 0, 100);
+			discoveryRadiusSectors = boundedInt(settings, defaults, "discovery.radiusSectors", 10, 2, 50);
 			logger().info(plugin.getName() + " Plugin settings loaded");
 			logger().info("Sending welcome message on login is: " + String.valueOf(enableWelcomeMessage));
 			currentSettings = settings;
@@ -146,7 +150,32 @@ public class PluginSettings {
 								&& SettingsFileEditor.writeValue(settingsFile, "audio.volume", Integer.toString(parsed));
 					} catch (NumberFormatException invalid) { return false; }
 				}));
+		entries.add(AdminSettingsEntry.group("discovery", i18n.get("tc.stargate.discovery.settings.title"),
+				i18n.get("tc.stargate.discovery.settings.desc")));
+		entries.add(discoveryEntry("discovery.successPercent", i18n.get("tc.stargate.discovery.settings.success"),
+				i18n.get("tc.stargate.discovery.settings.success_desc"), 75, 0, 100));
+		entries.add(discoveryEntry("discovery.radiusSectors", i18n.get("tc.stargate.discovery.settings.radius"),
+				i18n.get("tc.stargate.discovery.settings.radius_desc"), 10, 2, 50));
 		return entries;
+	}
+
+	private AdminSettingsEntry discoveryEntry(String key, String label, String description, int fallback, int min, int max) {
+		return new AdminSettingsEntry(key, label, description,
+				currentSettings.getOrDefault(key, defaultSettings.getOrDefault(key, Integer.toString(fallback))),
+				Integer.toString(fallback), AdminSettingsType.INTEGER, false, value -> {
+					try {
+						int parsed = Integer.parseInt(value);
+						return parsed >= min && parsed <= max && SettingsFileEditor.writeValue(settingsFile, key, value);
+					} catch (NumberFormatException invalid) { return false; }
+				});
+	}
+
+	private static int boundedInt(java.util.Map<String, String> settings, java.util.Map<String, String> defaults,
+			String key, int fallback, int min, int max) {
+		try {
+			int parsed = Integer.parseInt(settings.getOrDefault(key, defaults.getOrDefault(key, Integer.toString(fallback))));
+			return parsed >= min && parsed <= max ? parsed : fallback;
+		} catch (NumberFormatException invalid) { return fallback; }
 	}
 
 	public Path audioDirectory() { return audioDirectory; }
@@ -161,6 +190,14 @@ public class PluginSettings {
 			networkCodeTrusted = code;
 			currentSettings.put("networkCode.trusted", code);
 		}
+	}
+
+	public synchronized void setDetectedHost(String host) {
+		if (host == null || host.isBlank() || !relayAdvertisedHost.isBlank() || settingsFile == null) return;
+		if (SettingsFileEditor.writeValue(settingsFile, "relay.advertisedHost", host)) {
+			relayAdvertisedHost = host;
+			currentSettings.put("relay.advertisedHost", host);
+		} else logger().warn("Could not save automatically detected Stargate host");
 	}
 
 	private AdminSettingsEntry entry(String key, String label, String description, AdminSettingsType type) {

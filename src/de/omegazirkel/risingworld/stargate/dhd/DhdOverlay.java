@@ -13,6 +13,8 @@ import net.risingworld.api.ui.style.Unit;
 
 /** Uses the standard Tools modal, buttons and lifecycle. */
 final class DhdOverlay extends BasePluginOverlay {
+    private static final int LOCAL_BORDER = 0x286B43FF;
+    private static final int REMOTE_BORDER = 0xD47A22FF;
     private final DhdService.Session session;
     private final DhdService service;
     private final GateNetworkClient network;
@@ -25,7 +27,9 @@ final class DhdOverlay extends BasePluginOverlay {
     private final AdvancedButton previous;
     private final AdvancedButton next;
     private final AdvancedButton refresh;
+    private final AdvancedButton manual;
     private final AdvancedButton dial;
+    private final AdvancedButton discover;
 
     DhdOverlay(DhdService.Session session, DhdService service, GateNetworkClient network, I18n i18n) {
         super(session.player, player -> { });
@@ -53,13 +57,23 @@ final class DhdOverlay extends BasePluginOverlay {
             row.style.top.set(116 + (i / 2) * 46, Unit.Pixel);
             row.style.width.set(47, Unit.Percent);
             row.style.height.set(38, Unit.Pixel);
+            row.setBorder(2);
             body.addChild(row); rows[i] = row;
         }
         pageLabel = label(16, 310, 14);
-        previous = button("previous", 2, () -> service.page(session, -1));
-        next = button("next", 26, () -> service.page(session, 1));
-        refresh = button("refresh", 50, () -> service.refresh(session));
-        dial = button("dial", 74, () -> service.dial(session));
+        previous = button("previous", 1, () -> service.page(session, -1));
+        next = button("next", 21, () -> service.page(session, 1));
+        refresh = button("refresh", 41, () -> service.refresh(session));
+        manual = button("manual", 61, () -> service.manual(session));
+        dial = button("dial", 81, () -> service.dial(session));
+        discover = AdvancedButtonFactory.defaultButton(text("discover"), event -> service.discover(session));
+        discover.setPivot(Pivot.UpperLeft);
+        discover.style.position.set(Position.Absolute);
+        discover.style.left.set(2, Unit.Percent);
+        discover.style.top.set(400, Unit.Pixel);
+        discover.style.width.set(96, Unit.Percent);
+        discover.style.height.set(32, Unit.Pixel);
+        body.addChild(discover);
         update();
     }
 
@@ -78,7 +92,7 @@ final class DhdOverlay extends BasePluginOverlay {
     private AdvancedButton button(String key, int left, Runnable action) {
         AdvancedButton button = AdvancedButtonFactory.defaultButton(text(key), event -> action.run());
         button.setPivot(Pivot.UpperLeft); button.style.position.set(Position.Absolute); button.style.left.set(left, Unit.Percent); button.style.top.set(356, Unit.Pixel);
-        button.style.width.set(22, Unit.Percent); button.style.height.set(38, Unit.Pixel); body.addChild(button); return button;
+        button.style.width.set(18, Unit.Percent); button.style.height.set(38, Unit.Pixel); body.addChild(button); return button;
     }
 
     void update() {
@@ -100,6 +114,7 @@ final class DhdOverlay extends BasePluginOverlay {
             rows[i].setClickable(present && !session.loading);
             if (present) {
                 String address = session.addresses.get(index);
+                rows[i].setBorderColor(session.localAddresses.contains(address) ? LOCAL_BORDER : REMOTE_BORDER);
                 rows[i].setText(address.equals(session.selected) ? "▸ " + address : address);
             }
         }
@@ -108,7 +123,9 @@ final class DhdOverlay extends BasePluginOverlay {
         previous.setClickable(!session.loading && session.page > 0);
         next.setClickable(!session.loading && session.page + 1 < pages);
         refresh.setClickable(!session.loading && view.ready());
+        manual.setClickable(!session.loading && view.ready() && view.state().equals("IDLE"));
         dial.setClickable(!session.loading && view.ready() && view.state().equals("IDLE") && session.selected != null);
+        discover.setClickable(!session.loading && view.ready() && view.state().equals("IDLE"));
     }
 
     @Override protected void close() { service.close(session); }

@@ -4,9 +4,9 @@
       "visible": "Show Stargate shortcut in /ozt and inventory"
     },
     "cmd": {
-      "help": "Help: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. To travel, use the gate DHD, choose a destination, then enter the passage zone once the outgoing wormhole opens.",
+      "help": "Help: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help, /PH_PLUGIN_CMD gatelist. To travel, use the gate DHD, choose a destination, then enter the passage zone once the outgoing wormhole opens.",
       "status": "🔎 Plugin Status\n➡️ Plugin version: PH_VERSION\n➡️ Installed languages: PH_LANG_AVAILABLE\n➡️ Your language: PH_LANGUAGE\n➡️ Used language: PH_USEDLANG\n➡️ Translated by: Devidian",
-      "help_admin": "Help: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help. Admin debug travel: /PH_PLUGIN_CMD gatelist, /PH_PLUGIN_CMD dial <target> [source], /PH_PLUGIN_CMD warp <target gate>. New gate with ID, model and arrival point: /PH_PLUGIN_CMD placegate. Admin only: /PH_PLUGIN_CMD registerGate, /PH_PLUGIN_CMD unregisterGate <ID>, /PH_PLUGIN_CMD trust [UID]. Admin test: /PH_PLUGIN_CMD pack, /PH_PLUGIN_CMD unpack, /PH_PLUGIN_CMD recover. DHD management (admins): /PH_PLUGIN_CMD placedhd <ID>, /PH_PLUGIN_CMD removedhd <ID>, /PH_PLUGIN_CMD binddhd <ID>, /PH_PLUGIN_CMD unbinddhd, /PH_PLUGIN_CMD canceldhd. Passage zones (admins): /PH_PLUGIN_CMD sethorizon <ID> [X Y Z], /PH_PLUGIN_CMD showhorizon <ID>, /PH_PLUGIN_CMD removehorizon <ID>. Model preview: /PH_PLUGIN_CMD previewgate, /PH_PLUGIN_CMD clearpreview. Move existing gate model: /PH_PLUGIN_CMD placegate <ID>, /PH_PLUGIN_CMD removegatemodel <ID>. /PH_PLUGIN_CMD aligngate <ID>."
+      "help_admin": "Help: /PH_PLUGIN_CMD open, /PH_PLUGIN_CMD info, /PH_PLUGIN_CMD status, /PH_PLUGIN_CMD help, /PH_PLUGIN_CMD gatelist. Admin debug travel: /PH_PLUGIN_CMD dial <target> [source], /PH_PLUGIN_CMD warp <target gate>. New gate with ID, model and arrival point: /PH_PLUGIN_CMD placegate. Admin only: /PH_PLUGIN_CMD registerGate, /PH_PLUGIN_CMD unregisterGate <ID>, /PH_PLUGIN_CMD trust [UID]. Admin test: /PH_PLUGIN_CMD pack, /PH_PLUGIN_CMD unpack, /PH_PLUGIN_CMD recover. DHD management (admins): /PH_PLUGIN_CMD placedhd <ID>, /PH_PLUGIN_CMD removedhd <ID>, /PH_PLUGIN_CMD binddhd <ID>, /PH_PLUGIN_CMD unbinddhd, /PH_PLUGIN_CMD canceldhd. Passage zones (admins): /PH_PLUGIN_CMD sethorizon <ID> [X Y Z], /PH_PLUGIN_CMD showhorizon <ID>, /PH_PLUGIN_CMD removehorizon <ID>. Model preview: /PH_PLUGIN_CMD previewgate, /PH_PLUGIN_CMD clearpreview. Move existing gate model: /PH_PLUGIN_CMD placegate <ID>, /PH_PLUGIN_CMD removegatemodel <ID>. /PH_PLUGIN_CMD aligngate <ID>."
     },
     "data": {
       "desc": "Here you can view stored player data for PH_PLUGIN_NAME.",
@@ -28,9 +28,34 @@
       "empty": "No player settings are available for PH_PLUGIN_NAME yet.",
       "title": "Plugin Settings for PH_PLUGIN_NAME",
       "debug_messages": "Show debug messages in chat",
-      "audio_enabled": "Play Stargate sounds"
+      "audio_enabled": "Play Stargate sounds",
+      "travel_screen_disabled": "Disable travel screen"
     },
     "setting": {
+      "audio": {
+        "label": "Audio",
+        "desc": "Stargate sounds and volume.",
+        "theme": {
+          "label": "Sound theme",
+          "desc": "Subdirectory of audio/; new themes appear when reopening settings."
+        },
+        "volume": {
+          "label": "Master volume (%)",
+          "desc": "0 to 100; default 70. Changes apply immediately."
+        }
+      },
+      "discovery": {
+        "label": "Stargate discovery",
+        "desc": "Automatically search for a new gate in a free sector.",
+        "successpercent": {
+          "label": "Success chance (%)",
+          "desc": "0 to 100 percent; default 75."
+        },
+        "radiussectors": {
+          "label": "Search radius (sectors)",
+          "desc": "Circular radius from 2 to 50 sectors; default 10."
+        }
+      },
       "enablewelcomemessage": {
         "desc": "If true, this plugin sends a welcome message when a player joins.",
         "label": "Welcome message"
@@ -128,24 +153,28 @@
       "network": {
         "settings": {
           "title": "Stargate network",
-          "desc": "Global address reservation and optional cross-server travel.",
+          "desc": "Local play or relay-backed cross-server travel.",
           "enabled": "Enable cross-server travel",
-          "enabled_desc": "Off by default. The relay remains available for globally unique gate addresses; local travel remains possible.",
+          "enabled_desc": "Off by default: local gates work without a relay. Enabled: global addresses and cross-server travel.",
           "url": "Relay URL",
           "url_desc": "WebSocket URL of the Stargate relay.",
           "override": "Override network code",
           "override_desc": "Optional code for grouping test servers; leave empty for automatic calculation.",
           "host": "Reachable game-server host",
-          "host_desc": "Public IP or DNS name of this game server for dialing."
+          "host_desc": "Optional reachable public IP or DNS name. Leave empty to use the public IP observed by the relay."
         },
         "offline": "Stargate network is disconnected.",
+        "host_missing": "No public server IP was detected. Set a reachable host in the Stargate admin settings.",
+        "registered_local": "Local Stargate PH_GATE was placed. This address works only on this server.",
+        "local_gate_only": "This local gate can only dial gates on the same server.",
+        "global_gate_offline": "This global gate can only be removed while the Stargate network is enabled.",
         "travel_disabled": "Cross-server Stargate travel is disabled in the plugin settings.",
         "sector_occupied": "Sector PH_SECTOR already has a gate; only one is allowed per sector.",
         "invalid_sector": "The gate sector could not be determined.",
         "registered": "Stargate PH_GATE was registered here.",
         "unregistered": "Stargate PH_GATE was removed.",
         "not_owned": "Stargate PH_GATE does not belong to this server.",
-        "list": "Reachable Stargates: PH_GATES",
+        "list": "Known Stargates: PH_GATES",
         "dial_started": "Dialing Stargate PH_GATE.",
         "dial_chevron": "Chevron PH_CHEVRON of 7 encoded.",
         "gate_closed": "Wormhole at Stargate PH_GATE closed.",
@@ -237,15 +266,20 @@
       },
       "dhd": {
         "title": "DHD · Stargate PH_GATE",
-        "description": "Choose an available gate address and start dialing.",
+        "description": "Choose a known gate address, enter an ID, or discover a new gate.",
         "legend": "An open wormhole remains active for one minute.",
         "previous": "Previous",
         "next": "Next",
         "refresh": "Refresh",
+        "manual": "Enter ID",
+        "manual_title": "Enter Stargate address",
+        "manual_prompt": "Enter the 16-character gate ID. It is saved after a successful connection.",
+        "manual_invalid": "Enter a valid 16-character gate ID other than the source gate.",
         "dial": "Dial",
+        "discover": "Discover new Stargate",
         "loading": "Loading gate addresses …",
         "load_failed": "Could not load gate addresses. Please refresh.",
-        "empty": "No remote gates available.",
+        "empty": "No gate addresses discovered yet.",
         "choose": "Select a destination address.",
         "selected": "Destination: PH_GATE",
         "page": "Page PH_PAGE / PH_TOTAL",
@@ -267,6 +301,27 @@
         "unbound": "DHD link removed.",
         "not_bound": "This object is not a linked DHD.",
         "database_error": "Could not process the DHD link."
+      },
+      "discovery": {
+        "settings": {
+          "title": "Stargate discovery",
+          "desc": "Automatically search for a new gate in a free sector.",
+          "success": "Success chance (%)",
+          "success_desc": "0 to 100 percent; default 75.",
+          "radius": "Search radius (sectors)",
+          "radius_desc": "Circular radius from 2 to 50 sectors; default 10."
+        },
+        "pending": "A discovery is already in progress.",
+        "offline": "The Stargate network is not connected for discovery.",
+        "cooldown": "You can try again in PH_SECONDS seconds.",
+        "dialing": "Dialling an unknown Stargate address …",
+        "failed": "No valid address found. No gate was created.",
+        "no_site": "No suitable site was found in the limited search. No gate was created.",
+        "error": "Discovery could not be completed. Please try again later.",
+        "found": "Discovered new Stargate PH_GATE with a DHD."
+      },
+      "addressbook": {
+        "discovered": "New Stargate address discovered: PH_GATE"
       },
       "horizon": {
         "usage": "Usage: /sg sethorizon <local gate> [X width Y height Z depth] (metres); /sg showhorizon <gate>; /sg removehorizon <gate>. /sg aligngate <ID>.",

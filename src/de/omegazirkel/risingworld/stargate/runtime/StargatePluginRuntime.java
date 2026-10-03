@@ -7,6 +7,16 @@ import java.util.Objects;
 
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.PluginGUI;
+import de.omegazirkel.risingworld.stargate.arrival.FirstArrivalService;
+import de.omegazirkel.risingworld.stargate.arrival.FirstArrivalStore;
+import de.omegazirkel.risingworld.stargate.addressbook.AddressBookService;
+import de.omegazirkel.risingworld.stargate.addressbook.AddressBookStore;
+import de.omegazirkel.risingworld.stargate.discovery.DiscoveryCooldownStore;
+import de.omegazirkel.risingworld.stargate.discovery.DiscoveryCandidateStore;
+import de.omegazirkel.risingworld.stargate.discovery.DiscoveryPoolService;
+import de.omegazirkel.risingworld.stargate.discovery.DiscoveryService;
+import de.omegazirkel.risingworld.stargate.discovery.InitialGateStore;
+import de.omegazirkel.risingworld.stargate.discovery.InitialGateService;
 import de.omegazirkel.risingworld.stargate.visual.GatePreviewService;
 import de.omegazirkel.risingworld.stargate.visual.GateModelAssets;
 import de.omegazirkel.risingworld.stargate.visual.GateVisualService;
@@ -31,6 +41,7 @@ import de.omegazirkel.risingworld.stargate.transfer.TransferService;
 import de.omegazirkel.risingworld.stargate.transfer.TransferStore;
 import de.omegazirkel.risingworld.stargate.ui.StargatePlayerPluginData;
 import de.omegazirkel.risingworld.stargate.ui.StargatePlayerPluginSettings;
+import de.omegazirkel.risingworld.stargate.ui.TravelScreenService;
 import de.omegazirkel.risingworld.stargate.ui.StargatePluginInfoStatusProvider;
 import de.omegazirkel.risingworld.tools.I18n;
 import de.omegazirkel.risingworld.tools.db.SQLiteConnectionFactory;
@@ -63,6 +74,12 @@ public final class StargatePluginRuntime {
     private final GateModelAssets modelAssets;
     private final GateVisualService visuals;
     private final GateAudioService audio;
+    private final TravelScreenService travelScreen;
+    private final FirstArrivalService firstArrival;
+    private final AddressBookService addressBook;
+    private final DiscoveryService discovery;
+    private final DiscoveryPoolService discoveryPool;
+    private final InitialGateService initialGate;
 
     public StargatePluginRuntime(OZStargate plugin) {
         this.plugin = plugin;
@@ -79,8 +96,14 @@ public final class StargatePluginRuntime {
         HorizonStore horizonStore = new HorizonStore(database);
         GateVisualStore visualStore = new GateVisualStore(database);
         TransferStore transferStore = new TransferStore(database);
+        FirstArrivalStore firstArrivalStore = new FirstArrivalStore(database);
+        AddressBookStore addressBookStore = new AddressBookStore(database);
+        DiscoveryCooldownStore discoveryStore = new DiscoveryCooldownStore(database);
+        DiscoveryCandidateStore candidateStore = new DiscoveryCandidateStore(database);
+        InitialGateStore initialGateStore = new InitialGateStore(database);
         try {
             snapshots.initialize();
+            initialGateStore.initialize();
             gates.initialize();
             localSectors.initialize();
             localSectors.migrateExisting(gates);
@@ -89,16 +112,27 @@ public final class StargatePluginRuntime {
             horizonStore.initialize();
             visualStore.initialize();
             transferStore.initialize();
+            firstArrivalStore.initialize();
+            addressBookStore.initialize();
+            discoveryStore.initialize();
+            candidateStore.initialize();
         } catch (SQLException ex) {
             throw new IllegalStateException("Cannot initialize Stargate inventory database", ex);
         }
         network = new GateNetworkClient(plugin, settings, i18n, gates, localSectors);
+        addressBook = new AddressBookService(plugin, settings, i18n, addressBookStore,
+                consoles, dhdModelStore, gates, network);
+        network.setAddressBook(addressBook);
+        travelScreen = new TravelScreenService(plugin);
         audio = new GateAudioService(settings);
         localDial = new LocalDialService(plugin, localSectors, gates, network, i18n);
+        localDial.setAddressBook(addressBook);
         network.setLocalDial(localDial);
         TransferService transfers = new TransferService(plugin, transferStore, snapshots, gates, network, i18n);
         network.setTransfers(transfers);
-        dhd = new DhdService(consoles, gates, network, localDial, i18n);
+        transfers.setTravelScreen(travelScreen);
+        dhd = new DhdService(plugin, consoles, gates, network, localDial, i18n);
+        addressBook.setChanged(dhd::addressesChanged);
         try {
             dhdModels = new DhdModelService(plugin, dhdModelStore, gates, dhd,
                     new DhdModelAssets(plugin), i18n, network);
@@ -114,21 +148,34 @@ public final class StargatePluginRuntime {
             visuals = new GateVisualService(plugin, visualStore, gates, modelAssets, i18n, horizons::isAligned, network, audio);
         } catch (SQLException ex) { throw new IllegalStateException("Cannot load Stargate models", ex); }
         horizons.setTravelObserver(visuals::travelled);
+        horizons.setTravelScreen(travelScreen);
         horizons.setArrivalObserver(visuals::arrived);
+        horizons.setArrivalPlayerObserver(visuals::arrivedPlayer);
         transfers.setArrivalSoundObserver(visuals::arrived);
-        network.setGateDeletedObserver(id -> { localDial.gateDeleted(id); horizons.gateDeleted(id); visuals.gateDeleted(id); dhdModels.gateDeleted(id); });
+        transfers.setArrivalPlayerSoundObserver(visuals::arrivedPlayer);
+        firstArrival = new FirstArrivalService(plugin, firstArrivalStore, gates, network, transfers, horizons, visuals, travelScreen);
+        addressBook.setDiscoveryAllowed(uid -> !firstArrival.inProgress(uid) && !transfers.hasActive(uid));
+        network.setGateDeletedObserver(id -> { addressBook.removed(id); localDial.gateDeleted(id); horizons.gateDeleted(id); visuals.gateDeleted(id); dhdModels.gateDeleted(id); });
         GatePlacementService placement = new GatePlacementService(plugin, gates, localSectors, visualStore, horizonStore,
                 dhdModelStore, visuals, horizons, dhdModels, network, i18n);
+        discoveryPool = new DiscoveryPoolService(plugin, settings, gates, localSectors, candidateStore, placement);
+        initialGate = new InitialGateService(plugin, settings, initialGateStore, gates, network, placement);
+        discovery = new DiscoveryService(plugin, settings, discoveryStore, placement, discoveryPool,
+                network, localDial, addressBook, i18n);
+        dhd.setDiscovery(discovery);
         gui.setPlacement(placement);
         events = new StargatePlayerEventHandler(plugin, pluginName, settings, i18n, gui,
-                new InventorySnapshotService(snapshots, i18n), network, transfers, dhd, dhdModels, horizons, previews, visuals, placement);
+                new InventorySnapshotService(snapshots, i18n), network, transfers, dhd, dhdModels, horizons, previews, visuals, placement, travelScreen, firstArrival, addressBook);
     }
 
     public void enable() {
         settings.initSettings();
         audio.reload();
         network.start();
+        addressBook.start();
         localDial.start();
+        initialGate.start();
+        discoveryPool.start();
         visuals.start();
         dhdModels.start();
         PluginMenuManager.registerPluginMenu(new MenuItem(pluginName, "oz-stargate", "OZ Stargate",
@@ -159,7 +206,13 @@ public final class StargatePluginRuntime {
     }
 
     public void disable() {
+        initialGate.close();
+        discovery.close();
+        discoveryPool.close();
         previews.close();
+        firstArrival.close();
+        addressBook.close();
+        travelScreen.close();
         audio.close();
         visuals.close();
         dhdModels.close();

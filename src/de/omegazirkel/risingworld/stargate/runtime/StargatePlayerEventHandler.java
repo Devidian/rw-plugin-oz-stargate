@@ -2,6 +2,8 @@ package de.omegazirkel.risingworld.stargate.runtime;
 
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.dhd.DhdService;
+import de.omegazirkel.risingworld.stargate.arrival.FirstArrivalService;
+import de.omegazirkel.risingworld.stargate.addressbook.AddressBookService;
 import de.omegazirkel.risingworld.stargate.dhd.DhdModelService;
 import de.omegazirkel.risingworld.stargate.horizon.HorizonService;
 import de.omegazirkel.risingworld.stargate.visual.GatePreviewService;
@@ -17,6 +19,7 @@ import de.omegazirkel.risingworld.stargate.inventory.InventorySnapshotService;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
 import de.omegazirkel.risingworld.stargate.transfer.TransferService;
 import de.omegazirkel.risingworld.stargate.ui.StargateChat;
+import de.omegazirkel.risingworld.stargate.ui.TravelScreenService;
 import de.omegazirkel.risingworld.tools.Colors;
 import de.omegazirkel.risingworld.tools.I18n;
 import de.omegazirkel.risingworld.tools.ui.PluginInfoStatusProviders;
@@ -43,10 +46,13 @@ public final class StargatePlayerEventHandler {
     private final GatePreviewService previews;
     private final GateVisualService visuals;
     private final GatePlacementService placement;
+    private final TravelScreenService travelScreen;
+    private final FirstArrivalService firstArrival;
+    private final AddressBookService addressBook;
     private final Colors colors = Colors.getInstance();
 
     StargatePlayerEventHandler(OZStargate plugin, String pluginName, PluginSettings settings, I18n i18n,
-            PluginGUI gui, InventorySnapshotService inventories, GateNetworkClient network, TransferService transfers, DhdService dhd, DhdModelService dhdModels, HorizonService horizons, GatePreviewService previews, GateVisualService visuals, GatePlacementService placement) {
+            PluginGUI gui, InventorySnapshotService inventories, GateNetworkClient network, TransferService transfers, DhdService dhd, DhdModelService dhdModels, HorizonService horizons, GatePreviewService previews, GateVisualService visuals, GatePlacementService placement, TravelScreenService travelScreen, FirstArrivalService firstArrival, AddressBookService addressBook) {
         this.plugin = plugin;
         this.pluginName = pluginName;
         this.settings = settings;
@@ -61,6 +67,9 @@ public final class StargatePlayerEventHandler {
         this.previews = previews;
         this.visuals = visuals;
         this.placement = placement;
+        this.travelScreen = travelScreen;
+        this.firstArrival = firstArrival;
+        this.addressBook = addressBook;
     }
 
     public void onPlayerCommand(PlayerCommandEvent event) {
@@ -100,7 +109,7 @@ public final class StargatePlayerEventHandler {
             return;
         }
         if (subcommand.equals("registergate") || subcommand.equals("unregistergate")
-                || subcommand.equals("gatelist") || subcommand.equals("dial") || subcommand.equals("trust") || subcommand.equals("warp")) {
+                || subcommand.equals("dial") || subcommand.equals("trust") || subcommand.equals("warp")) {
             if (!player.isAdmin()) {
                 StargateChat.debug(player, i18n.get("tc.stargate.inventory.admin_only", player));
                 return;
@@ -111,7 +120,6 @@ public final class StargatePlayerEventHandler {
                     if (args.length < 2) StargateChat.debug(player, i18n.get("tc.stargate.network.usage_unregister", player));
                     else network.unregister(player, args[1]);
                 }
-                case "gatelist" -> network.list(player);
                 case "trust" -> network.trust(player, args.length >= 2 ? args[1] : player.getUID());
                 case "warp" -> {
                     if (args.length < 2) StargateChat.debug(player, i18n.get("tc.stargate.network.usage_warp", player));
@@ -124,6 +132,7 @@ public final class StargatePlayerEventHandler {
             }
             return;
         }
+        if (subcommand.equals("gatelist")) { network.list(player); return; }
         if (subcommand.equals("pack") || subcommand.equals("unpack") || subcommand.equals("recover")) {
             if (!player.isAdmin()) {
                 StargateChat.debug(player, i18n.get("tc.stargate.inventory.admin_only", player));
@@ -158,6 +167,9 @@ public final class StargatePlayerEventHandler {
     public void onPlayerObjectInteraction(PlayerObjectInteractionEvent event) { dhd.interact(event); }
     public void onPlayerGameObjectInteraction(PlayerGameObjectInteractionEvent event) { dhdModels.interact(event); }
     public void onPlayerDisconnect(PlayerDisconnectEvent event) {
+        firstArrival.disconnect(event.getPlayer());
+        addressBook.disconnect(event.getPlayer());
+        travelScreen.disconnect(event.getPlayer());
         previews.disconnect(event.getPlayer());
         visuals.disconnect(event.getPlayer());
         dhdModels.disconnect(event.getPlayer());
@@ -169,8 +181,10 @@ public final class StargatePlayerEventHandler {
     public void onPlayerSpawn(PlayerSpawnEvent event) {
         horizons.reset(event.getPlayer());
         transfers.onSpawn(event.getPlayer());
+        firstArrival.spawn(event.getPlayer());
         visuals.onSpawn(event.getPlayer());
         network.updatePlayer(event.getPlayer());
+        addressBook.check(event.getPlayer());
         if (!settings.enableWelcomeMessage) {
             return;
         }
@@ -182,7 +196,10 @@ public final class StargatePlayerEventHandler {
     }
 
     public void onPlayerConnect(PlayerConnectEvent event) {
+        transfers.onConnect(event.getPlayer());
+        firstArrival.connect(event);
         network.updatePlayer(event.getPlayer());
+        addressBook.sync(event.getPlayer());
     }
 
     public void onPlayerPermissionGroupChange(PlayerPermissionGroupChangeEvent event) {

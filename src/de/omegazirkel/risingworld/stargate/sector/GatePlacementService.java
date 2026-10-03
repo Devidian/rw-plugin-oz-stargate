@@ -1,8 +1,12 @@
 package de.omegazirkel.risingworld.stargate.sector;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.horizon.AlignedPassage;
@@ -19,6 +23,9 @@ import de.omegazirkel.risingworld.stargate.visual.GateVisualStore;
 import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import de.omegazirkel.risingworld.tools.I18n;
 import net.risingworld.api.objects.Player;
+import net.risingworld.api.World;
+import net.risingworld.api.objects.world.Chunk;
+import net.risingworld.api.objects.world.Plant;
 import net.risingworld.api.utils.Quaternion;
 import net.risingworld.api.utils.Vector3f;
 import net.risingworld.api.utils.Layer;
@@ -40,6 +47,9 @@ public final class GatePlacementService {
     private final DhdModelStore dhdStore;
     private final DhdModelService dhdModels;
     private final Set<String> pending = new HashSet<>();
+
+    private record DiscoveryCandidate(SectorAddress sector, Vector3f feet, Vector3f arrival,
+            Quaternion facing, GateVisualPlacement visual, DhdModelPlacement dhd) { }
 
     public GatePlacementService(OZStargate plugin, LocalGateStore gates, LocalSectorStore sectors, GateVisualStore modelStore,
             HorizonStore horizonStore, DhdModelStore dhdStore, GateVisualService models, HorizonService horizons,
@@ -90,6 +100,89 @@ public final class GatePlacementService {
             OZStargate.logger().error("Cannot prepare new Stargate placement: " + ex.getMessage());
             tell(player, "database_error");
         } catch (IllegalArgumentException ex) { tell(player, "ground"); }
+    }
+
+    private static boolean clearOfPlants(Plant[] plants, float gateX, float gateZ,
+            float dhdX, float dhdZ, float arrivalX, float arrivalZ) {
+        if (plants == null) return true;
+        for (Plant plant : plants) {
+            Vector3f point = plant.getWorldPosition();
+            if (Math.hypot(point.x - gateX, point.z - gateZ) < 7f
+                    || Math.hypot(point.x - dhdX, point.z - dhdZ) < 5f
+                    || Math.hypot(point.x - arrivalX, point.z - arrivalZ) < 4f) return false;
+        }
+        return true;
+    }
+
+    public boolean discoveryCandidate(int chunkX, int chunkZ) throws SQLException {
+        return discoveryCandidate(World.getChunk(chunkX, chunkZ)) != null;
+    }
+
+    /** Revalidates a cached site before sending the relay registration request. */
+    public boolean createDiscovered(Player player, int chunkX, int chunkZ, Consumer<String> created)
+            throws SQLException {
+        SectorAddress sector = SectorAddress.fromChunk(chunkX, chunkZ);
+        if (sectors.gateAt(sector) != null || network.hasPendingRegistration(sector)) return false;
+        DiscoveryCandidate candidate = discoveryCandidate(World.getChunk(chunkX, chunkZ));
+        if (candidate == null) return false;
+        network.register(player, candidate.feet(), candidate.facing(), (id, ignored, rotation) -> {
+            try {
+                GateVisualPlacement visual = visual(candidate.visual(), id);
+                DhdModelPlacement dhd = dhd(candidate.dhd(), id);
+                sectors.saveGateWithSetup(gates, id, candidate.arrival(), candidate.facing(),
+                        candidate.sector(), () -> {
+                            if (!modelStore.save(visual)) throw new SQLException("Cannot save discovered gate model");
+                            horizonStore.saveNewAligned(visual);
+                            if (!dhdStore.save(dhd)) throw new SQLException("Cannot save discovered DHD");
+                        });
+                publish(visual, dhd);
+                created.accept(id);
+            } catch (SQLException ex) { fail(player, ex); throw ex; }
+        });
+        return true;
+    }
+
+    private DiscoveryCandidate discoveryCandidate(Chunk chunk) throws SQLException {
+        if (chunk == null || !chunk.isValid() || chunk.containsWater()) return null;
+        float[] heights = chunk.getLODTerrain();
+        if (heights == null || heights.length != Chunk.SIZE_X * Chunk.SIZE_Z) return null;
+        float min = Float.POSITIVE_INFINITY, max = Float.NEGATIVE_INFINITY;
+        for (float height : heights) {
+            if (!Float.isFinite(height)) return null;
+            min = Math.min(min, height); max = Math.max(max, height);
+        }
+        if (min <= 90f || max - min > 4f) return null;
+        if (chunk.getAllObjects() != null && chunk.getAllObjects().length > 0) return null;
+        if (chunk.getAllConstructionElements() != null && chunk.getAllConstructionElements().length > 0) return null;
+        int cx = chunk.getChunkPositionX(), cz = chunk.getChunkPositionZ();
+        SectorAddress sector = SectorAddress.fromChunk(cx, cz);
+        List<int[]> directions = new ArrayList<>(List.of(
+                new int[] {1, 0}, new int[] {-1, 0}, new int[] {0, 1}, new int[] {0, -1}));
+        Collections.shuffle(directions);
+        for (int[] direction : directions) {
+            int fx = direction[0], fz = direction[1];
+            int gx = 16 + fx * 8, gz = 16 + fz * 8;
+            int dx = gx - fx * 16 + fz * 4, dz = gz - fz * 16 - fx * 4;
+            float gateX = cx * Chunk.SIZE_X + gx, gateZ = cz * Chunk.SIZE_Z + gz;
+            float dhdX = cx * Chunk.SIZE_X + dx, dhdZ = cz * Chunk.SIZE_Z + dz;
+            float arrivalX = gateX - fx * ARRIVAL_DISTANCE, arrivalZ = gateZ - fz * ARRIVAL_DISTANCE;
+            if (!clearOfPlants(chunk.getAllPlants(), gateX, gateZ, dhdX, dhdZ, arrivalX, arrivalZ)) continue;
+            float gateY = chunk.getLODSurfaceLevel(gx, gz, false);
+            float dhdY = chunk.getLODSurfaceLevel(dx, dz, false);
+            float arrivalY = chunk.getLODSurfaceLevel(Math.round(gx - fx * ARRIVAL_DISTANCE),
+                    Math.round(gz - fz * ARRIVAL_DISTANCE), false);
+            if (!Float.isFinite(gateY) || !Float.isFinite(dhdY) || !Float.isFinite(arrivalY)) continue;
+            GateVisualPlacement visual = new GateVisualPlacement("PENDING", gateX,
+                    gateY - GateVisualPlacement.PLACEMENT_DEPTH, gateZ, fx, fz);
+            Vector3f arrival = new Vector3f(arrivalX, arrivalY, arrivalZ);
+            if (!AlignedPassage.from(visual).acceptsArrival(arrivalX, arrivalY, arrivalZ)
+                    || overlaps(visual, null)) continue;
+            Vector3f feet = new Vector3f(gateX, gateY, gateZ);
+            Quaternion facing = new Quaternion().lookAt(-fx, 0f, -fz);
+            DhdModelPlacement dhd = new DhdModelPlacement("PENDING", dhdX, dhdY, dhdZ, fx, fz);
+            return new DiscoveryCandidate(sector, feet, arrival, facing, visual, dhd);
+        }
+        return null;
     }
 
     public boolean hasGateHere(Player player) {

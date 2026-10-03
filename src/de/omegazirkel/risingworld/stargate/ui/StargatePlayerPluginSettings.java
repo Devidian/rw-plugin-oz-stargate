@@ -11,6 +11,12 @@ import de.omegazirkel.risingworld.stargate.audio.GateAudioService;
 import de.omegazirkel.risingworld.tools.I18n;
 
 public class StargatePlayerPluginSettings extends PlayerPluginSettings {
+    public static final String TRAVEL_SCREEN_DISABLED_KEY = "oz.stargate.travelScreenDisabled";
+
+    public static boolean travelScreenEnabled(Player player) {
+        return player == null || OZTools.playerSettings() == null
+                || !OZTools.playerSettings().getBoolean(player.getDbID(), TRAVEL_SCREEN_DISABLED_KEY).orElse(false);
+    }
 
     public StargatePlayerPluginSettings(String pluginLabel, String pluginVersion) {
         this.pluginLabel = pluginLabel;
@@ -66,6 +72,15 @@ public class StargatePlayerPluginSettings extends PlayerPluginSettings {
                     redrawContent();
                 }));
                 flexWrapper.addChild(audioSetting);
+                OZUIElement travelSetting = defaultSettingsContainer();
+                travelSetting.addChild(defaultSettingsLabel(I18n.getInstance(pluginLabel)
+                        .get("tc.settings.travel_screen_disabled", uiPlayer)));
+                travelSetting.addChild(switchButtons(uiPlayer, !travelScreenEnabled(uiPlayer), event -> {
+                    if (OZTools.playerSettings() != null) OZTools.playerSettings().setBoolean(uiPlayer.getDbID(),
+                            TRAVEL_SCREEN_DISABLED_KEY, travelScreenEnabled(uiPlayer));
+                    redrawContent();
+                }));
+                flexWrapper.addChild(travelSetting);
             }
 
         };

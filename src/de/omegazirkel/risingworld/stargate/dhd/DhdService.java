@@ -4,11 +4,14 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiPredicate;
 
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
+import de.omegazirkel.risingworld.stargate.discovery.DiscoveryService;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.sector.LocalDialService;
 import de.omegazirkel.risingworld.stargate.ui.StargateChat;
@@ -29,7 +32,7 @@ public final class DhdService {
         final String gateId;
         DhdOverlay overlay;
         List<String> addresses = List.of();
-        Map<String, String> localTargets = Map.of();
+        Set<String> localAddresses = Set.of();
         String selected;
         int page;
         boolean loading;
@@ -39,6 +42,7 @@ public final class DhdService {
         }
     }
     private final DhdStore store;
+    private final OZStargate plugin;
     private final LocalGateStore gates;
     private final GateNetworkClient network;
     private final LocalDialService localDial;
@@ -46,14 +50,16 @@ public final class DhdService {
     private final Map<String, Selection> selections = new HashMap<>();
     private final Map<String, Session> sessions = new HashMap<>();
     private BiPredicate<Player, String> modelValidator = (player, gateId) -> false;
+    private DiscoveryService discovery;
 
-    public DhdService(DhdStore store, LocalGateStore gates, GateNetworkClient network,
+    public DhdService(OZStargate plugin, DhdStore store, LocalGateStore gates, GateNetworkClient network,
             LocalDialService localDial, I18n i18n) {
-        this.store = store; this.gates = gates; this.network = network; this.localDial = localDial; this.i18n = i18n;
+        this.plugin = plugin; this.store = store; this.gates = gates; this.network = network; this.localDial = localDial; this.i18n = i18n;
         network.setStateObserver(this::updateViews);
     }
 
     public void setModelValidator(BiPredicate<Player, String> validator) { modelValidator = validator; }
+    public void setDiscovery(DiscoveryService discovery) { this.discovery = discovery; }
 
     public void command(Player player, String command, String gateId) {
         if (!player.isAdmin()) { StargateChat.debug(player, i18n.get("tc.stargate.inventory.admin_only", player)); return; }
@@ -121,21 +127,14 @@ public final class DhdService {
     void refresh(Session session) {
         if (!valid(session) || session.loading) return;
         session.loading = true; session.failed = false; session.overlay.update();
-        List<LocalDialService.Destination> local;
-        try { local = localDial.destinations(session.gateId, session.player);
-        } catch (SQLException ex) { session.loading = false; databaseError(session.player, ex); return; }
-        Map<String, String> localTargets = new HashMap<>();
-        for (LocalDialService.Destination destination : local)
-            localTargets.put(destination.label(), destination.gateId());
+        try { session.localAddresses = Set.copyOf(gates.ids()); }
+        catch (SQLException ex) { session.loading = false; databaseError(session.player, ex); return; }
         network.requestAddresses(session.player, addresses -> {
             if (sessions.get(session.player.getUID()) != session) return;
             session.loading = false;
-            session.failed = addresses == null && localTargets.isEmpty();
-            session.localTargets = Map.copyOf(localTargets);
-            List<String> combined = new ArrayList<>(localTargets.keySet());
-            combined.sort(String::compareTo);
-            if (addresses != null) combined.addAll(addresses);
-            session.addresses = List.copyOf(combined);
+            session.failed = addresses == null;
+            session.addresses = addresses == null ? List.of() : addresses.stream()
+                    .filter(id -> !id.equals(session.gateId)).sorted().toList();
             if (session.selected != null && !session.addresses.contains(session.selected)) session.selected = null;
             session.page = Math.min(session.page, Math.max(0, (session.addresses.size() - 1) / 8));
             session.overlay.update();
@@ -158,10 +157,54 @@ public final class DhdService {
     void dial(Session session) {
         if (!valid(session) || session.loading || session.selected == null || !session.addresses.contains(session.selected)) return;
         if (!network.gateView(session.gateId).state().equals("IDLE")) return;
-        String localTarget = session.localTargets.get(session.selected);
-        if (localTarget != null) localDial.dial(session.player, session.gateId, localTarget);
-        else network.dial(session.player, session.selected, session.gateId);
+        dialAddress(session.player, session.gateId, session.selected);
         session.overlay.update();
+    }
+
+    void discover(Session session) {
+        if (discovery == null || !valid(session) || session.loading) return;
+        if (!network.gateView(session.gateId).ready()
+                || !network.gateView(session.gateId).state().equals("IDLE")) return;
+        discovery.attempt(session.player, session.gateId);
+    }
+
+    void manual(Session session) {
+        if (!valid(session)) return;
+        Player player = session.player;
+        String source = session.gateId;
+        close(session);
+        plugin.executeDelayed(.1f, () -> {
+            if (!player.isConnected()) return;
+            player.showInputMessageBox(i18n.get("tc.stargate.dhd.manual_title", player),
+                    i18n.get("tc.stargate.dhd.manual_prompt", player), "", answer -> plugin.enqueue(() -> {
+                        if (!player.isConnected() || answer == null || answer.isBlank()) return;
+                        String target = answer.trim().toUpperCase(Locale.ROOT);
+                        if (!target.matches("[A-Z0-9]{16}") || target.equals(source)) { player.sendTextMessage(i18n.get("tc.stargate.dhd.manual_invalid", player)); return; }
+                        try {
+                            if (!gates.exists(source) || !nearSource(player, session)) { player.sendTextMessage(i18n.get("tc.stargate.dhd.unavailable", player)); return; }
+                            dialAddress(player, source, target);
+                        } catch (SQLException ex) { databaseError(player, ex); }
+                    }));
+        });
+    }
+
+    private boolean nearSource(Player player, Session session) throws SQLException {
+        if (session.binding == null) return modelValidator.test(player, session.gateId);
+        DhdStore.ObjectKey key = session.binding.object();
+        ObjectElement object = World.getObject(key.id(), key.x(), key.y(), key.z());
+        return matches(session.binding, object) && near(player.getPosition(), object.getWorldPosition(), 4)
+                && session.binding.equals(store.find(key));
+    }
+
+    private void dialAddress(Player player, String source, String target) {
+        try {
+            if (localDial.isLocal(target)) localDial.dial(player, source, target);
+            else network.dial(player, target, source);
+        } catch (SQLException ex) { databaseError(player, ex); }
+    }
+
+    public void addressesChanged() {
+        for (Session session : new java.util.ArrayList<>(sessions.values())) refresh(session);
     }
 
     private boolean valid(Session session) {
@@ -194,7 +237,10 @@ public final class DhdService {
         if (session.player.isConnected()) session.overlay.dismiss();
     }
 
-    public void disconnect(Player player) { sessions.remove(player.getUID()); selections.remove(player.getUID()); }
+    public void disconnect(Player player) {
+        sessions.remove(player.getUID()); selections.remove(player.getUID());
+        if (discovery != null) discovery.disconnect(player.getUID());
+    }
 
     public void close() {
         for (Session session : new ArrayList<>(sessions.values())) close(session);

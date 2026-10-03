@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 /** World-local links only; inventory and gate networking remain separate. */
 public final class DhdStore {
@@ -18,6 +20,7 @@ public final class DhdStore {
         try (Statement statement = database.createStatement()) {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS stargate_dhds (object_id INTEGER NOT NULL, chunk_x INTEGER NOT NULL, chunk_y INTEGER NOT NULL, chunk_z INTEGER NOT NULL, object_created INTEGER NOT NULL, object_type INTEGER NOT NULL, gate_id TEXT NOT NULL, PRIMARY KEY(object_id,chunk_x,chunk_y,chunk_z))");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS stargate_dhds_gate ON stargate_dhds(gate_id)");
+            statement.executeUpdate("CREATE INDEX IF NOT EXISTS stargate_dhds_chunk ON stargate_dhds(chunk_x,chunk_y,chunk_z)");
             statement.executeUpdate("CREATE TRIGGER IF NOT EXISTS stargate_dhds_gate_deleted AFTER DELETE ON stargates BEGIN DELETE FROM stargate_dhds WHERE gate_id=OLD.gate_id; END");
         }
     }
@@ -37,6 +40,17 @@ public final class DhdStore {
                 return rows.next() ? new Binding(object, rows.getLong(1), rows.getShort(2), rows.getString(3)) : null;
             }
         }
+    }
+
+    public synchronized List<Binding> inChunk(int x, int y, int z) throws SQLException {
+        List<Binding> result = new ArrayList<>();
+        try (PreparedStatement statement = database.prepareStatement("SELECT d.object_id,d.object_created,d.object_type,d.gate_id FROM stargate_dhds d JOIN stargates g ON g.gate_id=d.gate_id WHERE d.chunk_x=? AND d.chunk_y=? AND d.chunk_z=?")) {
+            statement.setInt(1, x); statement.setInt(2, y); statement.setInt(3, z);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) result.add(new Binding(new ObjectKey(rows.getLong(1), x, y, z), rows.getLong(2), rows.getShort(3), rows.getString(4)));
+            }
+        }
+        return List.copyOf(result);
     }
 
     public synchronized boolean unbind(ObjectKey object) throws SQLException {
