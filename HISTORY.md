@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.4.1 — 2026-10-03
+
+- Allow a Discovery started at a local gate to complete its seven-chevron dial and create a local destination while the relay network is disabled.
+
 ## 0.4.0 — 2026-10-03
 
 - Show the travel tunnel for ten seconds during local travel and for a fresh ten seconds after arrival on another server. Players can disable it personally; arrival sound and visibility wait until travel ends.

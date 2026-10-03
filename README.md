@@ -61,7 +61,7 @@ administrator supplied content; verify rights before distribution.
 
 ## Installation and compatibility
 
-Requires OZ Tools 0.26.2 and the Rising World Unity API 0.9.3.2 baseline. Extract the release ZIP into Plugins, preserving world settings and SQLite databases during updates. Configure a private/trusted OZ Stargate Network 0.4.0 relay and a reachable advertised game-server address. Back up both player and plugin databases before rollback; never restore only one side of an in-flight transfer.
+Requires OZ Tools 0.26.2 and the Rising World Unity API 0.9.3.2 baseline. Extract the release ZIP into Plugins, preserving world settings and SQLite databases during updates. Configure OZ Stargate Network 0.4.1 and a reachable advertised game-server address. The hosted relay accepts arbitrary server IPs; network codes group servers but do not authenticate them. Administrators can use an unpredictable `networkCode.override` to isolate a network. Back up both player and plugin databases before rollback; never restore only one side of an in-flight transfer.
 
 On a fresh installation with no gates, the plugin searches the sector of the
 server's global default spawn for one suitable site and creates a gate with a
@@ -79,7 +79,7 @@ passage and outward-facing arrival point in one step. Players choose destination
 on the DHD and enter an open wormhole to travel. The models, collision, lighting
 and wormhole animation are included in the plugin package.
 
-Cross-server travel requires OZ Stargate Network 0.4.0 and an explicit
+Cross-server travel requires OZ Stargate Network 0.4.0 or newer and an explicit
 `network.enabled=true` setting on each participating server. With the default
 `false`, the plugin does not contact the relay and creates local addresses.
 If the advertised host is empty, the plugin asks the relay for the public IPv4

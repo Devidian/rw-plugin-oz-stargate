@@ -87,7 +87,7 @@ public final class DiscoveryService implements AutoCloseable {
     private void finish(Attempt attempt) {
         if (closed || pending.get(attempt.uid()) != attempt) return;
         Player player = Server.getPlayerByUID(attempt.uid());
-        if (player == null || !player.isConnected() || !network.isReady()
+        if (player == null || !player.isConnected() || (settings.networkEnabled && !network.isReady())
                 || !"IDLE".equals(network.remoteGateView(attempt.source()).state())) {
             stop(attempt); return;
         }
