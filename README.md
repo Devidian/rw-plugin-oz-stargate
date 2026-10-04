@@ -61,7 +61,11 @@ administrator supplied content; verify rights before distribution.
 
 ## Installation and compatibility
 
-Requires OZ Tools 0.26.2 and the Rising World Unity API 0.9.3.2 baseline. Extract the release ZIP into Plugins, preserving world settings and SQLite databases during updates. Configure OZ Stargate Network 0.4.1 and a reachable advertised game-server address. The hosted relay accepts arbitrary server IPs; network codes group servers but do not authenticate them. Administrators can use an unpredictable `networkCode.override` to isolate a network. Back up both player and plugin databases before rollback; never restore only one side of an in-flight transfer.
+Requires OZ Tools 0.26.2 and the Rising World Unity API 0.9.3.2 baseline. Extract the release ZIP into Plugins, preserving world settings and SQLite databases during updates. Configure OZ Stargate Network 0.5.0 and a reachable advertised game-server address for alias synchronization and network addresses. Upgrade the relay before the plugin. Network codes group servers but do not authenticate them. Administrators can use an unpredictable `networkCode.override` to isolate a network. Back up both player and plugin databases before rollback; never restore only one side of an in-flight transfer.
+
+The DHD shows gate aliases by default. Players may choose local or network addresses in personal plugin settings; a known local address is the fallback. Admins can set an alias with the DHD pencil button and mark a gate as a start gate with the confirmed I/O switch. Start-gate flags remain in the world's plugin database and are not sent to the relay.
+
+Admin PluginSettings control Discovery cooldown in minutes (default 5), an admin cooldown exemption (off), and random first arrival (on). When random arrival is off, new ordinary visitors use marked start gates; the sector 0,0 gate is the fallback. Incoming cross-server travelers still arrive at their transfer destination. Optional Discord Connect channel IDs (0 disables each) announce external travel, internal travel, discoveries and network status. Status messages omit the network code. Reopen the settings after changing values to refresh displayed options.
 
 On a fresh installation with no gates, the plugin searches the sector of the
 server's global default spawn for one suitable site and creates a gate with a

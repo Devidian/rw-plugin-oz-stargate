@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.5.0 — 2026-10-04
+
+- Let admins set gate aliases in the DHD. Players choose alias, local address or network address labels in personal settings; the local address is the fallback when known.
+- Reposition DHD controls and prevent repeated interactions with one gate from closing its visible menu. Add a confirmed admin start-gate toggle backed by local SQLite state.
+- Let administrators configure Discovery cooldown and an admin exemption, plus random or marked-start-gate first arrival. Sector 0,0 remains the fallback; cross-server arrivals are excluded.
+- Add optional Discord channels for internal/external travel, successful Discovery and network status. Status messages explain network-code changes without disclosing the code.
+- Synchronize aliases and legacy local-address metadata through OZ Stargate Network 0.5.0 while retaining existing gate IDs, world settings and protocol v1 compatibility.
+
 ## 0.4.1 — 2026-10-03
 
 - Allow a Discovery started at a local gate to complete its seven-chevron dial and create a local destination while the relay network is disabled.
