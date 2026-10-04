@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiPredicate;
 
 import de.omegazirkel.risingworld.OZStargate;
@@ -21,6 +22,7 @@ import net.risingworld.api.events.player.PlayerObjectInteractionEvent;
 import net.risingworld.api.objects.Player;
 import net.risingworld.api.objects.world.ObjectElement;
 import net.risingworld.api.ui.UITarget;
+import net.risingworld.api.ui.MessageBoxButtons;
 import net.risingworld.api.utils.Vector3f;
 
 /** Console linking and UI workflow. All methods run on the game thread. */
@@ -32,11 +34,13 @@ public final class DhdService {
         final String gateId;
         DhdOverlay overlay;
         List<String> addresses = List.of();
+        Map<String, String> aliases = Map.of();
         Set<String> localAddresses = Set.of();
         String selected;
         int page;
         boolean loading;
         boolean failed;
+        boolean startGate;
         Session(Player player, DhdStore.Binding binding, String gateId) {
             this.player = player; this.binding = binding; this.gateId = gateId;
         }
@@ -116,8 +120,13 @@ public final class DhdService {
 
     private void open(Player player, String gateId, DhdStore.Binding binding) {
         Session previous = sessions.get(player.getUID());
+        // Object/model interactions can arrive more than once for one click. Replacing the
+        // already visible modal closes the client's newly opened window as well.
+        if (previous != null && previous.gateId.equals(gateId)) return;
         if (previous != null) close(previous);
         Session session = new Session(player, binding, gateId);
+        try { session.startGate = gates.isStartGate(gateId); }
+        catch (SQLException ex) { databaseError(player, ex); return; }
         session.overlay = new DhdOverlay(session, this, network, i18n);
         sessions.put(player.getUID(), session);
         player.addUIElement(session.overlay, UITarget.Modal);
@@ -127,30 +136,48 @@ public final class DhdService {
     void refresh(Session session) {
         if (!valid(session) || session.loading) return;
         session.loading = true; session.failed = false; session.overlay.update();
-        try { session.localAddresses = Set.copyOf(gates.ids()); }
+        try {
+            Set<String> local = new java.util.HashSet<>();
+            for (String id : gates.ids()) local.add(gates.localAddress(id));
+            session.localAddresses = Set.copyOf(local);
+        }
         catch (SQLException ex) { session.loading = false; databaseError(session.player, ex); return; }
         network.requestAddresses(session.player, addresses -> {
             if (sessions.get(session.player.getUID()) != session) return;
             session.loading = false;
             session.failed = addresses == null;
+            String ownLocal = network.localAddress(session.gateId);
+            String ownGlobal = network.globalAddress(session.gateId);
             session.addresses = addresses == null ? List.of() : addresses.stream()
-                    .filter(id -> !id.equals(session.gateId)).sorted().toList();
+                    .filter(id -> !id.equals(ownLocal) && !id.equals(ownGlobal)).sorted().toList();
+            Map<String, String> aliases = new HashMap<>();
+            for (String address : session.addresses) {
+                String alias = network.addressAlias(address);
+                if (alias != null && !alias.isBlank()) aliases.put(address, alias);
+            }
+            session.aliases = Map.copyOf(aliases);
             if (session.selected != null && !session.addresses.contains(session.selected)) session.selected = null;
-            session.page = Math.min(session.page, Math.max(0, (session.addresses.size() - 1) / 8));
+            session.page = Math.min(session.page, Math.max(0, (session.addresses.size() - 1) / DhdOverlay.PAGE_SIZE));
             session.overlay.update();
         });
     }
 
+    void refreshFromRelay(Session session) {
+        if (!valid(session) || session.loading) return;
+        network.refreshAddressBook(session.player);
+        refresh(session);
+    }
+
     void select(Session session, int slot) {
         if (!valid(session) || session.loading) return;
-        int index = session.page * 8 + slot;
+        int index = session.page * DhdOverlay.PAGE_SIZE + slot;
         if (index < session.addresses.size()) session.selected = session.addresses.get(index);
         session.overlay.update();
     }
 
     void page(Session session, int delta) {
         if (!valid(session) || session.loading) return;
-        session.page = Math.max(0, Math.min(Math.max(0, (session.addresses.size() - 1) / 8), session.page + delta));
+        session.page = Math.max(0, Math.min(Math.max(0, (session.addresses.size() - 1) / DhdOverlay.PAGE_SIZE), session.page + delta));
         session.overlay.update();
     }
 
@@ -179,10 +206,61 @@ public final class DhdService {
                     i18n.get("tc.stargate.dhd.manual_prompt", player), "", answer -> plugin.enqueue(() -> {
                         if (!player.isConnected() || answer == null || answer.isBlank()) return;
                         String target = answer.trim().toUpperCase(Locale.ROOT);
-                        if (!target.matches("[A-Z0-9]{16}") || target.equals(source)) { player.sendTextMessage(i18n.get("tc.stargate.dhd.manual_invalid", player)); return; }
+                        if (!target.matches("[A-Z0-9]{16}") || target.equals(network.localAddress(source))
+                                || target.equals(network.globalAddress(source))) {
+                            player.sendTextMessage(i18n.get("tc.stargate.dhd.manual_invalid", player)); return;
+                        }
                         try {
                             if (!gates.exists(source) || !nearSource(player, session)) { player.sendTextMessage(i18n.get("tc.stargate.dhd.unavailable", player)); return; }
                             dialAddress(player, source, target);
+                        } catch (SQLException ex) { databaseError(player, ex); }
+                    }));
+        });
+    }
+
+    void editAlias(Session session) {
+        if (!valid(session) || !session.player.isAdmin()) return;
+        Player player = session.player;
+        String source = session.gateId;
+        String current = network.gateAlias(source);
+        close(session);
+        plugin.executeDelayed(.1f, () -> {
+            if (!player.isConnected()) return;
+            player.showInputMessageBox(i18n.get("tc.stargate.dhd.alias_title", player),
+                    i18n.get("tc.stargate.dhd.alias_prompt", player), current == null ? "" : current,
+                    answer -> plugin.enqueue(() -> {
+                        if (!player.isConnected() || answer == null) return;
+                        try {
+                            if (!gates.exists(source) || !nearSource(player, session)) {
+                                tell(player, "unavailable"); return;
+                            }
+                            network.setGateAlias(player, source, answer.isBlank() ? "-" : answer);
+                            plugin.executeDelayed(.1f, () -> {
+                                if (player.isConnected()) open(player, source, session.binding);
+                            });
+                        } catch (SQLException ex) { databaseError(player, ex); }
+                    }));
+        });
+    }
+
+    void toggleStartGate(Session session) {
+        if (!valid(session) || !session.player.isAdmin()) return;
+        Player player = session.player;
+        String gateId = session.gateId;
+        boolean next = !session.startGate;
+        AtomicBoolean handled = new AtomicBoolean();
+        close(session);
+        plugin.executeDelayed(.1f, () -> {
+            if (!player.isConnected()) return;
+            player.showMessageBox(MessageBoxButtons.Yes_No,
+                    i18n.get("tc.stargate.dhd.start_gate_title", player),
+                    i18n.get(next ? "tc.stargate.dhd.start_gate_enable" : "tc.stargate.dhd.start_gate_disable", player),
+                    0, answer -> plugin.enqueue(() -> {
+                        if (!handled.compareAndSet(false, true) || !player.isConnected() || answer != 0) return;
+                        try {
+                            if (!gates.exists(gateId) || !nearSource(player, session)) { tell(player, "unavailable"); return; }
+                            gates.setStartGate(gateId, next);
+                            plugin.executeDelayed(.1f, () -> { if (player.isConnected()) open(player, gateId, session.binding); });
                         } catch (SQLException ex) { databaseError(player, ex); }
                     }));
         });
@@ -198,7 +276,8 @@ public final class DhdService {
 
     private void dialAddress(Player player, String source, String target) {
         try {
-            if (localDial.isLocal(target)) localDial.dial(player, source, target);
+            String localTarget = gates.gateByAddress(target);
+            if (localTarget != null && localDial.isLocal(localTarget)) localDial.dial(player, source, localTarget);
             else network.dial(player, target, source);
         } catch (SQLException ex) { databaseError(player, ex); }
     }

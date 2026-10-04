@@ -22,7 +22,6 @@ import net.risingworld.api.Server;
 
 /** Player-scoped discovery attempt, cooldown and feedback. */
 public final class DiscoveryService implements AutoCloseable {
-    private static final long COOLDOWN_MILLIS = 300_000L;
     private final OZStargate plugin;
     private final PluginSettings settings;
     private final DiscoveryCooldownStore store;
@@ -35,6 +34,9 @@ public final class DiscoveryService implements AutoCloseable {
     private final Map<String, Attempt> pending = new HashMap<>();
     private final Map<String, GateNetworkClient.GateView> views = new HashMap<>();
     private boolean closed;
+    private de.omegazirkel.risingworld.stargate.DiscordEvents discordEvents;
+
+    public void setDiscordEvents(de.omegazirkel.risingworld.stargate.DiscordEvents events) { discordEvents = events; }
 
     private record Attempt(String uid, String source) { }
 
@@ -50,7 +52,6 @@ public final class DiscoveryService implements AutoCloseable {
 
     public void attempt(Player player, String sourceGateId) {
         if (closed || player == null || !player.isConnected() || !player.isSpawned()) return;
-        if (settings.networkEnabled && !network.isReady()) { tell(player, "offline", null); return; }
         String uid = player.getUID();
         if (pending.containsKey(uid)) { tell(player, "pending", null); return; }
         if (views.containsKey(sourceGateId) || !network.isIdleForArtificialArrival(sourceGateId)) {
@@ -58,12 +59,14 @@ public final class DiscoveryService implements AutoCloseable {
         }
         long now = System.currentTimeMillis();
         try {
-            long next = store.nextAt(uid);
-            if (next > now) {
-                tell(player, "cooldown", Long.toString((next - now + 999) / 1000));
-                return;
+            if (!(player.isAdmin() && settings.discoveryNoAdminCooldown)) {
+                long next = store.nextAt(uid);
+                if (next > now) {
+                    tell(player, "cooldown", Long.toString((next - now + 999) / 1000));
+                    return;
+                }
+                store.started(uid, now + settings.discoveryCooldownMinutes * 60_000L);
             }
-            store.started(uid, now + COOLDOWN_MILLIS);
         } catch (SQLException ex) {
             OZStargate.logger().error("Cannot save Stargate discovery cooldown: " + ex.getMessage());
             tell(player, "error", null); return;
@@ -87,7 +90,7 @@ public final class DiscoveryService implements AutoCloseable {
     private void finish(Attempt attempt) {
         if (closed || pending.get(attempt.uid()) != attempt) return;
         Player player = Server.getPlayerByUID(attempt.uid());
-        if (player == null || !player.isConnected() || (settings.networkEnabled && !network.isReady())
+        if (player == null || !player.isConnected()
                 || !"IDLE".equals(network.remoteGateView(attempt.source()).state())) {
             stop(attempt); return;
         }
@@ -118,6 +121,7 @@ public final class DiscoveryService implements AutoCloseable {
                         views.remove(attempt.source());
                         if (localDial.connectDiscovered(attempt.uid(), attempt.source(), id)) {
                             addressBook.learn(attempt.uid(), id);
+                            if (discordEvents != null) discordEvents.discovery(Server.getPlayerByUID(attempt.uid()), id);
                             tell(Server.getPlayerByUID(attempt.uid()), "found", id);
                         } else tell(Server.getPlayerByUID(attempt.uid()), "error", null);
                         pending.remove(attempt.uid());

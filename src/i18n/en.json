@@ -54,6 +54,42 @@
         "radiussectors": {
           "label": "Search radius (sectors)",
           "desc": "Circular radius from 2 to 50 sectors; default 10."
+        },
+        "cooldownminutes": {
+          "label": "Cooldown (minutes)",
+          "desc": "Time between discovery attempts; 0 to 1440 minutes, default 5."
+        },
+        "noadmincooldown": {
+          "label": "No cooldown for admins",
+          "desc": "Admins can discover another Stargate without waiting. Off by default."
+        }
+      },
+      "arrival": {
+        "label": "New player arrival",
+        "desc": "Gate choice when a player first joins this server.",
+        "randomgate": {
+          "label": "Random Stargate arrival",
+          "desc": "When off, new players arrive only at start gates. The gate in sector 0,0 remains the fallback."
+        }
+      },
+      "discord": {
+        "label": "Discord events (optional)",
+        "desc": "Channel IDs for Stargate events; 0 disables each message.",
+        "externaltravelchannel": {
+          "label": "External arrivals and departures",
+          "desc": "Channel ID for travel to and from other servers."
+        },
+        "internaltravelchannel": {
+          "label": "Internal travel",
+          "desc": "Channel ID for travel between gates on this server."
+        },
+        "discoverychannel": {
+          "label": "New Stargate discoveries",
+          "desc": "Channel ID for successful discoveries."
+        },
+        "networkstatuschannel": {
+          "label": "Stargate network status",
+          "desc": "Channel ID for connections, disconnections and network code changes without exposing the code."
         }
       },
       "enablewelcomemessage": {
@@ -133,6 +169,12 @@
       "settings": {
         "empty": "There are no player settings for OZ Stargate yet."
       },
+      "player": {
+        "address_mode": "Show gate addresses in the DHD as",
+        "address_aliases": "Aliases",
+        "address_local": "Local",
+        "address_network": "Network"
+      },
       "inventory": {
         "admin_only": "This command is available only to administrators.",
         "unavailable": "Inventory is currently unavailable.",
@@ -174,6 +216,8 @@
         "registered": "Stargate PH_GATE was registered here.",
         "unregistered": "Stargate PH_GATE was removed.",
         "not_owned": "Stargate PH_GATE does not belong to this server.",
+        "usage_alias": "Invalid gate name. Use letters, numbers, spaces and . _ ' - (up to 40 characters).",
+        "alias_saved": "Alias for Stargate PH_GATE saved.",
         "list": "Known Stargates: PH_GATES",
         "dial_started": "Dialing Stargate PH_GATE.",
         "dial_chevron": "Chevron PH_CHEVRON of 7 encoded.",
@@ -275,6 +319,11 @@
         "manual_title": "Enter Stargate address",
         "manual_prompt": "Enter the 16-character gate ID. It is saved after a successful connection.",
         "manual_invalid": "Enter a valid 16-character gate ID other than the source gate.",
+        "alias_title": "Rename Stargate",
+        "alias_prompt": "Enter a name of up to 40 characters. Leave empty to remove the alias.",
+        "start_gate_title": "Change start gate",
+        "start_gate_enable": "Mark this Stargate as a start gate for new players?",
+        "start_gate_disable": "Stop using this Stargate as a start gate?",
         "dial": "Dial",
         "discover": "Discover new Stargate",
         "loading": "Loading gate addresses …",
@@ -309,7 +358,11 @@
           "success": "Success chance (%)",
           "success_desc": "0 to 100 percent; default 75.",
           "radius": "Search radius (sectors)",
-          "radius_desc": "Circular radius from 2 to 50 sectors; default 10."
+          "radius_desc": "Circular radius from 2 to 50 sectors; default 10.",
+          "cooldown": "Cooldown (minutes)",
+          "cooldown_desc": "Time between discovery attempts; 0 to 1440 minutes, default 5.",
+          "no_admin_cooldown": "No cooldown for admins",
+          "no_admin_cooldown_desc": "Admins can discover another Stargate without waiting. Off by default."
         },
         "pending": "A discovery is already in progress.",
         "offline": "The Stargate network is not connected for discovery.",
@@ -322,6 +375,39 @@
       },
       "addressbook": {
         "discovered": "New Stargate address discovered: PH_GATE"
+      },
+      "arrival": {
+        "settings": {
+          "title": "New player arrival",
+          "desc": "Gate choice when a player first joins this server.",
+          "random": "Random Stargate arrival",
+          "random_desc": "When off, new players arrive only at start gates. The gate in sector 0,0 remains the fallback."
+        }
+      },
+      "discord": {
+        "settings": {
+          "title": "Discord events (optional)",
+          "desc": "Channel IDs for Stargate events; 0 disables each message.",
+          "external": "External arrivals and departures",
+          "external_desc": "Channel ID for travel to and from other servers.",
+          "internal": "Internal travel",
+          "internal_desc": "Channel ID for travel between gates on this server.",
+          "discovery": "New Stargate discoveries",
+          "discovery_desc": "Channel ID for successful discoveries.",
+          "network": "Stargate network status",
+          "network_desc": "Channel ID for connections, disconnections and network code changes without exposing the code."
+        },
+        "events": {
+          "internal": "PH_PLAYER travels from Stargate PH_SOURCE to PH_TARGET.",
+          "external_departure": "PH_PLAYER departs Stargate PH_SOURCE for another server (destination: PH_TARGET).",
+          "external_arrival": "PH_PLAYER arrived from another server (gate PH_SOURCE) at Stargate PH_TARGET.",
+          "discovery": "PH_PLAYER discovered a new Stargate: PH_GATE.",
+          "network_connected": "Stargate network connected.",
+          "network_disconnected": "Stargate network disconnected.",
+          "network_code_changed": "Stargate network code changed. Reason: PH_REASON.",
+          "reason_profile": "server profile or network configuration changed",
+          "reason_override": "administrative network code override changed"
+        }
       },
       "horizon": {
         "usage": "Usage: /sg sethorizon <local gate> [X width Y height Z depth] (metres); /sg showhorizon <gate>; /sg removehorizon <gate>. /sg aligngate <ID>.",

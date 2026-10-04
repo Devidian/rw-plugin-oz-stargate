@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import de.omegazirkel.risingworld.OZStargate;
+import de.omegazirkel.risingworld.stargate.PluginSettings;
 import de.omegazirkel.risingworld.stargate.audio.GateAudioTiming;
 import de.omegazirkel.risingworld.stargate.horizon.HorizonService;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
@@ -26,6 +27,7 @@ public final class FirstArrivalService {
 
     private record Arrival(String uid, Player player, String gateId, boolean wasInvisible, boolean artificial) { }
     private final OZStargate plugin;
+    private final PluginSettings settings;
     private final FirstArrivalStore store;
     private final LocalGateStore gates;
     private final GateNetworkClient network;
@@ -39,10 +41,11 @@ public final class FirstArrivalService {
     private final Map<String, GateNetworkClient.GateView> reserved = new HashMap<>();
     private boolean closed;
 
-    public FirstArrivalService(OZStargate plugin, FirstArrivalStore store, LocalGateStore gates,
+    public FirstArrivalService(OZStargate plugin, PluginSettings settings, FirstArrivalStore store, LocalGateStore gates,
             GateNetworkClient network, TransferService transfers, HorizonService horizons, GateVisualService visuals,
             TravelScreenService travelScreen) {
         this.plugin = plugin;
+        this.settings = settings;
         this.store = store;
         this.gates = gates;
         this.network = network;
@@ -89,11 +92,22 @@ public final class FirstArrivalService {
         try {
             if (transfers.hasIncoming(uid)) { travelScreen.remove(player); return; }
             List<String> free = new ArrayList<>(), incoming = new ArrayList<>();
+            List<String> fallbackFree = new ArrayList<>(), fallbackIncoming = new ArrayList<>();
             for (String gateId : gates.ids()) {
                 if (!visuals.hasPlacement(gateId) || gates.gate(gateId) == null) continue;
                 GateNetworkClient.GateView view = network.gateView(gateId);
-                if (network.isIdleForArtificialArrival(gateId) && !network.hasPendingUnregister(gateId)) free.add(gateId);
-                else if ("OPEN".equals(view.state()) && "INCOMING".equals(view.direction())) incoming.add(gateId);
+                boolean eligible = settings.randomFirstArrival || gates.isStartGate(gateId);
+                if (network.isIdleForArtificialArrival(gateId) && !network.hasPendingUnregister(gateId)) {
+                    if (eligible) free.add(gateId);
+                    else if (gates.isOriginGate(gateId)) fallbackFree.add(gateId);
+                } else if ("OPEN".equals(view.state()) && "INCOMING".equals(view.direction())) {
+                    if (eligible) incoming.add(gateId);
+                    else if (gates.isOriginGate(gateId)) fallbackIncoming.add(gateId);
+                }
+            }
+            if (free.isEmpty() && incoming.isEmpty()) {
+                free.addAll(fallbackFree);
+                incoming.addAll(fallbackIncoming);
             }
             if (!free.isEmpty()) {
                 Collections.shuffle(free);

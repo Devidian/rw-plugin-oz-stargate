@@ -38,6 +38,13 @@ public class PluginSettings {
 	public int audioVolume = 70;
 	public int discoverySuccessPercent = 75;
 	public int discoveryRadiusSectors = 10;
+	public int discoveryCooldownMinutes = 5;
+	public boolean discoveryNoAdminCooldown = false;
+	public boolean randomFirstArrival = true;
+	public long discordExternalTravelChannel = 0;
+	public long discordInternalTravelChannel = 0;
+	public long discordDiscoveryChannel = 0;
+	public long discordNetworkStatusChannel = 0;
 	private Path audioDirectory;
 	private Path settingsFile;
 	private java.util.Map<String, String> currentSettings = new LinkedHashMap<>();
@@ -98,6 +105,15 @@ public class PluginSettings {
 			catch (NumberFormatException invalid) { audioVolume = 70; }
 			discoverySuccessPercent = boundedInt(settings, defaults, "discovery.successPercent", 75, 0, 100);
 			discoveryRadiusSectors = boundedInt(settings, defaults, "discovery.radiusSectors", 10, 2, 50);
+			discoveryCooldownMinutes = boundedInt(settings, defaults, "discovery.cooldownMinutes", 5, 0, 1440);
+			discoveryNoAdminCooldown = Boolean.parseBoolean(settings.getOrDefault("discovery.noAdminCooldown",
+					defaults.getOrDefault("discovery.noAdminCooldown", "false")));
+			randomFirstArrival = Boolean.parseBoolean(settings.getOrDefault("arrival.randomGate",
+					defaults.getOrDefault("arrival.randomGate", "true")));
+			discordExternalTravelChannel = channel(settings, defaults, "discord.externalTravelChannel");
+			discordInternalTravelChannel = channel(settings, defaults, "discord.internalTravelChannel");
+			discordDiscoveryChannel = channel(settings, defaults, "discord.discoveryChannel");
+			discordNetworkStatusChannel = channel(settings, defaults, "discord.networkStatusChannel");
 			logger().info(plugin.getName() + " Plugin settings loaded");
 			logger().info("Sending welcome message on login is: " + String.valueOf(enableWelcomeMessage));
 			currentSettings = settings;
@@ -156,7 +172,38 @@ public class PluginSettings {
 				i18n.get("tc.stargate.discovery.settings.success_desc"), 75, 0, 100));
 		entries.add(discoveryEntry("discovery.radiusSectors", i18n.get("tc.stargate.discovery.settings.radius"),
 				i18n.get("tc.stargate.discovery.settings.radius_desc"), 10, 2, 50));
+		entries.add(discoveryEntry("discovery.cooldownMinutes", i18n.get("tc.stargate.discovery.settings.cooldown"),
+				i18n.get("tc.stargate.discovery.settings.cooldown_desc"), 5, 0, 1440));
+		entries.add(entry("discovery.noAdminCooldown", i18n.get("tc.stargate.discovery.settings.no_admin_cooldown"),
+				i18n.get("tc.stargate.discovery.settings.no_admin_cooldown_desc"), AdminSettingsType.BOOLEAN));
+		entries.add(AdminSettingsEntry.group("arrival", i18n.get("tc.stargate.arrival.settings.title"),
+				i18n.get("tc.stargate.arrival.settings.desc")));
+		entries.add(entry("arrival.randomGate", i18n.get("tc.stargate.arrival.settings.random"),
+				i18n.get("tc.stargate.arrival.settings.random_desc"), AdminSettingsType.BOOLEAN));
+		if (new DiscordBridge(plugin).isAvailable()) {
+			entries.add(AdminSettingsEntry.group("discord", i18n.get("tc.stargate.discord.settings.title"),
+					i18n.get("tc.stargate.discord.settings.desc")));
+			entries.add(channelEntry("discord.externalTravelChannel", "external"));
+			entries.add(channelEntry("discord.internalTravelChannel", "internal"));
+			entries.add(channelEntry("discord.discoveryChannel", "discovery"));
+			entries.add(channelEntry("discord.networkStatusChannel", "network"));
+		}
 		return entries;
+	}
+
+	private AdminSettingsEntry channelEntry(String key, String labelKey) {
+		I18n i18n = I18n.getInstance(plugin.getDescription("name"));
+		return new AdminSettingsEntry(key, i18n.get("tc.stargate.discord.settings." + labelKey),
+				i18n.get("tc.stargate.discord.settings." + labelKey + "_desc"),
+				currentSettings.getOrDefault(key, "0"), "0", AdminSettingsType.STRING, false, value -> {
+					try { return Long.parseLong(value) >= 0 && SettingsFileEditor.writeValue(settingsFile, key, value); }
+					catch (NumberFormatException invalid) { return false; }
+				});
+	}
+
+	private static long channel(java.util.Map<String, String> settings, java.util.Map<String, String> defaults, String key) {
+		try { return Math.max(0, Long.parseLong(settings.getOrDefault(key, defaults.getOrDefault(key, "0")))); }
+		catch (NumberFormatException invalid) { return 0; }
 	}
 
 	private AdminSettingsEntry discoveryEntry(String key, String label, String description, int fallback, int min, int max) {

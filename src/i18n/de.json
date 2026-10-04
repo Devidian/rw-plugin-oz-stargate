@@ -54,6 +54,42 @@
         "radiussectors": {
           "label": "Suchradius (Sektoren)",
           "desc": "Kreisförmiger Radius von 2 bis 50 Sektoren; Standardwert 10."
+        },
+        "cooldownminutes": {
+          "label": "Abklingzeit (Minuten)",
+          "desc": "Zeit zwischen Entdeckungsversuchen; 0 bis 1440 Minuten, Standardwert 5."
+        },
+        "noadmincooldown": {
+          "label": "Keine Abklingzeit für Admins",
+          "desc": "Admins können ohne Wartezeit erneut ein Stargate entdecken. Standardmäßig aus."
+        }
+      },
+      "arrival": {
+        "label": "Ankunft neuer Spieler",
+        "desc": "Torwahl beim ersten Betreten dieses Servers.",
+        "randomgate": {
+          "label": "Zufällige Stargate-Ankunft",
+          "desc": "Wenn ausgeschaltet, erscheinen neue Spieler nur an Startgates. Das Tor in Sektor 0,0 bleibt Fallback."
+        }
+      },
+      "discord": {
+        "label": "Discord-Ereignisse (optional)",
+        "desc": "Kanal-IDs für Stargate-Ereignisse; 0 deaktiviert die jeweilige Meldung.",
+        "externaltravelchannel": {
+          "label": "Externe Ankunft und Abreise",
+          "desc": "Kanal-ID für Reisen von und zu anderen Servern."
+        },
+        "internaltravelchannel": {
+          "label": "Serverinterne Reisen",
+          "desc": "Kanal-ID für Reisen zwischen Toren dieses Servers."
+        },
+        "discoverychannel": {
+          "label": "Neue Stargate-Entdeckungen",
+          "desc": "Kanal-ID für erfolgreiche Entdeckungen."
+        },
+        "networkstatuschannel": {
+          "label": "Stargate-Netzwerkstatus",
+          "desc": "Kanal-ID für Verbindung, Trennung und Netzwerkcode-Änderung ohne Codewert."
         }
       },
       "enablewelcomemessage": {
@@ -133,6 +169,12 @@
       "settings": {
         "empty": "Für OZ Stargate sind noch keine Spieler-Einstellungen verfügbar."
       },
+      "player": {
+        "address_mode": "Toradressen im DHD anzeigen als",
+        "address_aliases": "Aliase",
+        "address_local": "Lokal",
+        "address_network": "Netzwerk"
+      },
       "inventory": {
         "admin_only": "Dieser Befehl ist nur für Administratoren verfügbar.",
         "unavailable": "Inventar ist derzeit nicht verfügbar.",
@@ -174,6 +216,8 @@
         "registered": "Stargate PH_GATE wurde hier registriert.",
         "unregistered": "Stargate PH_GATE wurde entfernt.",
         "not_owned": "Stargate PH_GATE gehört nicht zu diesem Server.",
+        "usage_alias": "Ungültiger Torname. Erlaubt sind Buchstaben, Zahlen, Leerzeichen und . _ ' - (maximal 40 Zeichen).",
+        "alias_saved": "Alias für Stargate PH_GATE gespeichert.",
         "list": "Bekannte Stargates: PH_GATES",
         "dial_started": "Anwahl von Stargate PH_GATE gestartet.",
         "dial_chevron": "Chevron PH_CHEVRON von 7 kodiert.",
@@ -275,6 +319,11 @@
         "manual_title": "Stargate-Adresse eingeben",
         "manual_prompt": "Gib die 16-stellige Tor-ID ein. Sie wird nach erfolgreicher Verbindung gespeichert.",
         "manual_invalid": "Bitte eine gültige 16-stellige Tor-ID eingeben, die nicht dem Ausgangstor entspricht.",
+        "alias_title": "Stargate umbenennen",
+        "alias_prompt": "Gib einen Namen mit höchstens 40 Zeichen ein. Leer entfernt den Alias.",
+        "start_gate_title": "Startgate ändern",
+        "start_gate_enable": "Dieses Stargate als Startgate für neue Spieler markieren?",
+        "start_gate_disable": "Dieses Stargate nicht mehr als Startgate verwenden?",
         "dial": "Anwählen",
         "discover": "Neues Stargate entdecken",
         "loading": "Toradressen werden geladen …",
@@ -309,7 +358,11 @@
           "success": "Erfolgswahrscheinlichkeit (%)",
           "success_desc": "0 bis 100 Prozent; Standardwert 75.",
           "radius": "Suchradius (Sektoren)",
-          "radius_desc": "Kreisförmiger Radius von 2 bis 50 Sektoren; Standardwert 10."
+          "radius_desc": "Kreisförmiger Radius von 2 bis 50 Sektoren; Standardwert 10.",
+          "cooldown": "Abklingzeit (Minuten)",
+          "cooldown_desc": "Zeit zwischen Entdeckungsversuchen; 0 bis 1440 Minuten, Standardwert 5.",
+          "no_admin_cooldown": "Keine Abklingzeit für Admins",
+          "no_admin_cooldown_desc": "Admins können ohne Wartezeit erneut ein Stargate entdecken. Standardmäßig aus."
         },
         "pending": "Eine Entdeckung läuft bereits.",
         "offline": "Das Stargate-Netzwerk ist für eine Entdeckung nicht verbunden.",
@@ -322,6 +375,39 @@
       },
       "addressbook": {
         "discovered": "Neue Stargate-Adresse entdeckt: PH_GATE"
+      },
+      "arrival": {
+        "settings": {
+          "title": "Ankunft neuer Spieler",
+          "desc": "Torwahl beim ersten Betreten dieses Servers.",
+          "random": "Zufällige Stargate-Ankunft",
+          "random_desc": "Wenn ausgeschaltet, erscheinen neue Spieler nur an Startgates. Das Tor in Sektor 0,0 bleibt Fallback."
+        }
+      },
+      "discord": {
+        "settings": {
+          "title": "Discord-Ereignisse (optional)",
+          "desc": "Kanal-IDs für Stargate-Ereignisse; 0 deaktiviert die jeweilige Meldung.",
+          "external": "Externe Ankunft und Abreise",
+          "external_desc": "Kanal-ID für Reisen von und zu anderen Servern.",
+          "internal": "Serverinterne Reisen",
+          "internal_desc": "Kanal-ID für Reisen zwischen Toren dieses Servers.",
+          "discovery": "Neue Stargate-Entdeckungen",
+          "discovery_desc": "Kanal-ID für erfolgreiche Entdeckungen.",
+          "network": "Stargate-Netzwerkstatus",
+          "network_desc": "Kanal-ID für Verbindung, Trennung und Netzwerkcode-Änderung ohne Codewert."
+        },
+        "events": {
+          "internal": "PH_PLAYER reist von Stargate PH_SOURCE nach PH_TARGET.",
+          "external_departure": "PH_PLAYER reist von Stargate PH_SOURCE zu einem anderen Server (Ziel: PH_TARGET).",
+          "external_arrival": "PH_PLAYER ist von einem anderen Server (Tor PH_SOURCE) an Stargate PH_TARGET angekommen.",
+          "discovery": "PH_PLAYER hat ein neues Stargate entdeckt: PH_GATE.",
+          "network_connected": "Stargate-Netzwerk verbunden.",
+          "network_disconnected": "Stargate-Netzwerk getrennt.",
+          "network_code_changed": "Stargate-Netzwerkcode geändert. Grund: PH_REASON.",
+          "reason_profile": "Serverprofil oder Netzwerkkonfiguration geändert",
+          "reason_override": "administrative Netzwerkcode-Überschreibung geändert"
+        }
       },
       "horizon": {
         "usage": "Verwendung: /sg sethorizon <lokales Tor> [X-Breite Y-Höhe Z-Tiefe] (Meter); /sg showhorizon <Tor>; /sg removehorizon <Tor>. /sg aligngate <ID>.",

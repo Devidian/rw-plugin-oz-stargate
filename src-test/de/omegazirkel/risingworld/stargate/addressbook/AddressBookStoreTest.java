@@ -31,6 +31,13 @@ public class AddressBookStoreTest {
             assertEquals(List.of("AAAAAAAAAAAAAAAA", "BBBBBBBBBBBBBBBB"), book.known("NET", "a"));
             book.replace("NET", "a", List.of("BBBBBBBBBBBBBBBB"));
             assertEquals(List.of("BBBBBBBBBBBBBBBB"), book.known("NET", "a"));
+            book.setGateDetails("NET", "BBBBBBBBBBBBBBBB", "1234567890ABCDEF", "LOCAL00000000001", "Beta");
+            assertEquals("1234567890ABCDEF", book.address("NET", "BBBBBBBBBBBBBBBB"));
+            assertEquals("Beta", book.alias("NET", "BBBBBBBBBBBBBBBB"));
+            assertEquals("Beta", book.aliasByAddress("NET", "1234567890ABCDEF"));
+            assertEquals("LOCAL00000000001", book.localByAddress("NET", "1234567890ABCDEF"));
+            book.remove("NET", "BBBBBBBBBBBBBBBB");
+            assertNull(book.address("NET", "BBBBBBBBBBBBBBBB"));
         }
     }
 

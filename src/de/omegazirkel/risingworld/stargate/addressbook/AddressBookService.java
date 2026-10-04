@@ -67,6 +67,33 @@ public final class AddressBookService implements AutoCloseable {
         catch (SQLException ex) { error(ex); return List.of(); }
     }
 
+    public List<String> knownAddresses(Player player) {
+        try {
+            String code = code();
+            List<String> addresses = new ArrayList<>();
+            for (String gateId : known(player)) {
+                String address = gates.exists(gateId) ? gates.localAddress(gateId) : store.address(code, gateId);
+                addresses.add(address == null ? gateId : address);
+            }
+            return addresses.stream().distinct().sorted().toList();
+        } catch (SQLException ex) { error(ex); return List.of(); }
+    }
+
+    public void setGateDetails(String gateId, String address, String localAddress, String alias) {
+        try { store.setGateDetails(code(), gateId, address, localAddress, alias); }
+        catch (SQLException ex) { error(ex); }
+    }
+
+    public String localByAddress(String address) {
+        try { return store.localByAddress(code(), address); }
+        catch (SQLException ex) { error(ex); return null; }
+    }
+
+    public String aliasByAddress(String address) {
+        try { return store.aliasByAddress(code(), address); }
+        catch (SQLException ex) { error(ex); return null; }
+    }
+
     public void discover(Player player, String gateId) {
         String code = code();
         if (closed || player == null || !player.isConnected() || code == null || code.isBlank()) return;
@@ -95,8 +122,13 @@ public final class AddressBookService implements AutoCloseable {
         if (code == null || code.isBlank() || !syncing.add(uid)) return;
         try {
             store.movePending(UNASSIGNED, code, uid);
+            if (!"LOCAL".equals(code)) store.movePending("LOCAL", code, uid);
             List<String> pending = store.pending(code, uid);
-            List<String> sent = pending.subList(0, Math.min(256, pending.size()));
+            List<String> sent = new ArrayList<>();
+            for (String id : pending) {
+                if (sent.size() == 256) break;
+                if (!gates.exists(id) || gates.globalAddress(id) != null) sent.add(id);
+            }
             network.syncAddressBook(player, sent, snapshot -> {
                 syncing.remove(uid);
                 if (snapshot == null || !code.equals(code())) return;
@@ -106,7 +138,14 @@ public final class AddressBookService implements AutoCloseable {
                     store.replace(code, uid, snapshot);
                     for (String id : later) store.learn(code, uid, id);
                     changed.run();
-                    if (!later.isEmpty()) sync(player);
+                    boolean retry = false;
+                    for (String id : later) {
+                        if (!pending.contains(id) || !gates.exists(id) || gates.globalAddress(id) != null) {
+                            retry = true;
+                            break;
+                        }
+                    }
+                    if (retry) sync(player);
                 } catch (SQLException ex) { error(ex); }
             });
         } catch (SQLException ex) { syncing.remove(uid); error(ex); }

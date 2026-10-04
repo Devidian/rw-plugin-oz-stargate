@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -80,6 +81,7 @@ public final class GateNetworkClient implements WebSocketHandler {
     private Runnable visualStateObserver = () -> { };
     private Runnable dhdVisualStateObserver = () -> { };
     private Consumer<String> gateDeletedObserver = id -> { };
+    private de.omegazirkel.risingworld.stargate.DiscordEvents discordEvents;
     private final Map<String, GateState> gateStates = new HashMap<>();
     private boolean dialSequenceSupported;
     private final Map<String, DialWindow> windows = new HashMap<>();
@@ -98,6 +100,7 @@ public final class GateNetworkClient implements WebSocketHandler {
     private static final String LOCAL_PREFIX = "LOCAL";
 
     public void setGateDeletedObserver(Consumer<String> observer) { gateDeletedObserver = observer; }
+    public void setDiscordEvents(de.omegazirkel.risingworld.stargate.DiscordEvents events) { discordEvents = events; }
 
     public void setStateObserver(Runnable observer) { stateObserver = observer; }
     public void setVisualStateObserver(Runnable observer) { visualStateObserver = observer; }
@@ -134,7 +137,11 @@ public final class GateNetworkClient implements WebSocketHandler {
     }
 
     public void requestAddresses(Player player, Consumer<List<String>> callback) {
-        callback.accept(addressBook == null ? List.of() : addressBook.known(player));
+        callback.accept(addressBook == null ? List.of() : addressBook.knownAddresses(player));
+    }
+
+    public void refreshAddressBook(Player player) {
+        if (addressBook != null) addressBook.sync(player);
     }
 
     public void syncAddressBook(Player player, List<String> pending, Consumer<List<String>> callback) {
@@ -313,7 +320,7 @@ public final class GateNetworkClient implements WebSocketHandler {
     }
 
     @Override public void onDisconnected() {
-        dispatcher.dispatch(() -> { networkCode = null; detectedHost = null; hostLookupRequestId = null; dialSequenceSupported = false; clearRequests(); windows.clear(); gateStates.clear(); openedTimes.clear(); closingTimes.clear(); incomingTimes.clear(); notifyStateObservers(); });
+        dispatcher.dispatch(() -> { boolean wasReady = networkCode != null; networkCode = null; detectedHost = null; hostLookupRequestId = null; dialSequenceSupported = false; clearRequests(); windows.clear(); gateStates.clear(); openedTimes.clear(); closingTimes.clear(); incomingTimes.clear(); notifyStateObservers(); if (wasReady && discordEvents != null) discordEvents.networkDisconnected(); });
     }
 
     @Override public void onTextMessage(String text) {
@@ -344,12 +351,23 @@ public final class GateNetworkClient implements WebSocketHandler {
             return;
         }
         if (type.equals("networkReady")) {
+            boolean changed = payload.has("changed") && payload.get("changed").getAsBoolean();
             networkCode = payload.get("networkCode").getAsString();
             dialSequenceSupported = payload.has("dialSequenceVersion") && payload.get("dialSequenceVersion").getAsInt() == 1;
             settings.trustNetworkCode(networkCode);
             if (detectedHost != null) settings.setDetectedHost(detectedHost);
             detectedHost = null;
             OZStargate.logger().info("Stargate network ready: " + networkCode);
+            if (discordEvents != null) {
+                discordEvents.networkConnected();
+                if (changed) discordEvents.networkCodeChanged(i18n.get(
+                        settings.networkCodeOverride.isBlank() ? "tc.stargate.discord.events.reason_profile"
+                                : "tc.stargate.discord.events.reason_override",
+                        new de.omegazirkel.risingworld.stargate.DiscordBridge(plugin).getBotLanguage()));
+            }
+            syncLocalGates();
+            syncLegacyLocalAddresses();
+            syncAliases();
             for (Player online : Server.getAllPlayers()) updatePlayer(online);
             notifyStateObservers();
             if (transfers != null) transfers.resume();
@@ -401,6 +419,17 @@ public final class GateNetworkClient implements WebSocketHandler {
             switch (type) {
                 case "gateRegistered" -> {
                     String gateId = payload.get("gateId").getAsString();
+                    if (request.type().equals("registerExistingGate")) {
+                        if (!gates.exists(gateId)) {
+                            send("unregisterGate", UUID.randomUUID().toString(), Map.of("gateId", gateId), networkCode);
+                            break;
+                        }
+                        gates.setGlobalAddress(gateId, payload.has("address")
+                                ? payload.get("address").getAsString() : gateId);
+                        syncAlias(gateId);
+                        if (addressBook != null) for (Player online : Server.getAllPlayers()) addressBook.sync(online);
+                        break;
+                    }
                     try {
                         if (request.registration() == null) sectors.saveGate(gates, gateId, request.position(), request.rotation());
                         else request.registration().save(gateId, request.position(), request.rotation());
@@ -410,6 +439,7 @@ public final class GateNetworkClient implements WebSocketHandler {
                         throw ex;
                     }
                     tell(player, "registered", "PH_GATE", gateId);
+                    syncAlias(gateId);
                 }
                 case "gateUnregistered" -> { gates.delete(request.gateId()); gateDeletedObserver.accept(request.gateId()); tell(player, "unregistered", "PH_GATE", request.gateId()); }
                 case "addressList" -> {
@@ -426,25 +456,43 @@ public final class GateNetworkClient implements WebSocketHandler {
                     JsonArray list = payload.getAsJsonArray("gates");
                     List<String> ids = new ArrayList<>();
                     for (JsonElement row : list) ids.add(row.getAsString());
+                    if (addressBook != null && payload.has("details")) {
+                        for (JsonElement row : payload.getAsJsonArray("details")) {
+                            JsonObject detail = row.getAsJsonObject();
+                            addressBook.setGateDetails(detail.get("gateId").getAsString(),
+                                    detail.get("address").getAsString(),
+                                    detail.has("localAddress") && !detail.get("localAddress").isJsonNull()
+                                            ? detail.get("localAddress").getAsString() : null,
+                                    detail.get("alias").getAsString());
+                        }
+                    }
                     if (request.addresses() != null) request.addresses().accept(List.copyOf(ids));
                 }
                 case "gateFree" -> {
                     GateState state = gateStates.get(request.sourceGateId());
                     if (state == null || !state.state().equals("OPEN") || !state.direction().equals("OUTGOING")
                             || !state.connectionId().equals(payload.get("connectionId").getAsString())) return;
-                    windows.put(request.gateId(), new DialWindow(request.sourceGateId(), request.gateId(),
+                    String targetGateId = payload.get("gateId").getAsString();
+                    windows.put(targetGateId, new DialWindow(request.sourceGateId(), targetGateId,
                             payload.get("host").getAsString(), payload.get("port").getAsInt(),
                             System.currentTimeMillis() + Math.min(60_000L, payload.get("expiresInMs").getAsLong())));
                     closingTimes.put(request.sourceGateId(), System.nanoTime()
                             + Math.min(60_000L, payload.get("expiresInMs").getAsLong()) * 1_000_000L);
                     tell(player, "dial_free", "PH_TARGET", payload.get("gateId").getAsString()
                             + " (" + payload.get("host").getAsString() + ":" + payload.get("port").getAsInt() + ")");
-                    if (addressBook != null) addressBook.discover(player, request.gateId());
+                    if (addressBook != null) addressBook.discover(player, targetGateId);
                 }
                 case "gateBlocked" -> tell(player, "dial_blocked", "PH_GATE", request.gateId());
                 case "dialFail" -> tell(player, "dial_failed", "PH_REASON", dialReason(player, payload.get("reason").getAsString()));
                 case "playerTrust" -> showTrust(player, payload);
-                case "error" -> tell(player, "error", "PH_REASON", payload.get("code").getAsString());
+                case "error" -> {
+                    String code = payload.get("code").getAsString();
+                    if (request.type().equals("registerExistingGate")) {
+                        OZStargate.logger().warn("Stargate relay registration failed for " + request.gateId() + ": " + code);
+                        if (!Set.of("invalid_gate_address", "gate_not_owned_or_missing").contains(code))
+                            plugin.executeDelayed(30f, () -> registerLocalGate(request.gateId()));
+                    } else tell(player, "error", "PH_REASON", code);
+                }
                 default -> OZStargate.logger().warn("Unknown Stargate response: " + type);
             }
         } catch (RuntimeException | SQLException ex) {
@@ -536,7 +584,6 @@ public final class GateNetworkClient implements WebSocketHandler {
     }
 
     public void register(Player player, Vector3f position, Quaternion rotation, RegistrationHandler registration) {
-        if (settings.networkEnabled && !ready(player)) return;
         try {
             SectorAddress address = SectorAddress.fromWorld(position);
             if (sectors.gateAt(address) != null || hasPendingRegistration(address)) {
@@ -547,27 +594,58 @@ public final class GateNetworkClient implements WebSocketHandler {
         } catch (IllegalArgumentException ex) {
             tell(player, "invalid_sector", null, null); return;
         }
-        if (!settings.networkEnabled) {
-            try {
-                String gateId;
-                do { gateId = newLocalGateId(); }
-                while (gates.exists(gateId));
-                if (registration == null) sectors.saveGate(gates, gateId, position, rotation);
-                else registration.save(gateId, position, rotation);
-                tell(player, "registered_local", "PH_GATE", gateId);
-            } catch (SQLException | RuntimeException ex) {
-                OZStargate.logger().error("Cannot place local Stargate: " + ex.getMessage());
-                tell(player, "error", "PH_REASON", "database");
+        try {
+            String gateId;
+            do { gateId = newLocalGateId(); }
+            while (gates.exists(gateId));
+            if (registration == null) sectors.saveGate(gates, gateId, position, rotation);
+            else registration.save(gateId, position, rotation);
+            tell(player, "registered_local", "PH_GATE", gateId);
+            registerLocalGate(gateId);
+        } catch (SQLException | RuntimeException ex) {
+            OZStargate.logger().error("Cannot place local Stargate: " + ex.getMessage());
+            tell(player, "error", "PH_REASON", "database");
+        }
+    }
+
+    private void syncLocalGates() {
+        try {
+            for (String id : gates.ids()) if (isLocalGateId(id)) registerLocalGate(id);
+        } catch (SQLException ex) { OZStargate.logger().error("Cannot sync local Stargates: " + ex.getMessage()); }
+    }
+
+    private void syncLegacyLocalAddresses() {
+        if (!settings.networkEnabled) return;
+        try {
+            for (String id : gates.ids()) {
+                if (isLocalGateId(id)) continue;
+                String localAddress = gates.localAddress(id);
+                if (localAddress != null) send("setGateLocalAddress", UUID.randomUUID().toString(),
+                        Map.of("gateId", id, "localAddress", localAddress), networkCode);
             }
+        } catch (SQLException ex) {
+            OZStargate.logger().error("Cannot sync legacy local gate addresses: " + ex.getMessage());
+        }
+    }
+
+    private void registerLocalGate(String id) {
+        if (!isReady() || !settings.networkEnabled || !isLocalGateId(id)
+                || requests.values().stream().anyMatch(r -> r.type().equals("registerExistingGate") && id.equals(r.gateId()))) return;
+        String requestId = UUID.randomUUID().toString();
+        requests.put(requestId, new Request("registerExistingGate", null, null, null, id, null, null, null));
+        if (!send("registerGate", requestId, Map.of("gateId", id), networkCode)) {
+            requests.remove(requestId);
             return;
         }
-        sendRequest("registerGate", player, Map.of(), position, rotation, null, null, null, registration);
+        plugin.executeDelayed(15f, () -> {
+            if (requests.remove(requestId) != null) registerLocalGate(id);
+        });
     }
 
     public void unregister(Player player, String gateId) {
         try {
             if (!gates.exists(gateId)) { tell(player, "not_owned", "PH_GATE", gateId); return; }
-            if (isLocalGateId(gateId)) {
+            if (gates.globalAddress(gateId) == null) {
                 gates.delete(gateId);
                 gateDeletedObserver.accept(gateId);
                 tell(player, "unregistered", "PH_GATE", gateId);
@@ -580,9 +658,85 @@ public final class GateNetworkClient implements WebSocketHandler {
     }
 
     public void list(Player player) {
-        List<String> ids = addressBook == null ? List.of() : addressBook.known(player);
+        List<String> ids = addressBook == null ? List.of() : addressBook.knownAddresses(player);
         if (player != null && player.isConnected()) player.sendTextMessage(i18n.get("tc.stargate.network.list", player)
                 .replace("PH_GATES", ids.isEmpty() ? "-" : String.join(", ", ids)));
+    }
+
+    public String gateAlias(String gateId) {
+        try { return gates.alias(gateId); }
+        catch (SQLException ex) { OZStargate.logger().error("Cannot read Stargate alias: " + ex.getMessage()); return null; }
+    }
+
+    public String localAddress(String gateId) {
+        try {
+            String address = gates.localAddress(gateId);
+            return address == null ? gateId : address;
+        }
+        catch (SQLException ex) { OZStargate.logger().error("Cannot read local Stargate address: " + ex.getMessage()); return gateId; }
+    }
+
+    public String globalAddress(String gateId) {
+        try { return gates.globalAddress(gateId); }
+        catch (SQLException ex) { OZStargate.logger().error("Cannot read global Stargate address: " + ex.getMessage()); return null; }
+    }
+
+    public String addressAlias(String address) {
+        try {
+            String localGate = gates.gateByAddress(address);
+            if (localGate != null) return gates.alias(localGate);
+            return addressBook == null ? null : addressBook.aliasByAddress(address);
+        } catch (SQLException ex) { OZStargate.logger().error("Cannot read Stargate address alias: " + ex.getMessage()); return null; }
+    }
+
+    public String displayAddress(String address, String mode) {
+        try {
+            String localGate = gates.gateByAddress(address);
+            if (localGate != null) {
+                String networkAddress = gates.globalAddress(localGate);
+                return "NETWORK".equals(mode) && networkAddress != null ? networkAddress : gates.localAddress(localGate);
+            }
+            if (!"NETWORK".equals(mode) && addressBook != null) {
+                String localAddress = addressBook.localByAddress(address);
+                if (localAddress != null && !localAddress.isBlank()) return localAddress;
+            }
+            return address;
+        } catch (SQLException ex) {
+            OZStargate.logger().error("Cannot display Stargate address: " + ex.getMessage());
+            return address;
+        }
+    }
+
+    public void setGateAlias(Player player, String gateId, String alias) {
+        if (player == null || !player.isAdmin()) return;
+        String name = alias == null ? "" : alias.trim();
+        if (gateId == null || !gateId.matches("[A-Z0-9]{16}")
+                || (!name.equals("-") && !name.matches("[\\p{L}\\p{N} _.'-]{1,40}"))) {
+            tell(player, "usage_alias", null, null);
+            return;
+        }
+        try {
+            if (!gates.exists(gateId)) { tell(player, "not_owned", "PH_GATE", gateId); return; }
+            gates.setAlias(gateId, name.equals("-") ? null : name);
+            syncAlias(gateId);
+            tell(player, "alias_saved", "PH_GATE", gateId);
+            notifyStateObservers();
+        } catch (SQLException ex) { fail(player, ex); }
+    }
+
+    private void syncAliases() {
+        try { for (String gateId : gates.ids()) syncAlias(gateId); }
+        catch (SQLException ex) { OZStargate.logger().error("Cannot sync Stargate aliases: " + ex.getMessage()); }
+    }
+
+    private void syncAlias(String gateId) {
+        if (!isReady()) return;
+        try {
+            if (gates.globalAddress(gateId) == null) return;
+            String alias = gates.alias(gateId);
+            send("setGateAlias", UUID.randomUUID().toString(), Map.of("gateId", gateId,
+                    "alias", alias == null ? "" : alias), networkCode);
+        } catch (SQLException ex) { OZStargate.logger().error("Cannot sync Stargate alias: " + ex.getMessage()); }
     }
 
     public void dial(Player player, String targetId, String originId) {
@@ -597,7 +751,7 @@ public final class GateNetworkClient implements WebSocketHandler {
                 source = ids.get(0);
             }
             if (!gates.exists(source)) { tell(player, "not_owned", "PH_GATE", source); return; }
-            if (isLocalGateId(source)) {
+            if (gates.globalAddress(source) == null) {
                 tell(player, "local_gate_only", null, null); return;
             }
             if (!gateView(source).state().equals("IDLE") || hasPendingUnregister(source)) {

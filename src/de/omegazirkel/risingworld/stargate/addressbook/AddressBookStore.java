@@ -19,7 +19,20 @@ public final class AddressBookStore {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS stargate_address_book (network_code TEXT NOT NULL, player_uid TEXT NOT NULL, gate_id TEXT NOT NULL, pending INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(network_code,player_uid,gate_id))");
             statement.executeUpdate("CREATE INDEX IF NOT EXISTS stargate_address_book_pending ON stargate_address_book(network_code,player_uid,pending)");
             statement.executeUpdate("CREATE TRIGGER IF NOT EXISTS stargate_address_book_gate_deleted AFTER DELETE ON stargates BEGIN DELETE FROM stargate_address_book WHERE gate_id=OLD.gate_id; END");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS stargate_known_gate_addresses (network_code TEXT NOT NULL, gate_id TEXT NOT NULL, address TEXT NOT NULL, alias TEXT NOT NULL DEFAULT '', PRIMARY KEY(network_code,gate_id))");
+            statement.executeUpdate("CREATE TRIGGER IF NOT EXISTS stargate_known_gate_deleted AFTER DELETE ON stargates BEGIN DELETE FROM stargate_known_gate_addresses WHERE gate_id=OLD.gate_id; END");
         }
+        if (!hasLocalAddressColumn()) try (Statement statement = database.createStatement()) {
+            statement.executeUpdate("ALTER TABLE stargate_known_gate_addresses ADD COLUMN local_address TEXT");
+        }
+    }
+
+    private boolean hasLocalAddressColumn() throws SQLException {
+        try (Statement statement = database.createStatement();
+             ResultSet rows = statement.executeQuery("PRAGMA table_info(stargate_known_gate_addresses)")) {
+            while (rows.next()) if ("local_address".equals(rows.getString("name"))) return true;
+        }
+        return false;
     }
 
     public synchronized boolean learn(String code, String uid, String gateId) throws SQLException {
@@ -62,6 +75,50 @@ public final class AddressBookStore {
     public synchronized void remove(String code, String gateId) throws SQLException {
         try (PreparedStatement statement = database.prepareStatement("DELETE FROM stargate_address_book WHERE network_code=? AND gate_id=?")) {
             statement.setString(1, code); statement.setString(2, gateId); statement.executeUpdate();
+        }
+        try (PreparedStatement statement = database.prepareStatement("DELETE FROM stargate_known_gate_addresses WHERE network_code=? AND gate_id=?")) {
+            statement.setString(1, code); statement.setString(2, gateId); statement.executeUpdate();
+        }
+    }
+
+    public synchronized void setGateDetails(String code, String gateId, String address, String localAddress, String alias) throws SQLException {
+        try (PreparedStatement statement = database.prepareStatement(
+                "INSERT INTO stargate_known_gate_addresses(network_code,gate_id,address,local_address,alias) VALUES(?,?,?,?,?) ON CONFLICT(network_code,gate_id) DO UPDATE SET address=excluded.address,local_address=excluded.local_address,alias=excluded.alias")) {
+            statement.setString(1, code); statement.setString(2, gateId);
+            statement.setString(3, address); statement.setString(4, localAddress); statement.setString(5, alias);
+            statement.executeUpdate();
+        }
+    }
+
+    public synchronized String localByAddress(String code, String address) throws SQLException {
+        try (PreparedStatement statement = database.prepareStatement(
+                "SELECT local_address FROM stargate_known_gate_addresses WHERE network_code=? AND address=?")) {
+            statement.setString(1, code); statement.setString(2, address);
+            try (ResultSet rows = statement.executeQuery()) { return rows.next() ? rows.getString(1) : null; }
+        }
+    }
+
+    public synchronized String address(String code, String gateId) throws SQLException {
+        try (PreparedStatement statement = database.prepareStatement(
+                "SELECT address FROM stargate_known_gate_addresses WHERE network_code=? AND gate_id=?")) {
+            statement.setString(1, code); statement.setString(2, gateId);
+            try (ResultSet rows = statement.executeQuery()) { return rows.next() ? rows.getString(1) : null; }
+        }
+    }
+
+    public synchronized String alias(String code, String gateId) throws SQLException {
+        try (PreparedStatement statement = database.prepareStatement(
+                "SELECT alias FROM stargate_known_gate_addresses WHERE network_code=? AND gate_id=?")) {
+            statement.setString(1, code); statement.setString(2, gateId);
+            try (ResultSet rows = statement.executeQuery()) { return rows.next() ? rows.getString(1) : null; }
+        }
+    }
+
+    public synchronized String aliasByAddress(String code, String address) throws SQLException {
+        try (PreparedStatement statement = database.prepareStatement(
+                "SELECT alias FROM stargate_known_gate_addresses WHERE network_code=? AND address=?")) {
+            statement.setString(1, code); statement.setString(2, address);
+            try (ResultSet rows = statement.executeQuery()) { return rows.next() ? rows.getString(1) : null; }
         }
     }
 

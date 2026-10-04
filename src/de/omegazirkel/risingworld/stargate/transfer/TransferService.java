@@ -39,6 +39,8 @@ public final class TransferService {
     private java.util.function.BiConsumer<Player, String> arrivalSoundObserver = (player, gateId) -> { };
     private java.util.function.BiConsumer<Player, String> arrivalPlayerSoundObserver = (player, gateId) -> { };
     private TravelScreenService travelScreen;
+    private de.omegazirkel.risingworld.stargate.DiscordEvents discordEvents;
+    public void setDiscordEvents(de.omegazirkel.risingworld.stargate.DiscordEvents events) { discordEvents = events; }
 
     public void setArrivalObserver(java.util.function.Consumer<Player> observer) { arrivalObserver = observer; }
     public void setArrivalSoundObserver(java.util.function.BiConsumer<Player, String> observer) { arrivalSoundObserver = observer; }
@@ -197,7 +199,10 @@ public final class TransferService {
             tell(player, "warp_departing", "PH_GATE", transfer.peerGateId());
             player.connectToOtherServer(address, null, success -> plugin.executeDelayed(0f, () -> {
                 try {
-                    if (Boolean.TRUE.equals(success)) store.transition(id, "PROMPTED", "DEPARTING");
+                    if (Boolean.TRUE.equals(success)) {
+                        if (store.transition(id, "PROMPTED", "DEPARTING") && discordEvents != null)
+                            discordEvents.externalDeparture(player, transfer.gateId(), transfer.peerGateId());
+                    }
                     else if (store.transition(id, "PROMPTED", "ABORTING")) {
                         if (travelScreen != null) travelScreen.remove(player);
                         abort(id);
@@ -302,8 +307,10 @@ public final class TransferService {
                 if (matches(player, incoming)) {
                     store.markArrivalPending(transfer.uid(), id);
                     finishArrival(player, transfer, incoming);
-                    if (store.transition(id, "APPLYING", "APPLIED"))
+                    if (store.transition(id, "APPLYING", "APPLIED")) {
                         completeAppliedArrival(player, transfer, incoming);
+                        if (discordEvents != null) discordEvents.externalArrival(player, transfer.peerGateId(), transfer.gateId());
+                    }
                     network.transfer("transferDone", id, Map.of("transferId", id));
                 } else tell(player, "warp_manual");
                 return;
@@ -447,6 +454,7 @@ public final class TransferService {
         finishArrival(player, transfer, incoming);
         if (store.transition(transfer.id(), "APPLYING", "APPLIED")) {
             completeAppliedArrival(player, transfer, incoming);
+            if (discordEvents != null) discordEvents.externalArrival(player, transfer.peerGateId(), transfer.gateId());
             network.transfer("transferDone", transfer.id(), Map.of("transferId", transfer.id()));
             tell(player, "warp_arrived", "PH_GATE", transfer.gateId());
         }

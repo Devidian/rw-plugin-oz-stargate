@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.PluginGUI;
+import de.omegazirkel.risingworld.stargate.DiscordEvents;
 import de.omegazirkel.risingworld.stargate.arrival.FirstArrivalService;
 import de.omegazirkel.risingworld.stargate.arrival.FirstArrivalStore;
 import de.omegazirkel.risingworld.stargate.addressbook.AddressBookService;
@@ -120,6 +121,8 @@ public final class StargatePluginRuntime {
             throw new IllegalStateException("Cannot initialize Stargate inventory database", ex);
         }
         network = new GateNetworkClient(plugin, settings, i18n, gates, localSectors);
+        DiscordEvents discordEvents = new DiscordEvents(plugin, settings, gates, i18n);
+        network.setDiscordEvents(discordEvents);
         addressBook = new AddressBookService(plugin, settings, i18n, addressBookStore,
                 consoles, dhdModelStore, gates, network);
         network.setAddressBook(addressBook);
@@ -131,6 +134,7 @@ public final class StargatePluginRuntime {
         TransferService transfers = new TransferService(plugin, transferStore, snapshots, gates, network, i18n);
         network.setTransfers(transfers);
         transfers.setTravelScreen(travelScreen);
+        transfers.setDiscordEvents(discordEvents);
         dhd = new DhdService(plugin, consoles, gates, network, localDial, i18n);
         addressBook.setChanged(dhd::addressesChanged);
         try {
@@ -148,20 +152,22 @@ public final class StargatePluginRuntime {
             visuals = new GateVisualService(plugin, visualStore, gates, modelAssets, i18n, horizons::isAligned, network, audio);
         } catch (SQLException ex) { throw new IllegalStateException("Cannot load Stargate models", ex); }
         horizons.setTravelObserver(visuals::travelled);
+        horizons.setLocalTravelObserver(travel -> discordEvents.internal(travel.player(), travel.source(), travel.target()));
         horizons.setTravelScreen(travelScreen);
         horizons.setArrivalObserver(visuals::arrived);
         horizons.setArrivalPlayerObserver(visuals::arrivedPlayer);
         transfers.setArrivalSoundObserver(visuals::arrived);
         transfers.setArrivalPlayerSoundObserver(visuals::arrivedPlayer);
-        firstArrival = new FirstArrivalService(plugin, firstArrivalStore, gates, network, transfers, horizons, visuals, travelScreen);
+        firstArrival = new FirstArrivalService(plugin, settings, firstArrivalStore, gates, network, transfers, horizons, visuals, travelScreen);
         addressBook.setDiscoveryAllowed(uid -> !firstArrival.inProgress(uid) && !transfers.hasActive(uid));
         network.setGateDeletedObserver(id -> { addressBook.removed(id); localDial.gateDeleted(id); horizons.gateDeleted(id); visuals.gateDeleted(id); dhdModels.gateDeleted(id); });
         GatePlacementService placement = new GatePlacementService(plugin, gates, localSectors, visualStore, horizonStore,
                 dhdModelStore, visuals, horizons, dhdModels, network, i18n);
         discoveryPool = new DiscoveryPoolService(plugin, settings, gates, localSectors, candidateStore, placement);
-        initialGate = new InitialGateService(plugin, settings, initialGateStore, gates, network, placement);
+        initialGate = new InitialGateService(plugin, initialGateStore, gates, placement);
         discovery = new DiscoveryService(plugin, settings, discoveryStore, placement, discoveryPool,
                 network, localDial, addressBook, i18n);
+        discovery.setDiscordEvents(discordEvents);
         dhd.setDiscovery(discovery);
         gui.setPlacement(placement);
         events = new StargatePlayerEventHandler(plugin, pluginName, settings, i18n, gui,

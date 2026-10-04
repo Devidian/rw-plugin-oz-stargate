@@ -51,6 +51,9 @@ public final class HorizonService {
     private final Map<String, Preview> previews = new HashMap<>();
     private boolean closed;
     private BiConsumer<Player, String> travelObserver = (player, gateId) -> { };
+    private java.util.function.Consumer<LocalTravel> localTravelObserver = travel -> { };
+    public record LocalTravel(Player player, String source, String target) { }
+    public void setLocalTravelObserver(java.util.function.Consumer<LocalTravel> observer) { localTravelObserver = observer; }
     private BiConsumer<Player, String> arrivalObserver = (player, gateId) -> { };
     private BiConsumer<Player, String> arrivalPlayerObserver = (player, gateId) -> { };
     private TravelScreenService travelScreen;
@@ -199,6 +202,7 @@ public final class HorizonService {
                         player.setRotation(destination.rotation());
                         reset(player);
                         positioned = true;
+                        localTravelObserver.accept(new LocalTravel(player, entered, localTarget));
                     } finally {
                         if (!positioned) {
                             travelScreen.remove(player);

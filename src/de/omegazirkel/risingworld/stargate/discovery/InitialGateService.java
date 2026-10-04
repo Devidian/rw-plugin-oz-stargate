@@ -3,8 +3,6 @@ package de.omegazirkel.risingworld.stargate.discovery;
 import java.sql.SQLException;
 
 import de.omegazirkel.risingworld.OZStargate;
-import de.omegazirkel.risingworld.stargate.PluginSettings;
-import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.sector.GatePlacementService;
 import de.omegazirkel.risingworld.stargate.sector.SectorAddress;
@@ -18,10 +16,8 @@ public final class InitialGateService implements AutoCloseable {
     private static final int CHUNKS_PER_BATCH = 25;
     private static final int MAX_RING_POSITIONS = 257 * 257 + CHUNKS_PER_BATCH;
     private final OZStargate plugin;
-    private final PluginSettings settings;
     private final InitialGateStore store;
     private final LocalGateStore gates;
-    private final GateNetworkClient network;
     private final GatePlacementService placement;
     private SectorAddress sector;
     private int nextChunk;
@@ -30,10 +26,10 @@ public final class InitialGateService implements AutoCloseable {
     private boolean closed;
     private boolean reportedNoSite;
 
-    public InitialGateService(OZStargate plugin, PluginSettings settings, InitialGateStore store,
-            LocalGateStore gates, GateNetworkClient network, GatePlacementService placement) {
-        this.plugin = plugin; this.settings = settings; this.store = store;
-        this.gates = gates; this.network = network; this.placement = placement;
+    public InitialGateService(OZStargate plugin, InitialGateStore store,
+            LocalGateStore gates, GatePlacementService placement) {
+        this.plugin = plugin; this.store = store;
+        this.gates = gates; this.placement = placement;
     }
 
     public void start() { plugin.executeDelayed(1f, this::tick); }
@@ -47,9 +43,6 @@ public final class InitialGateService implements AutoCloseable {
                 return;
             }
             if (awaiting) return;
-            if (settings.networkEnabled && !network.isReady()) {
-                schedule(5f); return;
-            }
             Vector3f spawn = Server.getDefaultSpawnPosition();
             if (spawn == null) { schedule(30f); return; }
             SectorAddress current = SectorAddress.fromWorld(spawn);
