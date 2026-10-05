@@ -21,6 +21,7 @@ public final class DiscoveryPoolService implements AutoCloseable {
     private static final int SECTORS_PER_GATE = 5;
     private static final int CHUNKS_PER_SECTOR = 5;
     private static final int MAX_SCAN_CHUNKS = 25;
+    private static final long RETRY_EXHAUSTED_AFTER_MS = 5 * 60_000L;
     private final OZStargate plugin;
     private final PluginSettings settings;
     private final LocalGateStore gates;
@@ -29,6 +30,7 @@ public final class DiscoveryPoolService implements AutoCloseable {
     private final GatePlacementService placement;
     private final Map<String, Scan> scans = new HashMap<>();
     private final Map<String, Set<SectorAddress>> exhausted = new HashMap<>();
+    private final Map<String, Long> retryExhaustedAt = new HashMap<>();
     private int cursor;
     private boolean closed;
 
@@ -57,15 +59,19 @@ public final class DiscoveryPoolService implements AutoCloseable {
         return store.chunks(sourceGateId, sector);
     }
 
-    public void removeChunk(String sourceGateId, DiscoveryCandidateStore.Chunk chunk) throws SQLException {
-        store.removeChunk(sourceGateId, chunk);
+    public void removeChunk(DiscoveryCandidateStore.Chunk chunk) throws SQLException {
+        store.removeChunk(chunk);
     }
 
     public void gateCreated(SectorAddress sector) {
-        try { store.removeSector(sector); }
+        try {
+            store.removeSector(sector);
+            for (String source : gates.ids()) replenishKnown(source);
+        }
         catch (SQLException ex) { error(ex); }
         scans.entrySet().removeIf(entry -> entry.getValue().target.equals(sector));
-        // The next tick includes the new source gate and refills every shortened pool.
+        exhausted.clear();
+        retryExhaustedAt.clear();
     }
 
     private void tick() {
@@ -87,14 +93,26 @@ public final class DiscoveryPoolService implements AutoCloseable {
         SectorAddress origin = sectors.addressOf(source);
         if (origin == null) return;
         int radius = settings.discoveryRadiusSectors;
-        store.prune(source, radius);
+        replenishKnown(source);
+        if (store.sectors(source).size() >= SECTORS_PER_GATE) {
+            scans.remove(source);
+            return;
+        }
         Scan scan = scans.get(source);
         if (scan != null && scan.radius != radius) { scans.remove(source); scan = null; }
         if (scan == null) {
             List<SectorAddress> known = store.sectors(source);
-            if (known.size() >= SECTORS_PER_GATE) return;
+            Set<SectorAddress> occupied = new HashSet<>();
+            for (LocalSectorStore.Entry entry : sectors.all()) occupied.add(entry.address());
+            Set<SectorAddress> failed = exhausted.computeIfAbsent(source, ignored -> new HashSet<>());
             SectorAddress target = randomSector(origin, radius, known,
-                    exhausted.computeIfAbsent(source, ignored -> new HashSet<>()));
+                    failed, occupied);
+            if (target == null && !failed.isEmpty()
+                    && System.currentTimeMillis() >= retryExhaustedAt.getOrDefault(source, 0L)) {
+                failed.clear();
+                retryExhaustedAt.put(source, System.currentTimeMillis() + RETRY_EXHAUSTED_AFTER_MS);
+                target = randomSector(origin, radius, known, failed, occupied);
+            }
             if (target == null) return;
             scan = new Scan(target, radius);
             scans.put(source, scan);
@@ -115,15 +133,23 @@ public final class DiscoveryPoolService implements AutoCloseable {
         }
     }
 
-    private static SectorAddress randomSector(SectorAddress origin, int radius,
-            List<SectorAddress> known, Set<SectorAddress> failed) {
+    private void replenishKnown(String source) throws SQLException {
+        SectorAddress origin = sectors.addressOf(source);
+        if (origin == null) return;
+        int radius = settings.discoveryRadiusSectors;
+        store.prune(source, radius);
+        store.copyKnown(source, origin, radius, SECTORS_PER_GATE, CHUNKS_PER_SECTOR);
+    }
+
+    static SectorAddress randomSector(SectorAddress origin, int radius,
+            List<SectorAddress> known, Set<SectorAddress> failed, Set<SectorAddress> occupied) {
         List<SectorAddress> near = new ArrayList<>();
         List<SectorAddress> possible = new ArrayList<>();
         int nearRadius = Math.min(3, radius);
         for (int dx = -radius; dx <= radius; dx++) for (int dz = -radius; dz <= radius; dz++) {
             if ((dx == 0 && dz == 0) || dx * dx + dz * dz > radius * radius) continue;
             SectorAddress sector = new SectorAddress(origin.x() + dx, origin.z() + dz);
-            if (!known.contains(sector) && !failed.contains(sector)) {
+            if (!known.contains(sector) && !failed.contains(sector) && !occupied.contains(sector)) {
                 possible.add(sector);
                 if (dx * dx + dz * dz <= nearRadius * nearRadius) near.add(sector);
             }
@@ -153,5 +179,7 @@ public final class DiscoveryPoolService implements AutoCloseable {
         OZStargate.logger().error("Stargate discovery pool database failure: " + ex.getMessage());
     }
 
-    @Override public void close() { closed = true; scans.clear(); exhausted.clear(); }
+    @Override public void close() {
+        closed = true; scans.clear(); exhausted.clear(); retryExhaustedAt.clear();
+    }
 }

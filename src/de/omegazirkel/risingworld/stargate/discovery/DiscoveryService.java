@@ -135,7 +135,7 @@ public final class DiscoveryService implements AutoCloseable {
                         });
                         return;
                     }
-                    pool.removeChunk(attempt.source(), chunk);
+                    pool.removeChunk(chunk);
                 }
             }
             stop(attempt);

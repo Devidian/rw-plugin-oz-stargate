@@ -604,3 +604,31 @@ Beim Neustart lud Demo `PluginDemo2.db`, meldete `Stargate network ready` und
 behielt genau sein vorheriges Tor (`integrity_check: ok`). Der JAR-Hash blieb
 `30731fd15d991438c5434e34f543e165010eb1299447d08162e6ed982590cc43`.
 Die Testwelten und Sicherungen bleiben für die spätere Fehlersuche erhalten.
+
+## Discovery-Pool-Nachfüllung (2026-10-05)
+
+Auf „Eine neue Welt 2025“ enthielt der Pool des Tors `(0,0)` keine Standorte,
+obwohl andere Tore innerhalb seines Suchradius 30 geeignete freie Sektoren
+gespeichert hatten. Die Meldung „Keine gültige Adresse gefunden“ stammt
+separat aus der eingestellten 65-%-Erfolgsprüfung vor der Standortsuche.
+
+Die Poollogik übernimmt jetzt freie, bereits geprüfte Standorte anderer Tore
+innerhalb des eigenen Radius bis zu fünf Sektoren. Nach einer erfolgreichen
+Tor-Erstellung werden alle verkürzten Pools sofort aus diesem Bestand ergänzt;
+der Hintergrundscan sucht weitere Standorte. Belegte Sektoren werden bei der
+Auswahl übersprungen. Erfolglose Standortprüfungen werden nach fünf Minuten
+erneut versucht, statt bis zum Plugin-Neustart ausgeschlossen zu bleiben.
+Bei erneuter Prüfung unbrauchbare Chunks werden aus allen Pools entfernt.
+Ein voller Pool bleibt von tatsächlich geeigneten Gelände- und Freiraumflächen
+abhängig; freie Sektoren allein garantieren keinen Platzierungsort.
+
+`mvn -o -q -Dmaven.repo.local=/home/maik/.tmp/stargate-m2 package` bestand mit
+79 Tests. Development lud JAR-Hash
+`7d201083301013c1fec1558bdfa6373fc8e115e207b3d55eddab55b6fd898640`
+um 18:55:18 UTC mit `RELOADED ALL PLUGINS` und anschließendem
+`Stargate network ready`. SQLite-Integrität ist `ok`, 22 Tore blieben erhalten,
+alle 22 Pools enthalten fünf Sektoren, und es gibt null aktive Transfers.
+Sicherung von JAR, Welteinstellung und konsistenter SQLite-Datenbank:
+`/appdata/rising-world/development-server/.stargate-test-backup/discovery-pool-20261005/`.
+Der Produktionsserver und das Relay wurden nicht geändert. Vor einer
+Produktivaktivierung sind Freigabe und ein Spieler-Test auf Development nötig.

@@ -6,13 +6,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import de.omegazirkel.risingworld.stargate.sector.SectorAddress;
 
 /** Persisted, per-source pool of remote sectors and suitable chunks. */
 public final class DiscoveryCandidateStore {
     public record Chunk(int x, int z) { }
+    private record Site(SectorAddress sector, Chunk chunk) { }
     private final Connection database;
 
     public DiscoveryCandidateStore(Connection database) { this.database = database; }
@@ -88,11 +94,49 @@ public final class DiscoveryCandidateStore {
         }
     }
 
-    public synchronized void removeChunk(String sourceId, Chunk chunk) throws SQLException {
+    public synchronized void removeChunk(Chunk chunk) throws SQLException {
         try (PreparedStatement statement = database.prepareStatement(
-                "DELETE FROM stargate_discovery_candidates WHERE source_gate_id=? AND chunk_x=? AND chunk_z=?")) {
-            statement.setString(1, sourceId); statement.setInt(2, chunk.x()); statement.setInt(3, chunk.z());
+                "DELETE FROM stargate_discovery_candidates WHERE chunk_x=? AND chunk_z=?")) {
+            statement.setInt(1, chunk.x()); statement.setInt(2, chunk.z());
             statement.executeUpdate();
+        }
+    }
+
+    /** Reuse validated sites in other gate pools without exceeding the per-source limits. */
+    public synchronized void copyKnown(String sourceId, SectorAddress origin, int radius,
+            int maxSectors, int maxChunksPerSector) throws SQLException {
+        Set<SectorAddress> known = new HashSet<>(sectors(sourceId));
+        if (known.size() >= maxSectors) return;
+        List<Site> sites = new ArrayList<>();
+        try (PreparedStatement statement = database.prepareStatement(
+                "SELECT DISTINCT c.sector_x,c.sector_z,c.chunk_x,c.chunk_z "
+                        + "FROM stargate_discovery_candidates c WHERE NOT EXISTS "
+                        + "(SELECT 1 FROM stargate_local_sectors s WHERE "
+                        + "s.sector_x=c.sector_x AND s.sector_z=c.sector_z)")) {
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    SectorAddress sector = new SectorAddress(rows.getInt(1), rows.getInt(2));
+                    long dx = (long) sector.x() - origin.x(), dz = (long) sector.z() - origin.z();
+                    if (dx * dx + dz * dz <= (long) radius * radius)
+                        sites.add(new Site(sector, new Chunk(rows.getInt(3), rows.getInt(4))));
+                }
+            }
+        }
+        sites.sort(Comparator.comparingLong(site -> {
+            long dx = (long) site.sector().x() - origin.x();
+            long dz = (long) site.sector().z() - origin.z();
+            return dx * dx + dz * dz;
+        }));
+        Map<SectorAddress, Integer> counts = new HashMap<>();
+        for (Site site : sites) {
+            SectorAddress sector = site.sector();
+            if (!known.contains(sector) && known.size() >= maxSectors) continue;
+            Integer count = counts.get(sector);
+            if (count == null) count = chunks(sourceId, sector).size();
+            if (count >= maxChunksPerSector) continue;
+            add(sourceId, radius, sector, site.chunk());
+            known.add(sector);
+            counts.put(sector, count + 1);
         }
     }
 }
