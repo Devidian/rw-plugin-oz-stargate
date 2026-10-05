@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.5.1 — 2026-10-05
+
+- Refill each gate's Discovery candidate pool from suitable free sites already found by other gates after a successful discovery, so an empty source pool can recover without waiting for its own scan.
+- Skip occupied sectors during candidate scans, retry previously exhausted free sectors after a delay, and remove sites that fail revalidation from all pools. Discovery chance, cooldown, placement checks and persisted gate data are unchanged.
+
 ## 0.5.0 — 2026-10-04
 
 - Let admins set gate aliases in the DHD. Players choose alias, local address or network address labels in personal settings; the local address is the fallback when known.
