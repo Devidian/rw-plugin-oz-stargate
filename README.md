@@ -1,5 +1,7 @@
 # OZ Stargate
 
+**Build baseline:** JDK 25 (`--release 25`) and the bundled Rising World PluginAPI 0.9.3.2 JAR.
+
 Players can hide the Stargate shortcut in the plugin settings. It remains visible by default.
 
 Rising World Stargate plugin adapted from `rw-plugin-maven-template`. Players travel through local gates or, when administrators enable it, between trusted servers. The Tools UI, JSON settings, DE/EN i18n, Info/Status, optional bridges, and single-listener entry point remain in place.
@@ -39,7 +41,7 @@ addresses stay local if the network is enabled later.
 
 ## Installation
 
-Requires OZ Tools and PluginAPI 0.9.3.2. Build with Java 20 and `mvn -B clean package`. Deploy `dist/OZStargate/` to `Plugins/OZStargate/`, preserving `settings.<world>.json` and `<world>.db`.
+Requires OZ Tools and PluginAPI 0.9.3.2. Build with Java 25 and `mvn -B clean package`. Deploy `dist/OZStargate/` to `Plugins/OZStargate/`, preserving `settings.<world>.json` and `<world>.db`.
 
 ### Sound themes
 
