@@ -30,8 +30,10 @@ public final class DhdService {
     private record Selection(String gateId, long expiresAt) { }
     static final class Session {
         final Player player;
+        final String uid;
         final DhdStore.Binding binding;
         final String gateId;
+        final long openedAtNanos = System.nanoTime();
         DhdOverlay overlay;
         List<String> addresses = List.of();
         Map<String, String> aliases = Map.of();
@@ -42,7 +44,7 @@ public final class DhdService {
         boolean failed;
         boolean startGate;
         Session(Player player, DhdStore.Binding binding, String gateId) {
-            this.player = player; this.binding = binding; this.gateId = gateId;
+            this.player = player; this.uid = player.getUID(); this.binding = binding; this.gateId = gateId;
         }
     }
     private final DhdStore store;
@@ -53,6 +55,7 @@ public final class DhdService {
     private final I18n i18n;
     private final Map<String, Selection> selections = new HashMap<>();
     private final Map<String, Session> sessions = new HashMap<>();
+    private final Set<String> reopening = new java.util.HashSet<>();
     private BiPredicate<Player, String> modelValidator = (player, gateId) -> false;
     private DiscoveryService discovery;
 
@@ -119,16 +122,32 @@ public final class DhdService {
     }
 
     private void open(Player player, String gateId, DhdStore.Binding binding) {
-        Session previous = sessions.get(player.getUID());
-        // Object/model interactions can arrive more than once for one click. Replacing the
-        // already visible modal closes the client's newly opened window as well.
-        if (previous != null && previous.gateId.equals(gateId)) return;
-        if (previous != null) close(previous);
+        String uid = player.getUID();
+        if (reopening.contains(uid)) return;
+        Session previous = sessions.get(uid);
+        if (previous != null) {
+            // A click can deliver duplicate interactions. Esc can also close the client
+            // modal without invoking our X callback, leaving the server session behind.
+            if (previous.gateId.equals(gateId)
+                    && System.nanoTime() - previous.openedAtNanos < 500_000_000L) return;
+            close(previous);
+            reopening.add(uid);
+            // closeAllActiveUIWindows reaches the client asynchronously.
+            plugin.executeDelayed(.2f, () -> {
+                reopening.remove(uid);
+                if (!player.isConnected()) return;
+                try {
+                    if (gates.exists(gateId) && (binding != null || modelValidator.test(player, gateId)))
+                        open(player, gateId, binding);
+                } catch (SQLException ex) { databaseError(player, ex); }
+            });
+            return;
+        }
         Session session = new Session(player, binding, gateId);
         try { session.startGate = gates.isStartGate(gateId); }
         catch (SQLException ex) { databaseError(player, ex); return; }
         session.overlay = new DhdOverlay(session, this, network, i18n);
-        sessions.put(player.getUID(), session);
+        sessions.put(uid, session);
         player.addUIElement(session.overlay, UITarget.Modal);
         refresh(session);
     }
@@ -143,7 +162,7 @@ public final class DhdService {
         }
         catch (SQLException ex) { session.loading = false; databaseError(session.player, ex); return; }
         network.requestAddresses(session.player, addresses -> {
-            if (sessions.get(session.player.getUID()) != session) return;
+            if (sessions.get(session.uid) != session) return;
             session.loading = false;
             session.failed = addresses == null;
             String ownLocal = network.localAddress(session.gateId);
@@ -287,7 +306,7 @@ public final class DhdService {
     }
 
     private boolean valid(Session session) {
-        if (sessions.get(session.player.getUID()) != session) return false;
+        if (sessions.get(session.uid) != session) return false;
         try {
             if (session.binding == null) {
                 if (session.player.isConnected() && modelValidator.test(session.player, session.gateId)
@@ -312,18 +331,19 @@ public final class DhdService {
     }
 
     void close(Session session) {
-        if (!sessions.remove(session.player.getUID(), session)) return;
+        if (!sessions.remove(session.uid, session)) return;
         if (session.player.isConnected()) session.overlay.dismiss();
     }
 
     public void disconnect(Player player) {
-        sessions.remove(player.getUID()); selections.remove(player.getUID());
+        String uid = player.getUID();
+        sessions.remove(uid); selections.remove(uid); reopening.remove(uid);
         if (discovery != null) discovery.disconnect(player.getUID());
     }
 
     public void close() {
         for (Session session : new ArrayList<>(sessions.values())) close(session);
-        selections.clear(); network.setStateObserver(() -> { });
+        selections.clear(); reopening.clear(); network.setStateObserver(() -> { });
     }
 
     private static boolean matches(DhdStore.Binding binding, ObjectElement object) {

@@ -3,9 +3,7 @@ package de.omegazirkel.risingworld.stargate.sector;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import de.omegazirkel.risingworld.OZStargate;
@@ -28,12 +26,10 @@ import net.risingworld.api.objects.world.Chunk;
 import net.risingworld.api.objects.world.Plant;
 import net.risingworld.api.utils.Quaternion;
 import net.risingworld.api.utils.Vector3f;
-import net.risingworld.api.utils.Layer;
 
 /** One command reserves an ID and atomically stores a usable local gate. */
 public final class GatePlacementService {
     private static final float ARRIVAL_DISTANCE = 2.4f; // about 1.2 metres
-    private static final int SURFACE_MASK = Layer.getBitmask(Layer.TERRAIN, Layer.CONSTRUCTION);
 
     private final LocalGateStore gates;
     private final LocalSectorStore sectors;
@@ -46,7 +42,6 @@ public final class GatePlacementService {
     private final OZStargate plugin;
     private final DhdModelStore dhdStore;
     private final DhdModelService dhdModels;
-    private final Set<String> pending = new HashSet<>();
 
     private record DiscoveryCandidate(SectorAddress sector, Vector3f feet, Vector3f arrival,
             Quaternion facing, GateVisualPlacement visual, DhdModelPlacement dhd) { }
@@ -218,24 +213,33 @@ public final class GatePlacementService {
             double length = Math.hypot(view.x, view.z);
             if (!Double.isFinite(length) || length < .001) { tell(player, "direction"); return; }
             float fx = (float) (view.x / length), fz = (float) (view.z / length);
+            // In the combined action, the aimed DHD is on the gate's front side.
+            float gateFx = withDhd ? -fx : fx, gateFz = withDhd ? -fz : fz;
             SectorAddress sector = SectorAddress.fromWorld(feet);
-            Vector3f arrival = new Vector3f(feet.x - fx * ARRIVAL_DISTANCE, feet.y, feet.z - fz * ARRIVAL_DISTANCE);
+            Vector3f arrival = new Vector3f(feet.x - gateFx * ARRIVAL_DISTANCE,
+                    feet.y, feet.z - gateFz * ARRIVAL_DISTANCE);
             if (!sector.equals(SectorAddress.fromWorld(arrival))) { tell(player, "boundary"); return; }
             GateVisualPlacement planned = new GateVisualPlacement("PENDING", feet.x,
-                    feet.y - GateVisualPlacement.PLACEMENT_DEPTH, feet.z, fx, fz);
+                    feet.y - GateVisualPlacement.PLACEMENT_DEPTH, feet.z, gateFx, gateFz);
             if (!AlignedPassage.from(planned).acceptsArrival(arrival.x, arrival.y, arrival.z)) {
                 tell(player, "ground"); return;
             }
             String existing = sectors.gateAt(sector);
             if (existing != null && !network.isIdleForSetup(existing)) { tell(player, "busy"); return; }
             if (overlaps(planned, existing)) { tell(player, "overlap"); return; }
-            Quaternion facing = new Quaternion().lookAt(-fx, 0f, -fz);
+            Quaternion facing = new Quaternion().lookAt(-gateFx, 0f, -gateFz);
             if (withDhd) {
-                surface(player, sector, feet.x - fx * 16f + fz * 4f,
-                        feet.z - fz * 16f - fx * 4f, feet.y,
-                        y -> savePlacement(player, sector, feet, arrival, facing, planned, existing,
-                                new DhdModelPlacement("PENDING", feet.x - fx * 16f + fz * 4f,
-                                        y, feet.z - fz * 16f - fx * 4f, fx, fz)));
+                dhdModels.aimPlacement(player, "PENDING", dhd -> {
+                    if (!sector.equals(SectorAddress.fromWorld(new Vector3f(dhd.x(), dhd.y(), dhd.z())))) {
+                        tell(player, "dhd_boundary"); return;
+                    }
+                    if (Math.hypot(dhd.x() - planned.x(), dhd.z() - planned.z()) < 6f) {
+                        tell(player, "dhd_too_close"); return;
+                    }
+                    DhdModelPlacement facingAwayFromGate = new DhdModelPlacement(dhd.gateId(),
+                            dhd.x(), dhd.y(), dhd.z(), -dhd.forwardX(), -dhd.forwardZ());
+                    savePlacement(player, sector, feet, arrival, facing, planned, existing, facingAwayFromGate);
+                });
             } else savePlacement(player, sector, feet, arrival, facing, planned, existing, null);
         } catch (SQLException ex) { fail(player, ex);
         } catch (IllegalArgumentException ex) { tell(player, "ground"); }
@@ -248,23 +252,24 @@ public final class GatePlacementService {
             String id = sectors.gateAt(sector);
             if (id == null) { tell(player, "missing_gate"); return; }
             if (!network.isIdleForSetup(id)) { tell(player, "busy"); return; }
-            Vector3f feet = new Vector3f(player.getPosition());
-            Vector3f view = player.getViewDirection();
-            double length = Math.hypot(view.x, view.z);
-            if (!Double.isFinite(length) || length < .001) { tell(player, "direction"); return; }
-            float fx = (float) (view.x / length), fz = (float) (view.z / length);
-            // Match /sg placedhd: put the console 2.5 m ahead of the admin.
-            float x = feet.x + fx * 5f, z = feet.z + fz * 5f;
             LocalGateStore.Gate gate = gates.gate(id);
-            if (gate == null || Math.hypot(x - gate.position().x, z - gate.position().z) > 32f) {
+            if (gate == null || Math.hypot(player.getPosition().x - gate.position().x,
+                    player.getPosition().z - gate.position().z) > 32f) {
                 tell(player, "near_gate"); return;
             }
-            surface(player, sector, x, z, feet.y, y -> {
+            dhdModels.aimPlacement(player, id, dhd -> {
                 try {
-                    if (!id.equals(sectors.gateAt(sector)) || !network.isIdleForSetup(id)) {
+                    if (!valid(player, sector) || !id.equals(sectors.gateAt(sector))
+                            || !network.isIdleForSetup(id)) {
                         tell(player, "busy"); return;
                     }
-                    DhdModelPlacement dhd = new DhdModelPlacement(id, x, y, z, fx, fz);
+                    LocalGateStore.Gate current = gates.gate(id);
+                    if (current == null || dhd.distanceSquared(current.position().x,
+                            current.position().y, current.position().z) > 32d * 32d
+                            || Math.hypot(player.getPosition().x - current.position().x,
+                                    player.getPosition().z - current.position().z) > 32f) {
+                        tell(player, "near_gate"); return;
+                    }
                     if (!dhdStore.save(dhd)) { tell(player, "missing_gate"); return; }
                     dhdModels.registered(dhd);
                     tell(player, "dhd_placed");
@@ -318,30 +323,6 @@ public final class GatePlacementService {
         if (dhd != null) dhdModels.registered(dhd);
         try { horizons.registered(); }
         catch (SQLException ex) { OZStargate.logger().error("Cannot refresh passage: " + ex.getMessage()); }
-    }
-
-    @FunctionalInterface private interface SurfaceHeight { void accept(float y); }
-    private void surface(Player player, SectorAddress sector, float x, float z, float nearY, SurfaceHeight callback) {
-        if (!sector.equals(SectorAddress.fromWorld(new Vector3f(x, nearY, z)))) {
-            tell(player, "boundary"); return;
-        }
-        String uid = player.getUID();
-        if (!pending.add(uid)) { tell(player, "pending"); return; }
-        player.raycastFromWorldPosition(new Vector3f(x, nearY + 24f, z), new Vector3f(0f, -1f, 0f),
-                96f, SURFACE_MASK, false, hit -> plugin.enqueue(() -> {
-                    if (!pending.remove(uid)) return;
-                    if (!valid(player, sector)) { tell(player, "changed"); return; }
-                    if (hit == null || !hit.hasCollision() || hit.getCollisionPoint() == null
-                            || hit.getCollisionNormal() == null || hit.getCollisionNormal().y < .5f) {
-                        tell(player, "surface"); return;
-                    }
-                    Vector3f point = hit.getCollisionPoint();
-                    if (!Float.isFinite(point.y) || Math.abs(point.x - x) > 1f || Math.abs(point.z - z) > 1f) {
-                        tell(player, "surface"); return;
-                    }
-                    callback.accept(point.y);
-                }));
-        plugin.executeDelayed(8f, () -> { if (pending.remove(uid)) tell(player, "surface"); });
     }
 
     private boolean valid(Player player, SectorAddress sector) {

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.5.2 — 2026-10-08
+
+- Allow the DHD to reopen after Escape closes its client window without reporting that close to the server.
+- Place the DHD on the aimed floor point with overhead clearance checks in the command and radial menu.
+- Orient the combined gate-and-DHD placement so the gate faces the DHD and the DHD's back faces the gate; align the arrival point with the gate's front.
+- Build the plugin with Java 25 and the current PluginAPI 0.9.3.2 JAR.
+
 ## 0.5.1 — 2026-10-05
 
 - Refill each gate's Discovery candidate pool from suitable free sites already found by other gates after a successful discovery, so an empty source pool can recover without waiting for its own scan.

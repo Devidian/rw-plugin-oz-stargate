@@ -236,6 +236,15 @@ centre stays clear. Check rp/relog recovery; native OBJ importer errors remain a
 4. `rp`, logout/relog and plugin reload must show one model at the saved position. Check the
    two test servers independently. Deleting a registered gate removes its model row; only
    do this on a disposable test gate. Confirm travel/inventory after the visual test.
+5. In a cave, aim at a floor point at a different height from your feet and place the DHD
+   with `/sg placedhd`, the radial DHD action, and the radial gate-with-DHD action. Each
+   DHD must meet the aimed floor. Aim at a wall, ceiling, or a floor with less than 1.3m
+   overhead clearance: placement must be rejected without moving the existing DHD or
+   creating/moving the combined gate. A combined target inside the gate passage must
+   also be rejected. For the combined action, verify that the gate's front faces the DHD,
+   the DHD's back faces the gate, and arrival lands on that side of the gate. Separate
+   gate and DHD actions must retain their previous orientation. Check that a later valid
+   attempt still succeeds.
 
 ## Supplied DHD visual candidate
 

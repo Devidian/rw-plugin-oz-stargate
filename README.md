@@ -117,8 +117,10 @@ As admin, run /sg binddhd <local gate ID>, then interact within 60 seconds with 
 
 ## Development: persistent DHD model
 
-As admin, stand within 16m of a local gate and run `/sg placedhd <gate ID>`. One original
-radial DHD model appears 2.5m in front of you. Players within 2m interact directly with its console
+As admin, stand within 16m of a local gate, aim at a floor point within 10m, and run
+`/sg placedhd <gate ID>`. The radial menu's separate DHD action and combined gate-with-DHD
+action use the same aimed floor point. Wall and ceiling hits, insufficient overhead space,
+and an aimed point too close to a new gate are rejected before saving. Players within 2m interact directly with its console
 to open the existing DHD destination menu; the model does not bypass dialing or travel
 checks. `/sg removedhd <gate ID>` removes only that model. Existing `/sg binddhd` world-object
 consoles continue to work. Positions live in the additive `stargate_dhd_models` SQLite

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
@@ -16,7 +17,9 @@ import de.omegazirkel.risingworld.tools.I18n;
 import net.risingworld.api.Server;
 import net.risingworld.api.events.player.PlayerGameObjectInteractionEvent;
 import net.risingworld.api.objects.Player;
+import net.risingworld.api.utils.Layer;
 import net.risingworld.api.utils.Quaternion;
+import net.risingworld.api.utils.RaycastResult;
 import net.risingworld.api.utils.Vector3f;
 import net.risingworld.api.worldelements.GameObject;
 import net.risingworld.api.worldelements.Model;
@@ -28,6 +31,12 @@ public final class DhdModelService implements AutoCloseable {
     private static final double INTERACT_DISTANCE_SQUARED = 4d * 4d;
     private static final long CHECK_INTERVAL = 5_000_000_000L;
     private static final long CHECK_TIMEOUT = 8_000_000_000L;
+    private static final int SURFACE_MASK = Layer.getBitmask(Layer.TERRAIN, Layer.CONSTRUCTION);
+    private static final float AIM_DISTANCE = 20f;
+    private static final float CLEARANCE_HEIGHT = 2.6f;
+    private static final float[][] CLEARANCE_OFFSETS = {
+        {0f, 0f}, {1.3f, 0f}, {-1.3f, 0f}, {0f, 1.3f}, {0f, -1.3f}
+    };
 
     private static final class Viewer {
         final Player player;
@@ -46,6 +55,7 @@ public final class DhdModelService implements AutoCloseable {
     private final Map<String, DhdModelPlacement> placements = new HashMap<>();
     private final Map<String, Model> models = new HashMap<>();
     private final Map<String, Viewer> viewers = new HashMap<>();
+    private final Map<String, Object> pendingAims = new HashMap<>();
     private boolean closed, renderFailed;
 
     public DhdModelService(OZStargate plugin, DhdModelStore store, LocalGateStore gates,
@@ -91,24 +101,31 @@ public final class DhdModelService implements AutoCloseable {
             if (distanceSquared(position, gate.position()) > 32d * 32d) {
                 tell(player, "near_gate", gateId); return;
             }
-            Vector3f forward = player.getViewDirection();
-            double length = Math.hypot(forward.x, forward.z);
-            if (!Double.isFinite(length) || length < .001) { tell(player, "horizontal", gateId); return; }
-            float dx = (float) (forward.x / length), dz = (float) (forward.z / length);
-            // Put the solid console 2.5m in front of the admin, clear of the player's body.
-            DhdModelPlacement placement = new DhdModelPlacement(gateId,
-                    position.x + dx * 5f, position.y, position.z + dz * 5f, dx, dz);
-            if (distanceSquared(new Vector3f(placement.x(), placement.y(), placement.z()), gate.position()) > 32d * 32d) {
-                tell(player, "near_gate", gateId); return;
-            }
-            Model model = createModel(placement);
-            if (!store.save(placement)) { tell(player, "missing_gate", gateId); return; }
-            removeModel(gateId);
-            placements.put(gateId, placement);
-            models.put(gateId, model);
-            renderFailed = false;
-            refresh();
-            tell(player, "saved", gateId);
+            aimPlacement(player, gateId, placement -> {
+                try {
+                    LocalGateStore.Gate current = gates.gate(gateId);
+                    if (current == null) { tell(player, "missing_gate", gateId); return; }
+                    if (distanceSquared(player.getPosition(), current.position()) > 32d * 32d
+                            || distanceSquared(new Vector3f(placement.x(), placement.y(), placement.z()),
+                                    current.position()) > 32d * 32d) {
+                        tell(player, "near_gate", gateId); return;
+                    }
+                    Model model = createModel(placement);
+                    if (!store.save(placement)) { tell(player, "missing_gate", gateId); return; }
+                    removeModel(gateId);
+                    placements.put(gateId, placement);
+                    models.put(gateId, model);
+                    renderFailed = false;
+                    refresh();
+                    tell(player, "saved", gateId);
+                } catch (SQLException ex) {
+                    OZStargate.logger().error("Cannot persist DHD model: " + ex.getMessage());
+                    tell(player, "database_error", gateId);
+                } catch (RuntimeException ex) {
+                    fail(ex);
+                    tell(player, "render_error", gateId);
+                }
+            });
         } catch (IllegalArgumentException ex) {
             tell(player, "horizontal", gateId);
         } catch (SQLException ex) {
@@ -118,6 +135,62 @@ public final class DhdModelService implements AutoCloseable {
             fail(ex);
             tell(player, "render_error", gateId);
         }
+    }
+
+    /** Resolve a floor point under the crosshair and verify space for the whole console. */
+    public void aimPlacement(Player player, String gateId, Consumer<DhdModelPlacement> onReady) {
+        if (closed || !player.isConnected() || !player.isSpawned() || !player.isAdmin()) return;
+        Vector3f forward = player.getViewDirection();
+        double length = Math.hypot(forward.x, forward.z);
+        if (!Double.isFinite(length) || length < .001) { tell(player, "horizontal", gateId); return; }
+        float dx = (float) (forward.x / length), dz = (float) (forward.z / length);
+        String uid = player.getUID();
+        Object token = new Object();
+        if (pendingAims.putIfAbsent(uid, token) != null) { tell(player, "pending", gateId); return; }
+        player.raycast(AIM_DISTANCE, SURFACE_MASK, false, hit -> plugin.enqueue(() -> {
+            if (pendingAims.get(uid) != token) return;
+            if (!validAim(player)) { pendingAims.remove(uid, token); return; }
+            if (!floorHit(hit)) {
+                pendingAims.remove(uid, token); tell(player, "surface", gateId); return;
+            }
+            Vector3f point = hit.getCollisionPoint();
+            DhdModelPlacement placement = new DhdModelPlacement(gateId,
+                    point.x, point.y + .02f, point.z, dx, dz);
+            checkClearance(player, uid, token, placement, onReady, 0);
+        }));
+        plugin.executeDelayed(8f, () -> {
+            if (pendingAims.remove(uid, token) && player.isConnected()) tell(player, "surface", gateId);
+        });
+    }
+
+    private void checkClearance(Player player, String uid, Object token, DhdModelPlacement placement,
+            Consumer<DhdModelPlacement> onReady, int index) {
+        float[] offset = CLEARANCE_OFFSETS[index];
+        player.raycastFromWorldPosition(new Vector3f(placement.x() + offset[0], placement.y() + .08f,
+                        placement.z() + offset[1]), new Vector3f(0f, 1f, 0f), CLEARANCE_HEIGHT,
+                SURFACE_MASK, false, hit -> plugin.enqueue(() -> {
+                    if (pendingAims.get(uid) != token) return;
+                    if (!validAim(player)) { pendingAims.remove(uid, token); return; }
+                    if (hit != null && hit.hasCollision()) {
+                        pendingAims.remove(uid, token); tell(player, "clearance", placement.gateId()); return;
+                    }
+                    if (index + 1 < CLEARANCE_OFFSETS.length) {
+                        checkClearance(player, uid, token, placement, onReady, index + 1);
+                    } else if (pendingAims.remove(uid, token)) {
+                        onReady.accept(placement);
+                    }
+                }));
+    }
+
+    private boolean validAim(Player player) {
+        return !closed && player.isConnected() && player.isSpawned() && player.isAdmin();
+    }
+
+    private static boolean floorHit(RaycastResult hit) {
+        if (hit == null || !hit.hasCollision() || hit.getCollisionPoint() == null
+                || hit.getCollisionNormal() == null || hit.getCollisionNormal().y < .7f) return false;
+        Vector3f point = hit.getCollisionPoint();
+        return Float.isFinite(point.x) && Float.isFinite(point.y) && Float.isFinite(point.z);
     }
 
     /** Publish a DHD already saved in the coordinated placement transaction. */
@@ -285,6 +358,7 @@ public final class DhdModelService implements AutoCloseable {
         network.setDhdVisualStateObserver(() -> { });
         for (Viewer viewer : List.copyOf(viewers.values())) disconnect(viewer.player);
         models.clear(); placements.clear();
+        pendingAims.clear();
         assets.close();
         dhd.setModelValidator((player, gateId) -> false);
     }
