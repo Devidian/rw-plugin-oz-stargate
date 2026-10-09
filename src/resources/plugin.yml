@@ -1,6 +1,6 @@
 name: "OZ - Stargate"
 main: de.omegazirkel.risingworld.OZStargate
-version: 0.5.2
+version: 0.6.0
 author: "Maik 'Devidian' Laschober"
 team: "Omega Zirkel"
 description: "Local and cross-server Stargate travel with inventory and clothing transfer"

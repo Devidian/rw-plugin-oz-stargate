@@ -136,6 +136,7 @@ public final class StargatePluginRuntime {
         transfers.setTravelScreen(travelScreen);
         transfers.setDiscordEvents(discordEvents);
         dhd = new DhdService(plugin, consoles, gates, network, localDial, i18n);
+        dhd.setAddressBook(addressBook);
         addressBook.setChanged(dhd::addressesChanged);
         try {
             dhdModels = new DhdModelService(plugin, dhdModelStore, gates, dhd,

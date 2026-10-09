@@ -352,8 +352,16 @@ public final class GateNetworkClient implements WebSocketHandler {
         }
         if (type.equals("networkReady")) {
             boolean changed = payload.has("changed") && payload.get("changed").getAsBoolean();
+            String previousCode = settings.networkCodeTrusted;
             networkCode = payload.get("networkCode").getAsString();
             dialSequenceSupported = payload.has("dialSequenceVersion") && payload.get("dialSequenceVersion").getAsInt() == 1;
+            if (addressBook != null && previousCode != null && !previousCode.isBlank()
+                    && !previousCode.equals(networkCode) && !addressBook.migrateLocalGates(previousCode, networkCode)) {
+                OZStargate.logger().error("Stargate address book code migration failed; retrying relay connection");
+                plugin.executeDelayed(5f, this::reload);
+                networkCode = null;
+                return;
+            }
             settings.trustNetworkCode(networkCode);
             if (detectedHost != null) settings.setDetectedHost(detectedHost);
             detectedHost = null;

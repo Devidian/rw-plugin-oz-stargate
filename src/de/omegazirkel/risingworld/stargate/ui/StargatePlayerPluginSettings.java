@@ -20,6 +20,7 @@ public class StargatePlayerPluginSettings extends PlayerPluginSettings {
     public static final String TRAVEL_SCREEN_DISABLED_KEY = "oz.stargate.travelScreenDisabled";
     public static final String ADDRESS_MODE_KEY = "oz.stargate.dhdAddressMode";
     public static final String ADDRESS_ALIASES = "ALIASES";
+    public static final String ADDRESS_OWN = "OWN";
     public static final String ADDRESS_LOCAL = "LOCAL";
     public static final String ADDRESS_NETWORK = "NETWORK";
 
@@ -27,7 +28,7 @@ public class StargatePlayerPluginSettings extends PlayerPluginSettings {
         if (player == null || OZTools.playerSettings() == null) return ADDRESS_ALIASES;
         String value = OZTools.playerSettings().getString(player.getDbID(), ADDRESS_MODE_KEY).orElse(ADDRESS_ALIASES);
         return switch (value) {
-            case ADDRESS_LOCAL, ADDRESS_NETWORK -> value;
+            case ADDRESS_LOCAL, ADDRESS_NETWORK, ADDRESS_OWN -> value;
             default -> ADDRESS_ALIASES;
         };
     }
@@ -108,8 +109,8 @@ public class StargatePlayerPluginSettings extends PlayerPluginSettings {
                 choices.setPosition(0, 100, true);
                 choices.style.width.set(100, Unit.Percent);
                 choices.style.height.set(38, Unit.Pixel);
-                String[] modes = { ADDRESS_ALIASES, ADDRESS_LOCAL, ADDRESS_NETWORK };
-                String[] keys = { "aliases", "local", "network" };
+                String[] modes = { ADDRESS_OWN, ADDRESS_ALIASES, ADDRESS_LOCAL, ADDRESS_NETWORK };
+                String[] keys = { "own", "aliases", "local", "network" };
                 for (int i = 0; i < modes.length; i++) {
                     final String mode = modes[i];
                     AdvancedButton choice = AdvancedButtonFactory.defaultButton(
@@ -120,8 +121,8 @@ public class StargatePlayerPluginSettings extends PlayerPluginSettings {
                             });
                     choice.setPivot(Pivot.UpperLeft);
                     choice.style.position.set(Position.Absolute);
-                    choice.style.left.set(i * 33, Unit.Percent);
-                    choice.style.width.set(31, Unit.Percent);
+                    choice.style.left.set(i * 25, Unit.Percent);
+                    choice.style.width.set(24, Unit.Percent);
                     choice.style.height.set(30, Unit.Pixel);
                     choice.setBorderColor(mode.equals(addressMode(uiPlayer)) ? 0x286B43FF : 0x7A5D2AFF);
                     choices.addChild(choice);

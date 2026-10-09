@@ -83,6 +83,11 @@ public final class TravelScreenService {
 
     /** Disconnect cancels the live callback; persisted arrivals resume after reconnect. */
     public void disconnect(Player player) {
+        cancelArrival(player);
+    }
+
+    /** Drop a pending completion when its owner has recovered by another path. */
+    public void cancelArrival(Player player) {
         if (player == null) return;
         arrivals.remove(player.getUID());
         remove(player);

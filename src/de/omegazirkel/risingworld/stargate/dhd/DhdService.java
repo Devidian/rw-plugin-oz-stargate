@@ -12,6 +12,7 @@ import java.util.function.BiPredicate;
 
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
+import de.omegazirkel.risingworld.stargate.addressbook.AddressBookService;
 import de.omegazirkel.risingworld.stargate.discovery.DiscoveryService;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.sector.LocalDialService;
@@ -37,7 +38,10 @@ public final class DhdService {
         DhdOverlay overlay;
         List<String> addresses = List.of();
         Map<String, String> aliases = Map.of();
+        Map<String, String> personalNames = Map.of();
         Set<String> localAddresses = Set.of();
+        Set<String> sharedOnly = Set.of();
+        Set<String> sharedOwn = Set.of();
         String selected;
         int page;
         boolean loading;
@@ -58,6 +62,7 @@ public final class DhdService {
     private final Set<String> reopening = new java.util.HashSet<>();
     private BiPredicate<Player, String> modelValidator = (player, gateId) -> false;
     private DiscoveryService discovery;
+    private AddressBookService addressBook;
 
     public DhdService(OZStargate plugin, DhdStore store, LocalGateStore gates, GateNetworkClient network,
             LocalDialService localDial, I18n i18n) {
@@ -67,6 +72,7 @@ public final class DhdService {
 
     public void setModelValidator(BiPredicate<Player, String> validator) { modelValidator = validator; }
     public void setDiscovery(DiscoveryService discovery) { this.discovery = discovery; }
+    public void setAddressBook(AddressBookService addressBook) { this.addressBook = addressBook; }
 
     public void command(Player player, String command, String gateId) {
         if (!player.isAdmin()) { StargateChat.debug(player, i18n.get("tc.stargate.inventory.admin_only", player)); return; }
@@ -154,27 +160,50 @@ public final class DhdService {
 
     void refresh(Session session) {
         if (!valid(session) || session.loading) return;
-        session.loading = true; session.failed = false; session.overlay.update();
+        session.loading = true; session.failed = false;
+        session.addresses = List.of();
+        session.sharedOnly = Set.of();
+        session.sharedOwn = Set.of();
+        session.overlay.update();
         try {
             Set<String> local = new java.util.HashSet<>();
             for (String id : gates.ids()) local.add(gates.localAddress(id));
             session.localAddresses = Set.copyOf(local);
         }
         catch (SQLException ex) { session.loading = false; databaseError(session.player, ex); return; }
+        if (addressBook != null && network.isReady()) {
+            addressBook.sync(session.player, current -> showAddresses(session, current));
+        } else showAddresses(session, false);
+    }
+
+    private void showAddresses(Session session, boolean current) {
         network.requestAddresses(session.player, addresses -> {
             if (sessions.get(session.uid) != session) return;
             session.loading = false;
             session.failed = addresses == null;
             String ownLocal = network.localAddress(session.gateId);
             String ownGlobal = network.globalAddress(session.gateId);
-            session.addresses = addresses == null ? List.of() : addresses.stream()
-                    .filter(id -> !id.equals(ownLocal) && !id.equals(ownGlobal)).sorted().toList();
+            Set<String> personallyKnown = addressBook == null ? Set.of() : Set.copyOf(addressBook.knownAddresses(session.player));
+            Set<String> shared = addressBook == null ? Set.of() : Set.copyOf(addressBook.sharedFromFaction(session.player));
+            session.sharedOnly = shared;
+            session.addresses = addresses == null ? List.of() : java.util.stream.Stream.concat(
+                    addresses.stream().filter(id -> current || session.localAddresses.contains(id)), shared.stream())
+                    .filter(id -> !id.equals(ownLocal) && !id.equals(ownGlobal)).distinct().sorted().toList();
             Map<String, String> aliases = new HashMap<>();
+            Map<String, String> personalNames = new HashMap<>();
+            Set<String> sharedOwn = new java.util.HashSet<>();
             for (String address : session.addresses) {
                 String alias = network.addressAlias(address);
                 if (alias != null && !alias.isBlank()) aliases.put(address, alias);
+                if (personallyKnown.contains(address) && addressBook != null) {
+                    String personal = addressBook.personalName(session.player, address);
+                    if (personal != null && !personal.isBlank()) personalNames.put(address, personal);
+                    if (addressBook.sharedOwn(session.player, address)) sharedOwn.add(address);
+                }
             }
             session.aliases = Map.copyOf(aliases);
+            session.personalNames = Map.copyOf(personalNames);
+            session.sharedOwn = Set.copyOf(sharedOwn);
             if (session.selected != null && !session.addresses.contains(session.selected)) session.selected = null;
             session.page = Math.min(session.page, Math.max(0, (session.addresses.size() - 1) / DhdOverlay.PAGE_SIZE));
             session.overlay.update();
@@ -183,7 +212,6 @@ public final class DhdService {
 
     void refreshFromRelay(Session session) {
         if (!valid(session) || session.loading) return;
-        network.refreshAddressBook(session.player);
         refresh(session);
     }
 
@@ -192,6 +220,52 @@ public final class DhdService {
         int index = session.page * DhdOverlay.PAGE_SIZE + slot;
         if (index < session.addresses.size()) session.selected = session.addresses.get(index);
         session.overlay.update();
+    }
+
+    void toggleShare(Session session) {
+        if (!valid(session) || addressBook == null || session.selected == null || addressBook.allShared(session.player)) return;
+        addressBook.toggleShare(session.player, session.selected);
+        refresh(session);
+    }
+
+    void toggleAll(Session session) {
+        if (!valid(session) || addressBook == null) return;
+        addressBook.toggleAll(session.player);
+        refresh(session);
+    }
+
+    boolean canShare(Session session) {
+        return addressBook != null && addressBook.hasFaction(session.player) && session.selected != null
+                && session.localAddresses.contains(session.selected)
+                && addressBook.knownAddresses(session.player).contains(session.selected)
+                && !addressBook.allShared(session.player);
+    }
+
+    boolean allShared(Session session) { return addressBook != null && addressBook.allShared(session.player); }
+    boolean hasFaction(Session session) { return addressBook != null && addressBook.hasFaction(session.player); }
+
+    void editPersonalName(Session session) {
+        if (!valid(session) || addressBook == null || session.selected == null
+                || !addressBook.knownAddresses(session.player).contains(session.selected)) return;
+        Player player = session.player;
+        String source = session.gateId, selected = session.selected;
+        String current = addressBook.personalName(player, selected);
+        close(session);
+        plugin.executeDelayed(.1f, () -> {
+            if (!player.isConnected()) return;
+            player.showInputMessageBox(i18n.get("tc.stargate.dhd.personal_name_title", player),
+                    i18n.get("tc.stargate.dhd.personal_name_prompt", player), current == null ? "" : current,
+                    answer -> plugin.enqueue(() -> {
+                        if (!player.isConnected() || answer == null) return;
+                        try {
+                            if (!gates.exists(source) || !nearSource(player, session)) { tell(player, "unavailable"); return; }
+                            String name = answer.trim();
+                            if (name.length() > 40) name = name.substring(0, 40);
+                            addressBook.setPersonalName(player, selected, name);
+                            plugin.executeDelayed(.1f, () -> { if (player.isConnected()) open(player, source, session.binding); });
+                        } catch (SQLException ex) { databaseError(player, ex); }
+                    }));
+        });
     }
 
     void page(Session session, int delta) {

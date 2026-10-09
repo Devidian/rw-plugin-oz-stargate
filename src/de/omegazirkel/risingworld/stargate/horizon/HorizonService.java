@@ -182,6 +182,11 @@ public final class HorizonService {
             Vector3f position = player.getPosition();
             String entered = movement.tracker.move(zones, position.x, position.y, position.z);
             if (entered == null) return;
+            try { if (store.pendingLocalVisibility(uid) != null) return; }
+            catch (SQLException ex) {
+                OZStargate.logger().error("Cannot inspect local Stargate visibility: " + ex.getMessage());
+                return;
+            }
             GateNetworkClient.GateView view = network.gateView(entered);
             if (!view.ready() || !"OPEN".equals(view.state()) || !"OUTGOING".equals(view.direction())) return;
             String localTarget = localDial.openTarget(entered);
@@ -193,26 +198,33 @@ public final class HorizonService {
                     long startedAt = System.currentTimeMillis();
                     boolean screenEnabled = StargatePlayerPluginSettings.travelScreenEnabled(player);
                     boolean wasInvisible = player.isInvisible();
-                    travelObserver.accept(player, entered);
-                    travelScreen.show(player, startedAt, screenEnabled);
-                    player.setInvisible(true);
-                    boolean positioned = false;
+                    if (!store.beginLocalTravel(uid, wasInvisible)) return;
+                    boolean arrivalScheduled = false;
                     try {
+                        travelObserver.accept(player, entered);
+                        travelScreen.show(player, startedAt, screenEnabled);
+                        player.setInvisible(true);
                         player.setPosition(destination.position());
                         player.setRotation(destination.rotation());
                         reset(player);
-                        positioned = true;
                         localTravelObserver.accept(new LocalTravel(player, entered, localTarget));
+                        travelScreen.finishArrival(player, startedAt, screenEnabled, () -> {
+                            player.setInvisible(wasInvisible);
+                            Server.savePlayers();
+                            try { store.clearLocalTravel(uid); }
+                            catch (SQLException ex) { OZStargate.logger().error("Cannot clear local Stargate visibility: " + ex.getMessage()); }
+                            if (player.isConnected()) arrivalPlayerObserver.accept(player, localTarget);
+                        });
+                        arrivalScheduled = true;
+                        plugin.executeDelayed(12f, () -> recoverOverdueLocalTravel(player));
                     } finally {
-                        if (!positioned) {
+                        if (!arrivalScheduled) {
                             travelScreen.remove(player);
-                            if (player.isConnected()) player.setInvisible(wasInvisible);
+                            player.setInvisible(wasInvisible);
+                            Server.savePlayers();
+                            store.clearLocalTravel(uid);
                         }
                     }
-                    travelScreen.finishArrival(player, startedAt, screenEnabled, () -> {
-                        player.setInvisible(wasInvisible);
-                        if (player.isConnected()) arrivalPlayerObserver.accept(player, localTarget);
-                    });
                     arrivalObserver.accept(player, localTarget);
                     StargateChat.debug(player, i18n.get("tc.stargate.sector.arrived", player));
                 } catch (SQLException | RuntimeException ex) {
@@ -238,6 +250,35 @@ public final class HorizonService {
     private void baselinePlayers() {
         movements.clear();
         for (Player player : Server.getAllPlayers()) reset(player);
+    }
+
+    /** A disconnect cancels the screen callback; restore its visibility on the next spawn. */
+    public void onSpawn(Player player) {
+        try {
+            Boolean wasInvisible = store.pendingLocalVisibility(player.getUID());
+            if (wasInvisible == null) return;
+            travelScreen.cancelArrival(player);
+            player.setInvisible(wasInvisible);
+            Server.savePlayers();
+            store.clearLocalTravel(player.getUID());
+        } catch (SQLException ex) {
+            OZStargate.logger().error("Cannot restore local Stargate visibility: " + ex.getMessage());
+        }
+    }
+
+    private void recoverOverdueLocalTravel(Player player) {
+        if (!player.isConnected() || Server.getPlayerByUID(player.getUID()) != player) return;
+        try {
+            Boolean wasInvisible = store.pendingLocalVisibility(player.getUID());
+            if (wasInvisible == null || transfers.hasActive(player.getUID())) return;
+            OZStargate.logger().warn("Local Stargate visibility completion was missed; restoring original state");
+            travelScreen.cancelArrival(player);
+            player.setInvisible(wasInvisible);
+            Server.savePlayers();
+            store.clearLocalTravel(player.getUID());
+        } catch (SQLException ex) {
+            OZStargate.logger().error("Cannot recover overdue local Stargate visibility: " + ex.getMessage());
+        }
     }
 
     private void preview(Player player, HorizonZone zone) {

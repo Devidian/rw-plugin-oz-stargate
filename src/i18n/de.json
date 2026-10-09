@@ -171,6 +171,7 @@
       },
       "player": {
         "address_mode": "Toradressen im DHD anzeigen als",
+        "address_own": "Eigene",
         "address_aliases": "Aliase",
         "address_local": "Lokal",
         "address_network": "Netzwerk"
@@ -321,6 +322,11 @@
         "next": "Weiter",
         "refresh": "Aktualisieren",
         "manual": "ID eingeben",
+        "share": "Teilen",
+        "share_all": "Alle teilen",
+        "personal_name": "Eigener Name",
+        "personal_name_title": "Eigene Toradresse benennen",
+        "personal_name_prompt": "Gib deinen persönlichen Namen für diese Adresse ein (maximal 40 Zeichen). Leer entfernt ihn.",
         "manual_title": "Stargate-Adresse eingeben",
         "manual_prompt": "Gib die 16-stellige Tor-ID ein. Sie wird nach erfolgreicher Verbindung gespeichert.",
         "manual_invalid": "Bitte eine gültige 16-stellige Tor-ID eingeben, die nicht dem Ausgangstor entspricht.",

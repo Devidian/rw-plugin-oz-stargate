@@ -21,8 +21,34 @@ public final class HorizonStore {
         try (Statement statement = database.createStatement()) {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS stargate_horizons (gate_id TEXT PRIMARY KEY, min_x REAL NOT NULL, min_y REAL NOT NULL, min_z REAL NOT NULL, max_x REAL NOT NULL, max_y REAL NOT NULL, max_z REAL NOT NULL)");
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS stargate_aligned_horizons (gate_id TEXT PRIMARY KEY, centre_x REAL NOT NULL, centre_y REAL NOT NULL, centre_z REAL NOT NULL, forward_x REAL NOT NULL, forward_z REAL NOT NULL)");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS stargate_local_travel_visibility (player_uid TEXT PRIMARY KEY, was_invisible INTEGER NOT NULL CHECK(was_invisible IN (0,1)))");
             statement.executeUpdate("CREATE TRIGGER IF NOT EXISTS stargate_aligned_horizons_gate_deleted AFTER DELETE ON stargates BEGIN DELETE FROM stargate_aligned_horizons WHERE gate_id=OLD.gate_id; END");
             statement.executeUpdate("CREATE TRIGGER IF NOT EXISTS stargate_horizons_gate_deleted AFTER DELETE ON stargates BEGIN DELETE FROM stargate_horizons WHERE gate_id=OLD.gate_id; END");
+        }
+    }
+
+    public synchronized boolean beginLocalTravel(String uid, boolean wasInvisible) throws SQLException {
+        try (PreparedStatement statement = database.prepareStatement(
+                "INSERT OR IGNORE INTO stargate_local_travel_visibility(player_uid,was_invisible) VALUES (?,?)")) {
+            statement.setString(1, uid);
+            statement.setInt(2, wasInvisible ? 1 : 0);
+            return statement.executeUpdate() == 1;
+        }
+    }
+
+    public synchronized Boolean pendingLocalVisibility(String uid) throws SQLException {
+        try (PreparedStatement statement = database.prepareStatement(
+                "SELECT was_invisible FROM stargate_local_travel_visibility WHERE player_uid=?")) {
+            statement.setString(1, uid);
+            try (ResultSet rows = statement.executeQuery()) { return rows.next() ? rows.getInt(1) == 1 : null; }
+        }
+    }
+
+    public synchronized void clearLocalTravel(String uid) throws SQLException {
+        try (PreparedStatement statement = database.prepareStatement(
+                "DELETE FROM stargate_local_travel_visibility WHERE player_uid=?")) {
+            statement.setString(1, uid);
+            statement.executeUpdate();
         }
     }
 

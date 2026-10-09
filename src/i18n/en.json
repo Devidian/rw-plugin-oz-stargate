@@ -171,6 +171,7 @@
       },
       "player": {
         "address_mode": "Show gate addresses in the DHD as",
+        "address_own": "Own",
         "address_aliases": "Aliases",
         "address_local": "Local",
         "address_network": "Network"
@@ -321,6 +322,11 @@
         "next": "Next",
         "refresh": "Refresh",
         "manual": "Enter ID",
+        "share": "Share",
+        "share_all": "Share all",
+        "personal_name": "Own name",
+        "personal_name_title": "Name your gate address",
+        "personal_name_prompt": "Enter your private name for this address (up to 40 characters). Leave empty to remove it.",
         "manual_title": "Enter Stargate address",
         "manual_prompt": "Enter the 16-character gate ID. It is saved after a successful connection.",
         "manual_invalid": "Enter a valid 16-character gate ID other than the source gate.",

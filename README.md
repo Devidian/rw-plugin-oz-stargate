@@ -6,6 +6,8 @@ Players can hide the Stargate shortcut in the plugin settings. It remains visibl
 
 Rising World Stargate plugin adapted from `rw-plugin-maven-template`. Players travel through local gates or, when administrators enable it, between trusted servers. The Tools UI, JSON settings, DE/EN i18n, Info/Status, optional bridges, and single-listener entry point remain in place.
 
+The DHD can show a player's private names before administrator aliases, network addresses and local addresses in the new **Own** display mode. Players in a faction can share discovered gates from this server with that faction, either individually or with **Share all**. Shared addresses are read from the local world database and are never sent to the relay. Membership is checked when the book is shown; a faction change does not carry shares into the new faction.
+
 ## Inventory custody
 
 Admins can use `/sg pack`, `/sg unpack`, and `/sg recover`. Packing serializes inventory **and worn clothes** into world-local SQLite before removing them. Unpacking requires empty inventory and clothes and consumes the stored set once. Interrupted states remain blocked until recovered. Legacy copy-only snapshots cannot be unpacked.
@@ -63,7 +65,7 @@ administrator supplied content; verify rights before distribution.
 
 ## Installation and compatibility
 
-Requires OZ Tools 0.26.2 and the Rising World Unity API 0.9.3.2 baseline. Extract the release ZIP into Plugins, preserving world settings and SQLite databases during updates. Configure OZ Stargate Network 0.5.0 and a reachable advertised game-server address for alias synchronization and network addresses. Upgrade the relay before the plugin. Network codes group servers but do not authenticate them. Administrators can use an unpredictable `networkCode.override` to isolate a network. Back up both player and plugin databases before rollback; never restore only one side of an in-flight transfer.
+Requires OZ Tools 0.26.2 and the Rising World Unity API 0.9.3.2 baseline. Extract the release ZIP into Plugins, preserving world settings and SQLite databases during updates. Configure OZ Stargate Network 0.5.1 and a reachable advertised game-server address for alias synchronization, network addresses and server-scoped network-code migration. Upgrade the relay before the plugin. Network codes group servers but do not authenticate them. Administrators can use an unpredictable `networkCode.override` to isolate a network. Back up both player and plugin databases before rollback; never restore only one side of an in-flight transfer.
 
 The DHD shows gate aliases by default. Players may choose local or network addresses in personal plugin settings; a known local address is the fallback. Admins can set an alias with the DHD pencil button and mark a gate as a start gate with the confirmed I/O switch. Start-gate flags remain in the world's plugin database and are not sent to the relay.
 

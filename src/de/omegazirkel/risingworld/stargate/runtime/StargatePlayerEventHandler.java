@@ -180,6 +180,7 @@ public final class StargatePlayerEventHandler {
 
     public void onPlayerSpawn(PlayerSpawnEvent event) {
         horizons.reset(event.getPlayer());
+        horizons.onSpawn(event.getPlayer());
         transfers.onSpawn(event.getPlayer());
         firstArrival.spawn(event.getPlayer());
         visuals.onSpawn(event.getPlayer());

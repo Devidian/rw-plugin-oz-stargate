@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.6.0 — 2026-10-08
+
+- Let faction members share local gate addresses individually or through an all-address switch; personal gate names stay private to their owner.
+- Migrate world-local address book entries for this server's gates when its network code changes, preserving other servers' entries under the old code.
+- Keep locally known gates during relay snapshots after a code override, and resend migrated entries. Arrange DHD share controls in the action row and use stateful styles for their active state.
+- Refresh the DHD from the current relay address-book snapshot before showing remote destinations.
+- Keep DHD address-row frames separate from the hover-sensitive click surfaces so their border and background survive pointer movement and page changes.
+- Restore a player's original visibility after a local Stargate trip even if its travel-screen callback is missed or interrupted by a disconnect or plugin reload; block overlapping passages until the trip finishes.
+
 ## 0.5.2 — 2026-10-08
 
 - Allow the DHD to reopen after Escape closes its client window without reporting that close to the server.
