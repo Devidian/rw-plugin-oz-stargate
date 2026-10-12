@@ -19,6 +19,8 @@
             <excludes>
                 <exclude>settings*.properties</exclude>
                 <exclude>i18n/**/*.properties</exclude>
+                <exclude>assets/**/*.obj</exclude>
+                <exclude>assets/**/*report.json</exclude>
             </excludes>
         </fileSet>
     </fileSets>

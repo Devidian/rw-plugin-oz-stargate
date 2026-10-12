@@ -95,7 +95,7 @@ Stop for acceptance; this update does not import gate models.
 
 ## Phase 5D.1 static model preview (native acceptance pending)
 
-1. Admin: on level ground, face roughly horizontally and run /sg previewgate. Step backwards to inspect the front; walk around to inspect back, ring opening, glyphs, nine chevrons and apparent scale (main ring about 6.1m).
+1. Admin: on level ground, face roughly horizontally and run /sg previewgate. Its base must use the same feet anchor and depth as `/sg placegate`; step backwards to inspect the front, then walk around the ring opening, glyphs and nine chevrons.
 2. Check ground contact and upright orientation for different horizontal viewing directions. Looking up/down must not tilt the gate. A neutral grey material is expected; no lighting/animation or final textures yet.
 3. /sg previewgate replaces the previous preview; /sg clearpreview removes it. Automatic expiry after two minutes and disconnect/reload cleanup must remove it. It is visible only to the requesting admin and has no collider or travel trigger.
 4. Non-admin preview/clear commands must be denied. Existing DHD/horizon travel remains functional and gate/zone/arrival coordinates remain unchanged.

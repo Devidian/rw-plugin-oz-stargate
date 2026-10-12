@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import net.risingworld.api.utils.Vector3f;
 
 /** Stored feet position and normalized horizontal forward direction, in world units. */
 public record GateVisualPlacement(String gateId, float x, float y, float z, float forwardX, float forwardZ,
@@ -26,6 +27,11 @@ public record GateVisualPlacement(String gateId, float x, float y, float z, floa
 
     public GateVisualPlacement(String gateId, float x, float y, float z, float forwardX, float forwardZ) {
         this(gateId, x, y, z, forwardX, forwardZ, null);
+    }
+
+    /** Same feet anchor used by permanent gates and temporary previews. */
+    public static GateVisualPlacement atFeet(String gateId, Vector3f feet, float forwardX, float forwardZ) {
+        return new GateVisualPlacement(gateId, feet.x, feet.y - PLACEMENT_DEPTH, feet.z, forwardX, forwardZ);
     }
 
     /** Runtime origin of the prefab; persisted Y remains the original placement anchor. */

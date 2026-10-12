@@ -2,48 +2,33 @@ package de.omegazirkel.risingworld.stargate.dhd;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 
 import de.omegazirkel.risingworld.OZStargate;
-import de.omegazirkel.risingworld.stargate.PluginSettings;
 import net.risingworld.api.assets.AssetBundle;
 import net.risingworld.api.assets.MaterialAsset;
-import net.risingworld.api.assets.ModelAsset;
-import net.risingworld.api.assets.ModelImportSettings;
-import net.risingworld.api.assets.ModelImportSettings.MeshImportFlags;
 import net.risingworld.api.assets.PrefabAsset;
 import net.risingworld.api.assets.TextureAsset;
-import net.risingworld.api.worldelements.Model;
 
 /** User-supplied DHD visual; independent material/asset lifetime and interaction collider. */
 public final class DhdModelAssets implements AutoCloseable {
     private final Path root;
-    private final PluginSettings pluginSettings;
-    private final Map<String, ModelAsset> meshes = new HashMap<>();
-    private final Map<String, ModelImportSettings> settings = new HashMap<>();
     private MaterialAsset stone, accents, keys, litKeys, markings, litMarkings, activation, activeActivation;
     private TextureAsset surfaceTexture;
     private AssetBundle bundle;
     private PrefabAsset bundlePrefab;
-    private boolean bundleFailed;
 
-    public DhdModelAssets(OZStargate plugin, PluginSettings pluginSettings) {
-        root = Path.of(plugin.getPath(), "assets", "models", "dhd");
-        this.pluginSettings = pluginSettings;
+    public DhdModelAssets(OZStargate plugin) {
+        this(Path.of(plugin.getPath()));
+    }
+
+    DhdModelAssets(Path pluginPath) {
+        root = pluginPath.resolve("assets/models/dhd");
     }
 
     public DhdRenderModel create() {
+        PrefabAsset prefab = bundledPrefab();
         load();
-        if (!bundleFailed && "bundle".equals(pluginSettings.gateAssetMode)) {
-            try {
-                return new BundledDhdModel(this, bundledPrefab());
-            } catch (RuntimeException ex) {
-                OZStargate.logger().error("Stargate DHD AssetBundle failed; using OBJ DHD: " + ex.getMessage());
-                bundleFailed = true;
-            }
-        }
-        return new AnimatedDhdModel(this);
+        return new BundledDhdModel(this, prefab);
     }
 
     private PrefabAsset bundledPrefab() {
@@ -64,26 +49,6 @@ public final class DhdModelAssets implements AutoCloseable {
         if (bundlePrefab == null) throw new IllegalStateException("DHD prefab loader returned no asset");
         OZStargate.logger().info("Using Stargate DHD AssetBundle prefab " + name);
         return bundlePrefab;
-    }
-
-    ModelAsset mesh(String name) {
-        return meshes.computeIfAbsent(name, key -> {
-            Path path = root.resolve(key + ".obj");
-            if (!Files.isRegularFile(path)) throw new IllegalStateException("Missing DHD mesh " + path);
-            ModelImportSettings imports = settings.computeIfAbsent(key, ignored -> {
-                ModelImportSettings value = ModelImportSettings.create("oz-stargate-" + key);
-                value.meshScaleFactor = 1f;
-                value.meshPivot = ModelImportSettings.ModelPivot.Default;
-                value.meshNormalSmoothingAngle = 40f;
-                value.setModelSettings(MeshImportFlags.MergeToSingleObject, MeshImportFlags.KeepMeshesReadable,
-                        MeshImportFlags.GenerateNormals, MeshImportFlags.OptimizeMesh);
-                value.setMaterialSettings();
-                return value;
-            });
-            ModelAsset asset = ModelAsset.loadFromFile(path.toString(), imports);
-            if (asset == null) throw new IllegalStateException("DHD loader returned no asset: " + key);
-            return asset;
-        });
     }
 
     private void load() {
@@ -123,10 +88,6 @@ public final class DhdModelAssets implements AutoCloseable {
     @Override public void close() {
         if (bundlePrefab != null) { bundlePrefab.dispose(); bundlePrefab = null; }
         if (bundle != null) { bundle.dispose(); bundle = null; }
-        for (ModelAsset mesh : meshes.values()) mesh.dispose();
-        meshes.clear();
-        for (ModelImportSettings importSettings : settings.values()) importSettings.dispose();
-        settings.clear();
         if (stone != null) { stone.dispose(); stone = null; }
         if (accents != null) { accents.dispose(); accents = null; }
         if (keys != null) { keys.dispose(); keys = null; }

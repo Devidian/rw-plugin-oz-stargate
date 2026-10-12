@@ -11,7 +11,7 @@ import net.risingworld.api.utils.Vector3f;
 import net.risingworld.api.worldelements.GameObject;
 import net.risingworld.api.worldelements.Prefab;
 
-/** Development candidate using LODs, authored collision and Chevron lights. */
+/** Accepted gate prefab with LODs, authored collision and Chevron lights. */
 final class BundledGateModel extends Prefab implements GateRenderModel {
     private static final int LODS = 4;
     private static final String[] STATES = { "Dark", "Amber", "Open" };

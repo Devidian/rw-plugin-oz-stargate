@@ -10,11 +10,11 @@ import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import net.risingworld.api.objects.Player;
 import net.risingworld.api.utils.Quaternion;
 import net.risingworld.api.utils.Vector3f;
-import net.risingworld.api.worldelements.Model;
+import net.risingworld.api.worldelements.GameObject;
 
 /** Temporary, admin-only visual proof. Never changes gate/zone/arrival or transfer state. */
 public final class GatePreviewService {
-    private record Preview(Player player, Model model) { }
+    private record Preview(Player player, GameObject model) { }
     private final OZStargate plugin;
     private final I18n i18n;
     private final Map<String, Preview> previews = new HashMap<>();
@@ -30,14 +30,16 @@ public final class GatePreviewService {
         if (closed) return;
         if (remove) { disconnect(player); tell(player, "removed"); return; }
         Vector3f direction = player.getViewDirection();
-        float length = (float) Math.sqrt(direction.x*direction.x + direction.z*direction.z);
-        if (!Float.isFinite(length) || length < 0.001f) { tell(player, "horizontal"); return; }
+        GateVisualPlacement placement;
         try {
-            Model model = assets.create();
+            placement = GateVisualPlacement.atFeet("PREVIEW", player.getPosition(), direction.x, direction.z);
+        } catch (IllegalArgumentException ex) { tell(player, "horizontal"); return; }
+        try {
+            GameObject model = assets.createPreview();
             disconnect(player);
-            model.setLocalPosition(player.getPosition());
+            model.setLocalPosition(placement.x(), placement.renderedY(), placement.z());
             // Authored front is -Z: walking backwards from placement reveals the front face.
-            model.setLocalRotation(new Quaternion().lookAt(direction.x/length, 0f, direction.z/length));
+            model.setLocalRotation(new Quaternion().lookAt(placement.forwardX(), 0f, placement.forwardZ()));
             player.addGameObject(model);
             Preview preview = new Preview(player, model);
             previews.put(player.getUID(), preview);

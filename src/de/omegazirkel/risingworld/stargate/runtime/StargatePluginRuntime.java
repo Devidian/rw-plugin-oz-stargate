@@ -143,14 +143,14 @@ public final class StargatePluginRuntime {
         addressBook.setChanged(dhd::addressesChanged);
         try {
             dhdModels = new DhdModelService(plugin, dhdModelStore, gates, dhd,
-                    new DhdModelAssets(plugin, settings), i18n, network);
+                    new DhdModelAssets(plugin), i18n, network);
         } catch (SQLException ex) { throw new IllegalStateException("Cannot load DHD models", ex); }
         audio.setDhdPosition(dhdModels::audioPosition);
         try {
             horizons = new HorizonService(plugin, horizonStore, gates, localSectors, network, localDial, transfers, i18n, visualStore, transferStore);
         } catch (SQLException ex) { throw new IllegalStateException("Cannot load Stargate horizons", ex); }
         transfers.setArrivalObserver(horizons::reset);
-        modelAssets = new GateModelAssets(plugin, settings);
+        modelAssets = new GateModelAssets(plugin);
         previews = new GatePreviewService(plugin, i18n, modelAssets);
         try {
             visuals = new GateVisualService(plugin, visualStore, gates, modelAssets, i18n, horizons::isAligned, network, audio);

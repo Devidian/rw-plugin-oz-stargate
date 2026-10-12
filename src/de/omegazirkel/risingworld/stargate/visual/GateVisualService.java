@@ -71,7 +71,7 @@ public final class GateVisualService {
                 return;
             }
             Vector3f p = player.getPosition(), direction = player.getViewDirection();
-            GateVisualPlacement placement = new GateVisualPlacement(id, p.x, p.y - GateVisualPlacement.PLACEMENT_DEPTH, p.z, direction.x, direction.z);
+            GateVisualPlacement placement = GateVisualPlacement.atFeet(id, p, direction.x, direction.z);
             GateRenderModel model = createModel(placement);
             if (!store.save(placement)) { tell(player, "missing_gate", id); return; }
             removeModel(id);

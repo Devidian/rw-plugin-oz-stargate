@@ -78,8 +78,7 @@ public final class GatePlacementService {
         try {
             SectorAddress address = SectorAddress.fromWorld(feet);
             if (!address.equals(SectorAddress.fromWorld(arrival))) { tell(player, "boundary"); return; }
-            GateVisualPlacement planned = new GateVisualPlacement("PENDING", feet.x,
-                    feet.y - GateVisualPlacement.PLACEMENT_DEPTH, feet.z, fx, fz);
+            GateVisualPlacement planned = GateVisualPlacement.atFeet("PENDING", feet, fx, fz);
             AlignedPassage passage = AlignedPassage.from(planned);
             if (!passage.acceptsArrival(arrival.x, arrival.y, arrival.z)) {
                 tell(player, "ground"); return;
@@ -230,8 +229,7 @@ public final class GatePlacementService {
             Vector3f arrival = new Vector3f(feet.x - gateFx * ARRIVAL_DISTANCE,
                     feet.y, feet.z - gateFz * ARRIVAL_DISTANCE);
             if (!sector.equals(SectorAddress.fromWorld(arrival))) { tell(player, "boundary"); return; }
-            GateVisualPlacement planned = new GateVisualPlacement("PENDING", feet.x,
-                    feet.y - GateVisualPlacement.PLACEMENT_DEPTH, feet.z, gateFx, gateFz);
+            GateVisualPlacement planned = GateVisualPlacement.atFeet("PENDING", feet, gateFx, gateFz);
             if (!AlignedPassage.from(planned).acceptsArrival(arrival.x, arrival.y, arrival.z)) {
                 tell(player, "ground"); return;
             }

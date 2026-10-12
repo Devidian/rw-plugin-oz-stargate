@@ -37,7 +37,7 @@ final class BundledDhdModel extends Prefab implements DhdRenderModel {
     @Override public GameObject object() { return this; }
 
     @Override public void update(GateView view) {
-        int circuits = AnimatedDhdModel.litCircuits(view);
+        int circuits = litCircuits(view);
         if (circuits != activeCircuits) {
             for (int lod = 0; lod < 2; lod++) {
                 String prefix = "LOD" + lod + "/";
@@ -58,5 +58,13 @@ final class BundledDhdModel extends Prefab implements DhdRenderModel {
             setActive("Lights/Activation", active);
             opened = active;
         }
+    }
+
+    static int litCircuits(GateView view) {
+        boolean active = view.ready() && ("OUTGOING".equals(view.state()) || "INCOMING".equals(view.state())
+                || "OPEN".equals(view.state()));
+        return !active ? 0 : "OUTGOING".equals(view.state())
+                ? view.stepStartedNanos() == 0 ? 0 : Math.min(7, Math.max(1, view.chevrons() + 1))
+                : "INCOMING".equals(view.state()) ? Math.min(7, Math.max(0, view.chevrons())) : 7;
     }
 }

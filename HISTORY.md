@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.7.1 — 2026-10-12
+
+- Use only the accepted AssetBundles for gate, DHD and event horizon; ignore the former `gate.assetMode` world setting.
+- Show the bundle gate prefab in `/sg previewgate` without collision or lights and at the same placement depth as a permanent gate.
+- Remove OBJ models and build reports from the release package while retaining their reproducible sources in the repository.
+
 ## 0.7.0 — 2026-10-12
 
 - Use the accepted three-platform AssetBundles for the Milky Way gate, DHD and wormhole on new installations, with the existing OBJ renderer available through `gate.assetMode=obj`.

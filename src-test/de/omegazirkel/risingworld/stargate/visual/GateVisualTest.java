@@ -16,6 +16,18 @@ import net.risingworld.api.utils.Quaternion;
 import net.risingworld.api.utils.Vector3f;
 
 public class GateVisualTest {
+    @Test public void previewAndPermanentGateShareFeetAnchor() {
+        Vector3f feet = new Vector3f(12f, 80f, -5f);
+        GateVisualPlacement preview = GateVisualPlacement.atFeet("PREVIEW", feet, 3f, 4f);
+        GateVisualPlacement permanent = GateVisualPlacement.atFeet("GATE", feet, 3f, 4f);
+        assertEquals(permanent.x(), preview.x(), 0f);
+        assertEquals(permanent.renderedY(), preview.renderedY(), 0f);
+        assertEquals(permanent.z(), preview.z(), 0f);
+        assertEquals(permanent.forwardX(), preview.forwardX(), 0f);
+        assertEquals(permanent.forwardZ(), preview.forwardZ(), 0f);
+        assertEquals(77.6f, preview.renderedY(), .0001f);
+    }
+
     @Test public void normalizesHorizontalFacingAndRejectsInvalidTransforms() {
         GateVisualPlacement placement = new GateVisualPlacement("A", 1,2,3, 3,4);
         assertEquals(0.6f, placement.forwardX(), 0.00001f);

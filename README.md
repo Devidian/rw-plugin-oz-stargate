@@ -80,14 +80,14 @@ The new address is learned only when a player reaches its DHD.
 
 ## Gate travel
 
-New installations use the Windows/Linux/macOS AssetBundle renderer for the gate,
-DHD and wormhole. Existing installations with `gate.assetMode=obj` in their
-settings keep the OBJ renderer until an admin changes that value to `bundle`.
-The gate, DHD and wormhole fall back to their earlier renderer if their bundle
-cannot load. The four optional platforms are placed with a gate from the
+The gate, DHD and wormhole use their Windows/Linux/macOS AssetBundle visuals.
+A saved `gate.assetMode` value from 0.7.0 is ignored; no world-data migration is
+needed. If a required bundle is missing or fails to load, rendering is suspended
+and the render service logs the error.
+The four optional platforms are placed with a gate from the
 administrator's **Plattformen** radial submenu at the aimed floor point.
 Their original source files remain outside the plugin; the package contains
-derived runtime bundles and source notices only.
+derived runtime bundles, textures and source notices only.
 
 
 One gate per sector supports local travel by default. An administrator can
@@ -181,7 +181,7 @@ books are not populated from the old unrestricted gate list.
 
 ## Development: static Milky Way preview (5D.1)
 
-Admins can run `/sg previewgate` on level ground while looking horizontally. A temporary, non-colliding gate appears at their feet, upright and aligned with the horizontal view direction. Walk backwards to inspect its front. The model is visible only to that admin, lasts two minutes, and is replaced by another preview command. `/sg clearpreview` removes it immediately; disconnect and plugin unload also remove it.
+Admins can run `/sg previewgate` on level ground while looking horizontally. A temporary, non-colliding and unlit gate prefab uses the same feet anchor, depth and horizontal facing as `/sg placegate`. Walk backwards to inspect its front. The model is visible only to that admin, lasts two minutes, and is replaced by another preview command. `/sg clearpreview` removes it immediately; disconnect and plugin unload also remove it.
 
 This is a static shape/scale/import test with a neutral material. It has no travel function and does not move registered gates, DHDs, zones or arrival points. Permanent placement, materials and animation follow visual acceptance. Source model by David Gian-Cursio (CC0); notice and build report ship beside the optimized asset. The offline build script is documented in `scripts/assets/README.md`.
 
