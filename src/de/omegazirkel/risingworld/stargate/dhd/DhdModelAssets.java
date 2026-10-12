@@ -6,28 +6,64 @@ import java.util.HashMap;
 import java.util.Map;
 
 import de.omegazirkel.risingworld.OZStargate;
+import de.omegazirkel.risingworld.stargate.PluginSettings;
+import net.risingworld.api.assets.AssetBundle;
 import net.risingworld.api.assets.MaterialAsset;
 import net.risingworld.api.assets.ModelAsset;
 import net.risingworld.api.assets.ModelImportSettings;
 import net.risingworld.api.assets.ModelImportSettings.MeshImportFlags;
+import net.risingworld.api.assets.PrefabAsset;
 import net.risingworld.api.assets.TextureAsset;
 import net.risingworld.api.worldelements.Model;
 
 /** User-supplied DHD visual; independent material/asset lifetime and interaction collider. */
 public final class DhdModelAssets implements AutoCloseable {
     private final Path root;
+    private final PluginSettings pluginSettings;
     private final Map<String, ModelAsset> meshes = new HashMap<>();
     private final Map<String, ModelImportSettings> settings = new HashMap<>();
     private MaterialAsset stone, accents, keys, litKeys, markings, litMarkings, activation, activeActivation;
     private TextureAsset surfaceTexture;
+    private AssetBundle bundle;
+    private PrefabAsset bundlePrefab;
+    private boolean bundleFailed;
 
-    public DhdModelAssets(OZStargate plugin) {
+    public DhdModelAssets(OZStargate plugin, PluginSettings pluginSettings) {
         root = Path.of(plugin.getPath(), "assets", "models", "dhd");
+        this.pluginSettings = pluginSettings;
     }
 
-    public Model create() {
+    public DhdRenderModel create() {
         load();
+        if (!bundleFailed && "bundle".equals(pluginSettings.gateAssetMode)) {
+            try {
+                return new BundledDhdModel(this, bundledPrefab());
+            } catch (RuntimeException ex) {
+                OZStargate.logger().error("Stargate DHD AssetBundle failed; using OBJ DHD: " + ex.getMessage());
+                bundleFailed = true;
+            }
+        }
         return new AnimatedDhdModel(this);
+    }
+
+    private PrefabAsset bundledPrefab() {
+        if (bundlePrefab != null) return bundlePrefab;
+        Path file = root.resolve("stargatedhd.bundle");
+        if (!Files.isRegularFile(file)) throw new IllegalStateException("Missing DHD bundle: " + file);
+        bundle = AssetBundle.loadFromFile(file.toString());
+        if (bundle == null) throw new IllegalStateException("DHD AssetBundle loader returned no asset");
+        String name = null;
+        for (String candidate : bundle.getAllAssetNames()) {
+            if (candidate.toLowerCase(java.util.Locale.ROOT).endsWith("/stargatedhd.prefab")) {
+                name = candidate;
+                break;
+            }
+        }
+        if (name == null) throw new IllegalStateException("DHD prefab absent from AssetBundle");
+        bundlePrefab = PrefabAsset.loadFromAssetBundle(bundle, name);
+        if (bundlePrefab == null) throw new IllegalStateException("DHD prefab loader returned no asset");
+        OZStargate.logger().info("Using Stargate DHD AssetBundle prefab " + name);
+        return bundlePrefab;
     }
 
     ModelAsset mesh(String name) {
@@ -85,6 +121,8 @@ public final class DhdModelAssets implements AutoCloseable {
     }
 
     @Override public void close() {
+        if (bundlePrefab != null) { bundlePrefab.dispose(); bundlePrefab = null; }
+        if (bundle != null) { bundle.dispose(); bundle = null; }
         for (ModelAsset mesh : meshes.values()) mesh.dispose();
         meshes.clear();
         for (ModelImportSettings importSettings : settings.values()) importSettings.dispose();

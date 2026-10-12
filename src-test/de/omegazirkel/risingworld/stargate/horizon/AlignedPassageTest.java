@@ -11,6 +11,7 @@ import org.junit.Test;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.visual.GateVisualPlacement;
 import de.omegazirkel.risingworld.stargate.visual.GateVisualStore;
+import de.omegazirkel.risingworld.stargate.visual.PlatformType;
 import de.omegazirkel.risingworld.stargate.transfer.TransferStore;
 import de.omegazirkel.risingworld.stargate.dhd.DhdStore;
 import net.risingworld.api.utils.Quaternion;
@@ -21,6 +22,21 @@ public class AlignedPassageTest {
     private final Vector3f arrival = new Vector3f(10,22,26);
     private final Quaternion rotation = new Quaternion(0,1,0,0);
     private final HorizonZone legacy = new HorizonZone("A", 1,1,1, 2,3,2);
+
+    @Test public void platformLiftMovesApertureWhilePlainGateKeepsItsHeight() {
+        GateVisualPlacement platform = new GateVisualPlacement("A", 10,20,30, 0,1, PlatformType.CIRCULAR);
+        assertEquals(20 + AlignedPassage.CENTRE_HEIGHT, AlignedPassage.from(model).y(), .0001f);
+        assertEquals(20 + AlignedPassage.CENTRE_HEIGHT + PlatformType.PASSAGE_LIFT_WORLD,
+                AlignedPassage.from(platform).y(), .0001f);
+        assertEquals(20 + PlatformType.CIRCULAR.gateLiftWorld(), platform.renderedY(), .0001f);
+        assertEquals(GateVisualPlacement.PLACEMENT_DEPTH,
+                PlatformType.CIRCULAR.gateLiftWorld(), .0001f);
+        assertEquals(GateVisualPlacement.PLACEMENT_DEPTH - PlatformType.GRACE_OF_GOD.deckHeightWorld() + .86f,
+                PlatformType.GRACE_OF_GOD.gateLiftWorld(), .0001f);
+        assertEquals(0, platform.renderedDistanceSquared(platform.x(), platform.renderedY(), platform.z()), .0001);
+        assertTrue(platform.renderedDistanceSquared(platform.x(), platform.y(), platform.z()) > .01);
+        assertTrue(AlignedPassage.from(platform).acceptsArrival(arrival.x, arrival.y, arrival.z));
+    }
 
     @Test public void circularBodyCentreExcludesFrameCornersAndBehindArrival() {
         AlignedPassage passage = AlignedPassage.from(model);

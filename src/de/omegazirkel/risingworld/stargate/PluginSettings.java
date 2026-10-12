@@ -41,6 +41,7 @@ public class PluginSettings {
 	public int discoveryCooldownMinutes = 5;
 	public boolean discoveryNoAdminCooldown = false;
 	public boolean randomFirstArrival = true;
+	public String gateAssetMode = "bundle";
 	public long discordExternalTravelChannel = 0;
 	public long discordInternalTravelChannel = 0;
 	public long discordDiscoveryChannel = 0;
@@ -110,6 +111,9 @@ public class PluginSettings {
 					defaults.getOrDefault("discovery.noAdminCooldown", "false")));
 			randomFirstArrival = Boolean.parseBoolean(settings.getOrDefault("arrival.randomGate",
 					defaults.getOrDefault("arrival.randomGate", "true")));
+			String selectedGateAssets = settings.getOrDefault("gate.assetMode",
+					defaults.getOrDefault("gate.assetMode", "bundle"));
+			gateAssetMode = "bundle".equals(selectedGateAssets) ? "bundle" : "obj";
 			discordExternalTravelChannel = channel(settings, defaults, "discord.externalTravelChannel");
 			discordInternalTravelChannel = channel(settings, defaults, "discord.internalTravelChannel");
 			discordDiscoveryChannel = channel(settings, defaults, "discord.discoveryChannel");

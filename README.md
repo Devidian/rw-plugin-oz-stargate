@@ -80,6 +80,16 @@ The new address is learned only when a player reaches its DHD.
 
 ## Gate travel
 
+New installations use the Windows/Linux/macOS AssetBundle renderer for the gate,
+DHD and wormhole. Existing installations with `gate.assetMode=obj` in their
+settings keep the OBJ renderer until an admin changes that value to `bundle`.
+The gate, DHD and wormhole fall back to their earlier renderer if their bundle
+cannot load. The four optional platforms are placed with a gate from the
+administrator's **Plattformen** radial submenu at the aimed floor point.
+Their original source files remain outside the plugin; the package contains
+derived runtime bundles and source notices only.
+
+
 One gate per sector supports local travel by default. An administrator can
 place or move a gate with its DHD, place either separately, or remove both from
 the radial menu. A networked gate receives a globally unique address, aligned

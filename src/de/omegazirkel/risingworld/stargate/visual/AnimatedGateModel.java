@@ -10,9 +10,9 @@ import net.risingworld.api.worldelements.Light;
 import net.risingworld.api.worldelements.Model;
 
 /** One native hierarchy per visible gate, shared by nearby viewers. */
-final class AnimatedGateModel extends Model {
+final class AnimatedGateModel extends Model implements GateRenderModel {
     private final Model ring;
-    private final GateWormholeVisual wormhole;
+    private final WormholeVisual wormhole;
     private final Model[] chevrons = new Model[9], strips = new Model[9], fixedLights = new Model[9];
     private final Light[] chevronLights = new Light[9], rearChevronLights = new Light[9];
     private final float[] depths = new float[9];
@@ -40,7 +40,7 @@ final class AnimatedGateModel extends Model {
         ring.addChild(new Model(assets.part("ring-glyphs"), assets.glyphs()));
         addChild(ring);
         wormhole = new GateWormholeVisual(assets);
-        addChild(wormhole);
+        addChild(wormhole.object());
         for (int i = 0; i < chevrons.length; i++) {
             GameObject assembly = new GameObject();
             assembly.setLocalPosition(0f, 3.073437f, 0f);
@@ -76,12 +76,14 @@ final class AnimatedGateModel extends Model {
         }
     }
 
-    void update(GateView nextView) {
+    @Override public GameObject object() { return this; }
+
+    @Override public void update(GateView nextView) {
         view = nextView;
         frame(System.nanoTime());
     }
 
-    void frame(long now) {
+    @Override public void frame(long now) {
         if (view == null) return;
         wormhole.frame(view, now);
         GateDialMotion pose = GateDialMotion.sample(view, now);

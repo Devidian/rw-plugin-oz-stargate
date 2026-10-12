@@ -81,4 +81,30 @@ public class GateVisualTest {
             }
         } finally { Files.deleteIfExists(file); }
     }
+
+    @Test public void migratesPlainRowsAndPersistsOptionalPlatform() throws Exception {
+        Path file = Files.createTempFile("stargate-platform-migration-", ".db");
+        try {
+            try (Connection db = DriverManager.getConnection("jdbc:sqlite:" + file)) {
+                LocalGateStore gates = new LocalGateStore(db); gates.initialize();
+                gates.save("A", new Vector3f(1, 2, 3), new Quaternion(0, 0, 0, 1));
+                try (var sql = db.createStatement()) {
+                    sql.executeUpdate("CREATE TABLE stargate_visuals (gate_id TEXT PRIMARY KEY, pos_x REAL NOT NULL, pos_y REAL NOT NULL, pos_z REAL NOT NULL, forward_x REAL NOT NULL, forward_z REAL NOT NULL)");
+                    sql.executeUpdate("INSERT INTO stargate_visuals VALUES ('A',1,2,3,0,1)");
+                }
+                GateVisualStore store = new GateVisualStore(db); store.initialize(); store.initialize();
+                assertEquals(List.of(new GateVisualPlacement("A", 1,2,3, 0,1)), store.all());
+                GateVisualPlacement platform = new GateVisualPlacement("A", 4,5,6, 1,0,
+                        PlatformType.CURVED_MILKY_WAY);
+                assertTrue(store.save(platform));
+                assertEquals(List.of(platform), store.all());
+            }
+            try (Connection db = DriverManager.getConnection("jdbc:sqlite:" + file)) {
+                GateVisualStore store = new GateVisualStore(db); store.initialize();
+                assertEquals(PlatformType.CURVED_MILKY_WAY, store.all().get(0).platform());
+                assertTrue(store.save(new GateVisualPlacement("A", 7,8,9, 0,1)));
+                assertNull(store.all().get(0).platform());
+            }
+        } finally { Files.deleteIfExists(file); }
+    }
 }

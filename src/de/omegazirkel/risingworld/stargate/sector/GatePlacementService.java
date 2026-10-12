@@ -4,6 +4,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import de.omegazirkel.risingworld.OZStargate;
@@ -18,7 +20,7 @@ import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.visual.GateVisualPlacement;
 import de.omegazirkel.risingworld.stargate.visual.GateVisualService;
 import de.omegazirkel.risingworld.stargate.visual.GateVisualStore;
-import de.omegazirkel.risingworld.stargate.ui.StargateChat;
+import de.omegazirkel.risingworld.stargate.visual.PlatformType;
 import de.omegazirkel.risingworld.tools.I18n;
 import net.risingworld.api.objects.Player;
 import net.risingworld.api.World;
@@ -26,10 +28,19 @@ import net.risingworld.api.objects.world.Chunk;
 import net.risingworld.api.objects.world.Plant;
 import net.risingworld.api.utils.Quaternion;
 import net.risingworld.api.utils.Vector3f;
+import net.risingworld.api.utils.Layer;
+import net.risingworld.api.utils.RaycastResult;
 
 /** One command reserves an ID and atomically stores a usable local gate. */
 public final class GatePlacementService {
     private static final float ARRIVAL_DISTANCE = 2.4f; // about 1.2 metres
+    private static final float PLATFORM_AIM_DISTANCE = 64f;
+    private static final int PLATFORM_SURFACE_MASK = Layer.getBitmask(Layer.TERRAIN, Layer.CONSTRUCTION);
+    private static final int PLATFORM_CLEARANCE_MASK = Layer.getBitmask(Layer.CONSTRUCTION);
+    private static final float[][] PLATFORM_CLEARANCE_OFFSETS = {
+        {0f, 0f}, {8f, 0f}, {-8f, 0f}, {0f, -10f}, {0f, -16f}
+    };
+    private final Map<String, Object> pendingPlatformAims = new HashMap<>();
 
     private final LocalGateStore gates;
     private final LocalSectorStore sectors;
@@ -245,6 +256,85 @@ public final class GatePlacementService {
         } catch (IllegalArgumentException ex) { tell(player, "ground"); }
     }
 
+    /** Place the selected platform and its gate at a floor point under the crosshair. */
+    public void placePlatform(Player player, PlatformType platform) {
+        if (!player.isAdmin()) { tell(player, "admin_only"); return; }
+        if (!models.supportsPlatform(platform)) { tell(player, "platform_unavailable"); return; }
+        Vector3f view = player.getViewDirection();
+        double length = Math.hypot(view.x, view.z);
+        if (!Double.isFinite(length) || length < .001) { tell(player, "direction"); return; }
+        float fx = (float) (view.x / length), fz = (float) (view.z / length);
+        String uid = player.getUID();
+        Object token = new Object();
+        if (pendingPlatformAims.putIfAbsent(uid, token) != null) { tell(player, "pending"); return; }
+        tell(player, "platform_aiming");
+        OZStargate.logger().info("Stargate platform aim requested: " + platform.key());
+        player.raycast(PLATFORM_AIM_DISTANCE, PLATFORM_SURFACE_MASK, false, hit -> plugin.enqueue(() -> {
+            if (pendingPlatformAims.get(uid) != token) return;
+            if (!player.isConnected() || !player.isSpawned() || !player.isAdmin()) {
+                pendingPlatformAims.remove(uid, token); return;
+            }
+            if (!floorHit(hit)) {
+                pendingPlatformAims.remove(uid, token); tell(player, "platform_surface"); return;
+            }
+            OZStargate.logger().info("Stargate platform floor acquired: " + platform.key());
+            checkPlatformClearance(player, uid, token, platform, hit.getCollisionPoint(), fx, fz, 0);
+        }));
+        plugin.executeDelayed(20f, () -> {
+            if (pendingPlatformAims.remove(uid, token)) tell(player, "platform_surface");
+        });
+    }
+
+    private void checkPlatformClearance(Player player, String uid, Object token, PlatformType platform,
+            Vector3f ground, float fx, float fz, int index) {
+        float[] offset = PLATFORM_CLEARANCE_OFFSETS[index];
+        float x = ground.x + offset[0] * fz + offset[1] * fx;
+        float z = ground.z - offset[0] * fx + offset[1] * fz;
+        player.raycastFromWorldPosition(new Vector3f(x, ground.y + .12f, z),
+                new Vector3f(0f, 1f, 0f), 16f, PLATFORM_CLEARANCE_MASK, false,
+                hit -> plugin.enqueue(() -> {
+                    if (pendingPlatformAims.get(uid) != token) return;
+                    if (!player.isConnected() || !player.isSpawned() || !player.isAdmin()) {
+                        pendingPlatformAims.remove(uid, token); return;
+                    }
+                    if (hit != null && hit.hasCollision()) {
+                        pendingPlatformAims.remove(uid, token); tell(player, "platform_clearance"); return;
+                    }
+                    if (index + 1 < PLATFORM_CLEARANCE_OFFSETS.length) {
+                        checkPlatformClearance(player, uid, token, platform, ground, fx, fz, index + 1);
+                    } else if (pendingPlatformAims.remove(uid, token)) {
+                        placePlatformAt(player, platform, ground, fx, fz);
+                    }
+                }));
+    }
+
+    private void placePlatformAt(Player player, PlatformType platform, Vector3f ground, float fx, float fz) {
+        try {
+            Vector3f feet = new Vector3f(ground.x, ground.y + platform.deckHeightWorld(), ground.z);
+            SectorAddress sector = SectorAddress.fromWorld(feet);
+            GateVisualPlacement planned = new GateVisualPlacement("PENDING", feet.x,
+                    feet.y - GateVisualPlacement.PLACEMENT_DEPTH, feet.z, fx, fz, platform);
+            Vector3f arrival = PlatformArrivalPlacement.position(planned);
+            if (!sector.equals(SectorAddress.fromWorld(arrival))) { tell(player, "boundary"); return; }
+            if (!AlignedPassage.from(planned).acceptsArrival(arrival.x, arrival.y, arrival.z)) {
+                tell(player, "ground"); return;
+            }
+            String existing = sectors.gateAt(sector);
+            if (existing != null && !network.isIdleForSetup(existing)) { tell(player, "busy"); return; }
+            if (overlaps(planned, existing)) { tell(player, "overlap"); return; }
+            Quaternion facing = new Quaternion().lookAt(-fx, 0f, -fz);
+            savePlacement(player, sector, feet, arrival, facing, planned, existing, null);
+        } catch (SQLException ex) { fail(player, ex);
+        } catch (IllegalArgumentException ex) { tell(player, "ground"); }
+    }
+
+    private static boolean floorHit(RaycastResult hit) {
+        if (hit == null || !hit.hasCollision() || hit.getCollisionPoint() == null
+                || hit.getCollisionNormal() == null || hit.getCollisionNormal().y < .7f) return false;
+        Vector3f p = hit.getCollisionPoint();
+        return Float.isFinite(p.x) && Float.isFinite(p.y) && Float.isFinite(p.z);
+    }
+
     public void placeDhd(Player player) {
         if (!player.isAdmin()) { tell(player, "admin_only"); return; }
         try {
@@ -282,7 +372,9 @@ public final class GatePlacementService {
     private void savePlacement(Player player, SectorAddress sector, Vector3f feet, Vector3f arrival,
             Quaternion facing, GateVisualPlacement planned, String existing, DhdModelPlacement dhd) {
         try {
-            if (!valid(player, sector) || overlaps(planned, existing)) { tell(player, "changed"); return; }
+            if (!validPlacement(player, sector, planned) || overlaps(planned, existing)) {
+                tell(player, "changed"); return;
+            }
             if (existing == null) {
                 if (sectors.gateAt(sector) != null) { tell(player, "occupied"); return; }
                 network.register(player, feet, new Quaternion(player.getRotation()), (id, ignored, rotation) -> {
@@ -321,6 +413,9 @@ public final class GatePlacementService {
     private void publish(GateVisualPlacement visual, DhdModelPlacement dhd) {
         models.registered(visual);
         if (dhd != null) dhdModels.registered(dhd);
+        if (visual.platform() != null)
+            OZStargate.logger().info("Stargate platform placed: " + visual.platform().key()
+                    + " gate=" + visual.gateId());
         try { horizons.registered(); }
         catch (SQLException ex) { OZStargate.logger().error("Cannot refresh passage: " + ex.getMessage()); }
     }
@@ -330,8 +425,17 @@ public final class GatePlacementService {
                 && sector.equals(SectorAddress.fromWorld(player.getPosition()));
     }
 
+    private boolean validPlacement(Player player, SectorAddress sector, GateVisualPlacement planned) {
+        if (planned.platform() == null) return valid(player, sector);
+        Vector3f current = player.getPosition();
+        return player.isConnected() && player.isSpawned() && player.isAdmin()
+                && sector.equals(SectorAddress.fromWorld(new Vector3f(planned.x(), planned.y(), planned.z())))
+                && planned.distanceSquared(current.x, current.y, current.z)
+                        <= PLATFORM_AIM_DISTANCE * PLATFORM_AIM_DISTANCE;
+    }
+
     private static GateVisualPlacement visual(GateVisualPlacement p, String id) {
-        return new GateVisualPlacement(id, p.x(), p.y(), p.z(), p.forwardX(), p.forwardZ());
+        return new GateVisualPlacement(id, p.x(), p.y(), p.z(), p.forwardX(), p.forwardZ(), p.platform());
     }
     private static DhdModelPlacement dhd(DhdModelPlacement p, String id) {
         return new DhdModelPlacement(id, p.x(), p.y(), p.z(), p.forwardX(), p.forwardZ());
@@ -343,6 +447,6 @@ public final class GatePlacementService {
 
     private void tell(Player player, String key) {
         if (player != null && player.isConnected())
-            StargateChat.debug(player, i18n.get("tc.stargate.sector.placement_" + key, player));
+            player.sendTextMessage(i18n.get("tc.stargate.sector.placement_" + key, player));
     }
 }

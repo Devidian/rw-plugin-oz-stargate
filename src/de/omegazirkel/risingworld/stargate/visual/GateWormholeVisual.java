@@ -7,7 +7,7 @@ import net.risingworld.api.worldelements.Model;
 import net.risingworld.api.worldelements.Light;
 
 /** Shared immutable frames/materials, per-gate visibility/dissolve. No travel access. */
-final class GateWormholeVisual extends GameObject {
+final class GateWormholeVisual extends GameObject implements WormholeVisual {
     private final WormholeTransition transition = new WormholeTransition();
     private final WormholeAssets assets;
     private final Model[] water = new Model[2];
@@ -64,7 +64,9 @@ final class GateWormholeVisual extends GameObject {
         }
     }
 
-    void frame(GateView view, long now) {
+    @Override public GameObject object() { return this; }
+
+    @Override public void frame(GateView view, long now) {
         WormholePose pose = transition.sample(view, now);
         if (!pose.visible()) {
             if (visible) setActive(false);

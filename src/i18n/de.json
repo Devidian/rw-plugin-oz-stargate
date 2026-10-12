@@ -155,6 +155,12 @@
         "open": "Stargate öffnen",
         "place_gate_dhd": "Positioniere und erstelle Gate mit DHD",
         "place_gate": "Positioniere und erstelle Gate",
+        "platforms": "Plattformen",
+        "platform_circular": "Runde Plattform mit Gate",
+        "platform_curved_milky_way": "Gebogene Milky-Way-Plattform mit Gate",
+        "platform_curved_pegasus": "Gebogene Pegasus-Plattform mit Gate",
+        "platform_grace_of_god": "Grace-of-God-Plattform mit Gate",
+        "back": "Zurück",
         "place_dhd": "Positioniere DHD",
         "delete_gate_dhd": "Gate + DHD löschen",
         "delete_confirm_title": "Gate und DHD löschen?",
@@ -289,7 +295,11 @@
         "placement_occupied": "In diesem Sektor steht bereits ein Tor.",
         "placement_changed": "Die Position oder der Sektorzustand hat sich geändert. Bitte erneut versuchen.",
         "placement_pending": "Die Oberflächenhöhe wird bereits bestimmt.",
-        "placement_surface": "An der DHD-Position wurde keine geeignete Oberfläche gefunden."
+        "placement_surface": "An der DHD-Position wurde keine geeignete Oberfläche gefunden.",
+        "placement_platform_surface": "Am anvisierten Plattform-Punkt wurde keine geeignete Oberfläche gefunden.",
+        "placement_platform_aiming": "Plattform-Platzierung wird am anvisierten Bodenpunkt geprüft …",
+        "placement_platform_unavailable": "Die Plattform-Datei konnte nicht geladen werden; siehe Server-Log.",
+        "placement_platform_clearance": "Für die Plattform und das Tor ist an dieser Stelle nicht genug Platz."
       },
       "trust": {
         "settings": {

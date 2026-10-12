@@ -1,0 +1,27 @@
+Read Me
+Stargate (Milky Way Version) FBX Conversion Kit
+By David Gian-Cursio
+March 28, 2021
+
+Description:
+
+These are mesh files from my model of the Milky Way version of the Stargate setpiece from "Stargate SG-1" in the FBX file format.
+
+How to Use:
+
+SG_MilkyWay is the main scene and object files for the Earth version of the stargate.
+
+To animate the chevrons locking, translate the chevron object down 10.4 cm and inward 2.3 cm, and the chevron block object up 3.5 cm.
+
+The model has a three-layer texture setup. The base is a medium-gray stone texture, above that are larger, soft patterns of dark gray, and at the top are smaller splotches of light gray. The front faces of the symbols on the inner ring have an additional bump-map, giving a texture similar to grip-tape or coarse sandpaper. The lighted sections are a transparent dark red, while the lights themselves are more yellow. These surfaces are achieved procedurally in the Lightwave version of the model. Texture reference images of each PBR channel for the main surface, as well as renders of the original model, are available at https://www.gian-cursio.net/2021/02/stargate-2020-SG1-showcase/
+
+The model is slightly out-of-scale, but should be already be scaled to 90% of its size (assuming it imports 1:1 to your program). The outer diameter of the main ring should be exactly 20 feet, or 6.096 meters. Positioning instructions assume the modeled size, not the rescaled size.
+
+Revision History:
+
+Version 3.0, March 28, 2021:
+Initial Release
+
+Public Domain Dedication:
+
+This model is released as CC0, no rights reserved, and is in the public domain. Credit to the modeler, David Gian-Cursio, is not required, but is appreciated.

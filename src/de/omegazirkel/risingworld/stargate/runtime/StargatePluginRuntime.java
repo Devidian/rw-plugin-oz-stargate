@@ -38,6 +38,7 @@ import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.sector.LocalSectorStore;
 import de.omegazirkel.risingworld.stargate.sector.LocalDialService;
 import de.omegazirkel.risingworld.stargate.sector.GatePlacementService;
+import de.omegazirkel.risingworld.stargate.sector.PlatformArrivalPlacement;
 import de.omegazirkel.risingworld.stargate.transfer.TransferService;
 import de.omegazirkel.risingworld.stargate.transfer.TransferStore;
 import de.omegazirkel.risingworld.stargate.ui.StargatePlayerPluginData;
@@ -112,6 +113,8 @@ public final class StargatePluginRuntime {
             dhdModelStore.initialize();
             horizonStore.initialize();
             visualStore.initialize();
+            int raisedArrivals = PlatformArrivalPlacement.migrate(gates, visualStore);
+            if (raisedArrivals > 0) OZStargate.logger().info("Raised Stargate platform arrivals: " + raisedArrivals);
             transferStore.initialize();
             firstArrivalStore.initialize();
             addressBookStore.initialize();
@@ -140,14 +143,14 @@ public final class StargatePluginRuntime {
         addressBook.setChanged(dhd::addressesChanged);
         try {
             dhdModels = new DhdModelService(plugin, dhdModelStore, gates, dhd,
-                    new DhdModelAssets(plugin), i18n, network);
+                    new DhdModelAssets(plugin, settings), i18n, network);
         } catch (SQLException ex) { throw new IllegalStateException("Cannot load DHD models", ex); }
         audio.setDhdPosition(dhdModels::audioPosition);
         try {
             horizons = new HorizonService(plugin, horizonStore, gates, localSectors, network, localDial, transfers, i18n, visualStore, transferStore);
         } catch (SQLException ex) { throw new IllegalStateException("Cannot load Stargate horizons", ex); }
         transfers.setArrivalObserver(horizons::reset);
-        modelAssets = new GateModelAssets(plugin);
+        modelAssets = new GateModelAssets(plugin, settings);
         previews = new GatePreviewService(plugin, i18n, modelAssets);
         try {
             visuals = new GateVisualService(plugin, visualStore, gates, modelAssets, i18n, horizons::isAligned, network, audio);

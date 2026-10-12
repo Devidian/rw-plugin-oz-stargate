@@ -40,6 +40,12 @@ final class WormholeAssets implements AutoCloseable {
             closingMaterial.setColor(1f, 1f, 1f, 1f);
             closingMaterial.setSmoothness(.15f);
             closingMaterial.setFlags(MaterialAsset.Flags.DoubleSided, MaterialAsset.Flags.Transparent);
+        } catch (RuntimeException ex) { close(); throw ex; }
+    }
+
+    private void ensureMeshes() {
+        if (frames[0] != null) return;
+        try {
             for (int frame = 0; frame < closingFrames.length; frame++) {
                 MeshAsset mesh = MeshAsset.create("oz-stargate-dissolve-frame-" + frame, 97, 288);
                 closingFrames[frame] = mesh;
@@ -62,7 +68,15 @@ final class WormholeAssets implements AutoCloseable {
                 for (int j = 0; j < 96; j++) mesh.addIndices(0, 1 + (j + 1) % 96, 1 + j);
                 mesh.uploadMeshData(false);
             }
-        } catch (RuntimeException ex) { close(); throw ex; }
+        } catch (RuntimeException ex) {
+            for (int i = 0; i < frames.length; i++) {
+                if (frames[i] != null) { frames[i].dispose(); frames[i] = null; }
+            }
+            for (int i = 0; i < closingFrames.length; i++) {
+                if (closingFrames[i] != null) { closingFrames[i].dispose(); closingFrames[i] = null; }
+            }
+            throw ex;
+        }
     }
 
     private static void vertex(MeshAsset mesh, int frame, float x, float y) {
@@ -71,9 +85,9 @@ final class WormholeAssets implements AutoCloseable {
         mesh.addUV(WormholeLoop.u(frame, x), WormholeLoop.v(frame, y));
     }
 
-    MeshAsset frame(int index) { return frames[index]; }
+    MeshAsset frame(int index) { ensureMeshes(); return frames[index]; }
     MaterialAsset water(int index) { return water[index / WormholeLoop.FRAMES_PER_ATLAS]; }
-    MeshAsset closingFrame(int index) { return closingFrames[index]; }
+    MeshAsset closingFrame(int index) { ensureMeshes(); return closingFrames[index]; }
     MaterialAsset closingMaterial() { return closingMaterial; }
 
     private static void closingVertex(MeshAsset mesh, int frame, float x, float y) {

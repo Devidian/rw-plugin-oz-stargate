@@ -6,8 +6,9 @@ import java.util.List;
 import java.util.Set;
 
 /** Stored feet position and normalized horizontal forward direction, in world units. */
-public record GateVisualPlacement(String gateId, float x, float y, float z, float forwardX, float forwardZ) {
-    /** 1.2 metres below the admin's feet; Rising World uses two units per metre. */
+public record GateVisualPlacement(String gateId, float x, float y, float z, float forwardX, float forwardZ,
+        PlatformType platform) {
+    /** Gate mesh origin is 1.2 metres below its designated feet point. */
     public static final float PLACEMENT_DEPTH = 2.4f;
     public static final float SHOW_DISTANCE = 128f;
     public static final float HIDE_DISTANCE = 160f;
@@ -21,6 +22,25 @@ public record GateVisualPlacement(String gateId, float x, float y, float z, floa
         }
         forwardX = (float) (forwardX / length);
         forwardZ = (float) (forwardZ / length);
+    }
+
+    public GateVisualPlacement(String gateId, float x, float y, float z, float forwardX, float forwardZ) {
+        this(gateId, x, y, z, forwardX, forwardZ, null);
+    }
+
+    /** Runtime origin of the prefab; persisted Y remains the original placement anchor. */
+    public float renderedY() {
+        return y + (platform == null ? 0f : platform.gateLiftWorld());
+    }
+
+    /** Height of the player crossing area; the circular platform has a lowered walkway. */
+    public float passageY() {
+        return y + (platform == null ? 0f : PlatformType.PASSAGE_LIFT_WORLD);
+    }
+
+    public double renderedDistanceSquared(float px, float py, float pz) {
+        double dx = (double) x-px, dy = (double) renderedY()-py, dz = (double) z-pz;
+        return dx*dx + dy*dy + dz*dz;
     }
 
     public double distanceSquared(float px, float py, float pz) {

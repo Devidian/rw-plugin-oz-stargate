@@ -18,13 +18,22 @@ public final class GateVisualStore {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS stargate_visuals (gate_id TEXT PRIMARY KEY, pos_x REAL NOT NULL, pos_y REAL NOT NULL, pos_z REAL NOT NULL, forward_x REAL NOT NULL, forward_z REAL NOT NULL)");
             statement.executeUpdate("CREATE TRIGGER IF NOT EXISTS stargate_visuals_gate_deleted AFTER DELETE ON stargates BEGIN DELETE FROM stargate_visuals WHERE gate_id=OLD.gate_id; END");
         }
+        boolean hasPlatform = false;
+        try (Statement statement = database.createStatement();
+                ResultSet columns = statement.executeQuery("PRAGMA table_info(stargate_visuals)")) {
+            while (columns.next()) if ("platform_type".equals(columns.getString("name"))) hasPlatform = true;
+        }
+        if (!hasPlatform) try (Statement statement = database.createStatement()) {
+            statement.executeUpdate("ALTER TABLE stargate_visuals ADD COLUMN platform_type TEXT");
+        }
     }
 
     public synchronized boolean save(GateVisualPlacement placement) throws SQLException {
-        try (PreparedStatement statement = database.prepareStatement("INSERT OR REPLACE INTO stargate_visuals SELECT gate_id,?,?,?,?,? FROM stargates WHERE gate_id=?")) {
+        try (PreparedStatement statement = database.prepareStatement("INSERT OR REPLACE INTO stargate_visuals (gate_id,pos_x,pos_y,pos_z,forward_x,forward_z,platform_type) SELECT gate_id,?,?,?,?,?,? FROM stargates WHERE gate_id=?")) {
             statement.setFloat(1, placement.x()); statement.setFloat(2, placement.y()); statement.setFloat(3, placement.z());
             statement.setFloat(4, placement.forwardX()); statement.setFloat(5, placement.forwardZ());
-            statement.setString(6, placement.gateId());
+            statement.setString(6, placement.platform() == null ? null : placement.platform().key());
+            statement.setString(7, placement.gateId());
             return statement.executeUpdate() == 1;
         }
     }
@@ -39,7 +48,7 @@ public final class GateVisualStore {
         List<GateVisualPlacement> result = new ArrayList<>();
         try (Statement statement = database.createStatement(); ResultSet rows = statement.executeQuery("SELECT v.* FROM stargate_visuals v JOIN stargates g ON g.gate_id=v.gate_id ORDER BY v.gate_id")) {
             while (rows.next()) result.add(new GateVisualPlacement(rows.getString(1), rows.getFloat(2), rows.getFloat(3),
-                    rows.getFloat(4), rows.getFloat(5), rows.getFloat(6)));
+                    rows.getFloat(4), rows.getFloat(5), rows.getFloat(6), PlatformType.fromKey(rows.getString(7))));
         }
         return List.copyOf(result);
     }

@@ -19,7 +19,6 @@ import net.risingworld.api.Server;
 import net.risingworld.api.objects.Player;
 import net.risingworld.api.utils.Quaternion;
 import net.risingworld.api.utils.Vector3f;
-import net.risingworld.api.worldelements.Model;
 
 /** Server-thread placement and proximity rendering. It cannot mutate travel state. */
 public final class GateVisualService {
@@ -33,7 +32,7 @@ public final class GateVisualService {
     private final GateNetworkClient network;
     private final GateAudioService audio;
     private final Map<String, GateVisualPlacement> placements = new HashMap<>();
-    private final Map<String, Model> models = new HashMap<>();
+    private final Map<String, GateRenderModel> models = new HashMap<>();
     private final Map<String, Viewer> viewers = new HashMap<>();
     private boolean closed;
     private boolean renderFailed;
@@ -73,7 +72,7 @@ public final class GateVisualService {
             }
             Vector3f p = player.getPosition(), direction = player.getViewDirection();
             GateVisualPlacement placement = new GateVisualPlacement(id, p.x, p.y - GateVisualPlacement.PLACEMENT_DEPTH, p.z, direction.x, direction.z);
-            Model model = createModel(placement);
+            GateRenderModel model = createModel(placement);
             if (!store.save(placement)) { tell(player, "missing_gate", id); return; }
             removeModel(id);
             placements.put(id, placement);
@@ -95,7 +94,7 @@ public final class GateVisualService {
     /** Publish a model persisted by the atomic first-placement transaction. */
     public void registered(GateVisualPlacement placement) {
         try {
-            Model model = createModel(placement);
+            GateRenderModel model = createModel(placement);
             removeModel(placement.gateId());
             placements.put(placement.gateId(), placement);
             models.put(placement.gateId(), model);
@@ -106,19 +105,28 @@ public final class GateVisualService {
 
     public boolean hasPlacement(String gateId) { return placements.containsKey(gateId); }
 
-    private Model createModel(GateVisualPlacement placement) {
-        Model model = assets.createAnimated();
-        ((AnimatedGateModel) model).update(network.gateView(placement.gateId()));
-        model.setLocalPosition(placement.x(), placement.y(), placement.z());
-        model.setLocalRotation(new Quaternion().lookAt(placement.forwardX(), 0f, placement.forwardZ()));
+    public boolean supportsPlatform(PlatformType type) { return !closed && assets.supportsPlatform(type); }
+
+    private GateRenderModel createModel(GateVisualPlacement placement) {
+        GateRenderModel model = assets.createAnimated();
+        if (placement.platform() != null) {
+            try { model.object().addChild(assets.createPlatform(placement.platform())); }
+            catch (RuntimeException ex) {
+                OZStargate.logger().error("Cannot render platform for gate " + placement.gateId()
+                        + "; keeping gate visible: " + ex.getMessage());
+            }
+        }
+        model.update(network.gateView(placement.gateId()));
+        model.object().setLocalPosition(placement.x(), placement.renderedY(), placement.z());
+        model.object().setLocalRotation(new Quaternion().lookAt(placement.forwardX(), 0f, placement.forwardZ()));
         return model;
     }
 
     private void updateAnimations() {
         if (closed || renderFailed) return;
         try {
-            for (Map.Entry<String, Model> entry : models.entrySet()) {
-                ((AnimatedGateModel) entry.getValue()).update(network.gateView(entry.getKey()));
+            for (Map.Entry<String, GateRenderModel> entry : models.entrySet()) {
+                entry.getValue().update(network.gateView(entry.getKey()));
             }
         } catch (RuntimeException ex) { failRendering(ex); }
         syncAudio();
@@ -165,7 +173,7 @@ public final class GateVisualService {
         if (!renderFailed) {
             try {
                 long now = System.nanoTime();
-                for (Model model : models.values()) ((AnimatedGateModel) model).frame(now);
+                for (GateRenderModel model : models.values()) model.frame(now);
             } catch (RuntimeException ex) { failRendering(ex); }
         }
         // One loop per service, not per model/viewer; idle poses produce no network mutations.
@@ -216,15 +224,15 @@ public final class GateVisualService {
         for (GateVisualPlacement placement : nearby) wanted.add(placement.gateId());
         for (String id : Set.copyOf(viewer.gates())) {
             if (!wanted.contains(id)) {
-                player.removeGameObject(models.get(id));
+                player.removeGameObject(models.get(id).object());
                 viewer.gates().remove(id);
                 viewer.presence().reset(System.nanoTime());
             }
         }
         for (GateVisualPlacement placement : nearby) {
             if (!viewer.gates().contains(placement.gateId())) {
-                Model model = models.computeIfAbsent(placement.gateId(), ignored -> createModel(placement));
-                player.addGameObject(model);
+                GateRenderModel model = models.computeIfAbsent(placement.gateId(), ignored -> createModel(placement));
+                player.addGameObject(model.object());
                 viewer.gates().add(placement.gateId());
             }
         }
@@ -241,16 +249,16 @@ public final class GateVisualService {
         long token = viewer.presence().begin(now);
         if (token == 0) return;
         String gateId = viewer.gates().iterator().next();
-        Model model = models.get(gateId);
+        GateRenderModel model = models.get(gateId);
         GateVisualPlacement expected = placements.get(gateId);
         // Exactly one client query per viewer, independent of the number of visible gates.
-        model.readWorldPosition(viewer.player(), position -> plugin.enqueue(() -> {
+        model.object().readWorldPosition(viewer.player(), position -> plugin.enqueue(() -> {
             if (closed || viewers.get(viewer.player().getUID()) != viewer
                     || !viewer.presence().complete(token, System.nanoTime())) return;
             if (!viewer.player().isConnected() || models.get(gateId) != model
                     || !viewer.gates().contains(gateId) || placements.get(gateId) != expected) return;
-            if (position == null || !Double.isFinite(expected.distanceSquared(position.x, position.y, position.z))
-                    || expected.distanceSquared(position.x, position.y, position.z) > 0.01) {
+            if (position == null || !Double.isFinite(expected.renderedDistanceSquared(position.x, position.y, position.z))
+                    || expected.renderedDistanceSquared(position.x, position.y, position.z) > 0.01) {
                 rebuildViewer(viewer);
             }
         }));
@@ -260,7 +268,7 @@ public final class GateVisualService {
         if (closed || !viewer.player().isConnected() || !viewer.player().isSpawned()) return;
         try {
             // Remove registrations before adding them: no duplicate instances for this or other viewers.
-            for (String id : Set.copyOf(viewer.gates())) viewer.player().removeGameObject(models.get(id));
+            for (String id : Set.copyOf(viewer.gates())) viewer.player().removeGameObject(models.get(id).object());
             viewer.gates().clear();
             viewer.presence().reset(System.nanoTime());
             refreshPlayer(viewer.player());
@@ -276,11 +284,11 @@ public final class GateVisualService {
     }
 
     private void removeModel(String id) {
-        Model model = models.get(id);
+        GateRenderModel model = models.get(id);
         for (Viewer viewer : viewers.values()) {
             if (viewer.gates().remove(id)) {
                 viewer.presence().reset(System.nanoTime());
-                if (viewer.player().isConnected() && model != null) viewer.player().removeGameObject(model);
+                if (viewer.player().isConnected() && model != null) viewer.player().removeGameObject(model.object());
             }
         }
         models.remove(id);
@@ -298,7 +306,7 @@ public final class GateVisualService {
         if (viewer == null || viewer.player() != player) return;
         viewers.remove(player.getUID());
         if (player.isConnected()) {
-            for (String id : viewer.gates()) player.removeGameObject(models.get(id));
+            for (String id : viewer.gates()) player.removeGameObject(models.get(id).object());
         }
     }
 

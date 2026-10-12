@@ -155,6 +155,12 @@
         "open": "Open Stargate",
         "place_gate_dhd": "Position and create gate with DHD",
         "place_gate": "Position and create gate",
+        "platforms": "Platforms",
+        "platform_circular": "Circular platform with gate",
+        "platform_curved_milky_way": "Curved Milky Way platform with gate",
+        "platform_curved_pegasus": "Curved Pegasus platform with gate",
+        "platform_grace_of_god": "Grace of God platform with gate",
+        "back": "Back",
         "place_dhd": "Position DHD",
         "delete_gate_dhd": "Delete gate + DHD",
         "delete_confirm_title": "Delete gate and DHD?",
@@ -289,7 +295,11 @@
         "placement_occupied": "There is already a gate in this sector.",
         "placement_changed": "The position or sector state changed. Please try again.",
         "placement_pending": "The surface height is already being measured.",
-        "placement_surface": "No suitable surface was found at the DHD position."
+        "placement_surface": "No suitable surface was found at the DHD position.",
+        "placement_platform_surface": "No suitable surface was found at the aimed platform point.",
+        "placement_platform_aiming": "Checking platform placement at the aimed floor point …",
+        "placement_platform_unavailable": "The platform asset could not be loaded; see the server log.",
+        "placement_platform_clearance": "There is not enough room for the platform and gate here."
       },
       "trust": {
         "settings": {

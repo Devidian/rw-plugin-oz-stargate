@@ -9,6 +9,7 @@ import de.omegazirkel.risingworld.tools.ui.PluginInfoStatusProviders;
 import de.omegazirkel.risingworld.tools.ui.PluginMenuManager;
 import de.omegazirkel.risingworld.tools.I18n;
 import de.omegazirkel.risingworld.stargate.sector.GatePlacementService;
+import de.omegazirkel.risingworld.stargate.visual.PlatformType;
 import net.risingworld.api.Plugin;
 import net.risingworld.api.objects.Player;
 import net.risingworld.api.ui.MessageBoxButtons;
@@ -29,6 +30,9 @@ public class PluginGUI {
         AssetManager.loadIconFromPlugin(p, "stargate-gate");
         AssetManager.loadIconFromPlugin(p, "stargate-dhd");
         AssetManager.loadIconFromPlugin(p, "stargate-delete");
+        AssetManager.loadIconFromPlugin(p, "stargate-platforms");
+        for (PlatformType type : PlatformType.values())
+            AssetManager.loadIconFromPlugin(p, platformIcon(type));
         PluginGUI gui = getInstance();
         gui.pluginName = p.getDescription("name");
         return gui;
@@ -53,6 +57,8 @@ public class PluginGUI {
                 player.hideRadialMenu(true);
                 placement.placeGate(player, false);
             }));
+            menuItems.add(new MenuItem(pluginName, "stargate-platforms",
+                    i18n.get("tc.stargate.menu.platforms", uiPlayer), this::openPlatformMenu));
             if (placement.hasGateHere(uiPlayer)) {
                 menuItems.add(new MenuItem(pluginName, "stargate-dhd",
                         i18n.get("tc.stargate.menu.place_dhd", uiPlayer), player -> {
@@ -80,5 +86,26 @@ public class PluginGUI {
     }
 
     public void setPlacement(GatePlacementService placement) { this.placement = placement; }
+
+    private void openPlatformMenu(Player player) {
+        if (!player.isAdmin() || placement == null) return;
+        I18n i18n = I18n.getInstance(pluginName);
+        List<MenuItem> items = new ArrayList<>();
+        for (PlatformType type : PlatformType.values()) {
+            items.add(new MenuItem(pluginName, platformIcon(type),
+                    i18n.get("tc.stargate.menu.platform_" + type.key(), player), selected -> {
+                selected.hideRadialMenu(true);
+                placement.placePlatform(selected, type);
+            }));
+        }
+        items.add(new MenuItem(pluginName, "oz-stargate", i18n.get("tc.stargate.menu.back", player),
+                this::openMainMenu));
+        items.add(MenuItem.closeMenu(player));
+        PluginMenuManager.showMenu(player, items);
+    }
+
+    private static String platformIcon(PlatformType type) {
+        return "stargate-platform-" + type.key().replace('_', '-');
+    }
 
 }

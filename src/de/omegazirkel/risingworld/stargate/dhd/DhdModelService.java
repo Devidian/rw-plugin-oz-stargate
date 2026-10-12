@@ -22,7 +22,6 @@ import net.risingworld.api.utils.Quaternion;
 import net.risingworld.api.utils.RaycastResult;
 import net.risingworld.api.utils.Vector3f;
 import net.risingworld.api.worldelements.GameObject;
-import net.risingworld.api.worldelements.Model;
 
 /** Persistent model placement and proximity rendering; DhdService remains dial authority. */
 public final class DhdModelService implements AutoCloseable {
@@ -53,7 +52,7 @@ public final class DhdModelService implements AutoCloseable {
     private final GateNetworkClient network;
     private final I18n i18n;
     private final Map<String, DhdModelPlacement> placements = new HashMap<>();
-    private final Map<String, Model> models = new HashMap<>();
+    private final Map<String, DhdRenderModel> models = new HashMap<>();
     private final Map<String, Viewer> viewers = new HashMap<>();
     private final Map<String, Object> pendingAims = new HashMap<>();
     private boolean closed, renderFailed;
@@ -77,8 +76,8 @@ public final class DhdModelService implements AutoCloseable {
     private void updateAnimations() {
         if (closed || renderFailed) return;
         try {
-            for (Map.Entry<String, Model> entry : models.entrySet())
-                ((AnimatedDhdModel) entry.getValue()).update(network.gateView(entry.getKey()));
+            for (Map.Entry<String, DhdRenderModel> entry : models.entrySet())
+                entry.getValue().update(network.gateView(entry.getKey()));
         } catch (RuntimeException ex) { fail(ex); }
     }
 
@@ -110,7 +109,7 @@ public final class DhdModelService implements AutoCloseable {
                                     current.position()) > 32d * 32d) {
                         tell(player, "near_gate", gateId); return;
                     }
-                    Model model = createModel(placement);
+                    DhdRenderModel model = createModel(placement);
                     if (!store.save(placement)) { tell(player, "missing_gate", gateId); return; }
                     removeModel(gateId);
                     placements.put(gateId, placement);
@@ -196,7 +195,7 @@ public final class DhdModelService implements AutoCloseable {
     /** Publish a DHD already saved in the coordinated placement transaction. */
     public void registered(DhdModelPlacement placement) {
         try {
-            Model model = createModel(placement);
+            DhdRenderModel model = createModel(placement);
             removeModel(placement.gateId());
             placements.put(placement.gateId(), placement);
             models.put(placement.gateId(), model);
@@ -209,8 +208,8 @@ public final class DhdModelService implements AutoCloseable {
         if (closed || event.isCancelled()) return;
         GameObject target = event.getGameObject();
         while (target != null) {
-            for (Map.Entry<String, Model> entry : models.entrySet()) {
-                if (entry.getValue() != target) continue;
+            for (Map.Entry<String, DhdRenderModel> entry : models.entrySet()) {
+                if (entry.getValue().object() != target) continue;
                 String gateId = entry.getKey();
                 if (!canUse(event.getPlayer(), gateId)) return;
                 event.setCancelled(true);
@@ -228,12 +227,12 @@ public final class DhdModelService implements AutoCloseable {
                         player.getPosition().z) <= INTERACT_DISTANCE_SQUARED;
     }
 
-    private Model createModel(DhdModelPlacement placement) {
-        Model model = assets.create();
-        model.setLocalPosition(placement.x(), placement.y(), placement.z());
-        ((AnimatedDhdModel) model).update(network.gateView(placement.gateId()));
+    private DhdRenderModel createModel(DhdModelPlacement placement) {
+        DhdRenderModel model = assets.create();
+        model.object().setLocalPosition(placement.x(), placement.y(), placement.z());
+        model.update(network.gateView(placement.gateId()));
         // The authored keypad faces the player who looks toward the placement point.
-        model.setLocalRotation(new Quaternion().lookAt(placement.forwardX(), 0f, placement.forwardZ()));
+        model.object().setLocalRotation(new Quaternion().lookAt(placement.forwardX(), 0f, placement.forwardZ()));
         return model;
     }
 
@@ -280,15 +279,15 @@ public final class DhdModelService implements AutoCloseable {
         }
         for (String gateId : Set.copyOf(viewer.visible)) {
             if (wanted.contains(gateId)) continue;
-            Model model = models.get(gateId);
-            if (model != null) viewer.player.removeGameObject(model);
+            DhdRenderModel model = models.get(gateId);
+            if (model != null) viewer.player.removeGameObject(model.object());
             viewer.visible.remove(gateId);
             viewer.pending = 0;
         }
         for (String gateId : wanted) {
             if (viewer.visible.contains(gateId)) continue;
-            Model model = models.computeIfAbsent(gateId, id -> createModel(placements.get(id)));
-            viewer.player.addGameObject(model);
+            DhdRenderModel model = models.computeIfAbsent(gateId, id -> createModel(placements.get(id)));
+            viewer.player.addGameObject(model.object());
             viewer.visible.add(gateId);
         }
     }
@@ -304,13 +303,13 @@ public final class DhdModelService implements AutoCloseable {
         }
         if (now < viewer.nextCheck) return;
         String gateId = viewer.visible.iterator().next();
-        Model model = models.get(gateId);
+        DhdRenderModel model = models.get(gateId);
         DhdModelPlacement expected = placements.get(gateId);
         if (model == null || expected == null) return;
         long token = ++viewer.sequence;
         viewer.pending = token;
         viewer.deadline = now + CHECK_TIMEOUT;
-        model.readWorldPosition(viewer.player, actual -> plugin.enqueue(() -> {
+        model.object().readWorldPosition(viewer.player, actual -> plugin.enqueue(() -> {
             if (closed || viewers.get(viewer.player.getUID()) != viewer || viewer.pending != token) return;
             viewer.pending = 0;
             viewer.nextCheck = System.nanoTime() + CHECK_INTERVAL;
@@ -321,8 +320,8 @@ public final class DhdModelService implements AutoCloseable {
 
     private void rebuild(Viewer viewer) {
         for (String gateId : Set.copyOf(viewer.visible)) {
-            Model model = models.get(gateId);
-            if (model != null) viewer.player.removeGameObject(model);
+            DhdRenderModel model = models.get(gateId);
+            if (model != null) viewer.player.removeGameObject(model.object());
         }
         viewer.visible.clear();
         viewer.pending = 0;
@@ -331,10 +330,10 @@ public final class DhdModelService implements AutoCloseable {
     }
 
     private void removeModel(String gateId) {
-        Model old = models.remove(gateId);
+        DhdRenderModel old = models.remove(gateId);
         if (old == null) return;
         for (Viewer viewer : viewers.values()) {
-            if (viewer.visible.remove(gateId)) viewer.player.removeGameObject(old);
+            if (viewer.visible.remove(gateId)) viewer.player.removeGameObject(old.object());
             viewer.pending = 0;
         }
     }
@@ -347,8 +346,8 @@ public final class DhdModelService implements AutoCloseable {
     public void disconnect(Player player) {
         Viewer viewer = viewers.remove(player.getUID());
         if (viewer != null) for (String gateId : viewer.visible) {
-            Model model = models.get(gateId);
-            if (model != null && player.isConnected()) player.removeGameObject(model);
+            DhdRenderModel model = models.get(gateId);
+            if (model != null && player.isConnected()) player.removeGameObject(model.object());
         }
     }
 

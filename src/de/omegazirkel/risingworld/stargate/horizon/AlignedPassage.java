@@ -17,7 +17,8 @@ public record AlignedPassage(float x, float y, float z, float forwardX, float fo
     }
 
     public static AlignedPassage from(GateVisualPlacement placement) {
-        return new AlignedPassage(placement.x(), placement.y()+CENTRE_HEIGHT, placement.z(), placement.forwardX(), placement.forwardZ());
+        return new AlignedPassage(placement.x(), placement.passageY()+CENTRE_HEIGHT,
+                placement.z(), placement.forwardX(), placement.forwardZ());
     }
 
     public double depth(float px, float pz) { return ((double)px-x)*forwardX + ((double)pz-z)*forwardZ; }

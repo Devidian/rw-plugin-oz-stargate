@@ -1,0 +1,50 @@
+{
+  "circular": {
+    "source": "Circular_Platform.obj",
+    "source_sha256": "04c90856f7a45a9368be74312c12247619aedaf69bb5dead1740d76b4e8ceca2",
+    "fbx_source": "Circular_Platform.fbx",
+    "fbx_sha256": "b1f8ea7361715380d53a023e0d3efb43a42578a021a1a983fbf822d5a8a0efbb",
+    "lod0_triangles": 14435,
+    "lod1_triangles": 4561,
+    "collision_triangles": 14435,
+    "fbx_import_triangles": 14423,
+    "bundle_lod0_source": "Circular_Platform.obj",
+    "bundle_lod0_triangles": 14435
+  },
+  "curved_milky_way": {
+    "source": "CurvedBase_MilkyWay.obj",
+    "source_sha256": "cc4da09db0b6b9c9e63687d65f93c810aafd15899f05eccf74e17cbc61b46ddd",
+    "fbx_source": "CurvedBase_MilkyWay.fbx",
+    "fbx_sha256": "134cc49c9cc30566f54a0cc4f7b0be83d7b8f5db1b14b1b5a7f75c1f990f6087",
+    "lod0_triangles": 244058,
+    "lod1_triangles": 78097,
+    "collision_triangles": 6000,
+    "fbx_import_triangles": 244058,
+    "bundle_lod0_source": "CurvedBase_MilkyWay.fbx",
+    "bundle_lod0_triangles": 244058
+  },
+  "curved_pegasus": {
+    "source": "CurvedBase_Pegasus.obj",
+    "source_sha256": "c0b94a11da0bc6cf3c672bd5c7b691623a475d9abee7882084c9af9c952067d1",
+    "fbx_source": "CurvedBase_Pegasus.fbx",
+    "fbx_sha256": "7fb31caf28c553cace763ba201efbac0735ca2ba94738cfafd6dd44f35bcb91c",
+    "lod0_triangles": 242670,
+    "lod1_triangles": 77653,
+    "collision_triangles": 5997,
+    "fbx_import_triangles": 242670,
+    "bundle_lod0_source": "CurvedBase_Pegasus.fbx",
+    "bundle_lod0_triangles": 242670
+  },
+  "grace_of_god": {
+    "source": "Grace_of_God_Platform.obj",
+    "source_sha256": "8f12f62f45400f1ba62a6118fd8340ab9e0717bdfbbecb7e7f15afce10169178",
+    "fbx_source": "Grace_of_God_Platform.fbx",
+    "fbx_sha256": "e87e14c55e0eb0763542366478cc52fa8a86dfd8c4dc49749f5dd17cbf3fa8d8",
+    "lod0_triangles": 47570,
+    "lod1_triangles": 15221,
+    "collision_triangles": 1799,
+    "fbx_import_triangles": 47570,
+    "bundle_lod0_source": "Grace_of_God_Platform.fbx",
+    "bundle_lod0_triangles": 47570
+  }
+}

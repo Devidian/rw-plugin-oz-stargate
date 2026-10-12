@@ -1,0 +1,12 @@
+Accessory Pack 1 platform source: S:/Stargate/Stargate_2020_Accessory_Pack_1
+Creator: David Gian-Cursio
+Download and model description: https://www.gian-cursio.net/2023/11/stargate-2020-accessory-pack-1/
+Source files remain outside this plugin. The runtime AssetBundle contains only
+derived FBX LOD0 meshes for the curved and Grace models, a complete OBJ LOD0
+for circular, reduced OBJ LOD1 meshes, collision meshes, prefabs and
+the reused Stargate stone texture. Rebuild inputs and SHA-256 hashes are recorded in
+scripts/assets/build-accessory-platforms.py and its generated manifest.json.
+The author offers the pack for download and describes custom texturing and
+optional lights in the four Grace bollards. The page does not state a specific
+license for this pack; retain provenance and review distribution terms before
+a public release. No original FBX, OBJ or LightWave source file is packaged.

@@ -8,7 +8,7 @@ import net.risingworld.api.worldelements.Light;
 import net.risingworld.api.worldelements.Model;
 
 /** Visual state follows the relay's gate view; it does not authorize dialing. */
-final class AnimatedDhdModel extends Model {
+final class AnimatedDhdModel extends Model implements DhdRenderModel {
     // Selected glyph mesh centres, offset 4 cm along each face normal. The
     // native OBJ import mirrors X, so child light coordinates mirror it too.
     private static final float[][] SYMBOL_LIGHT_POSITIONS = {
@@ -70,6 +70,8 @@ final class AnimatedDhdModel extends Model {
         addChild(activationLight);
     }
 
+    @Override public GameObject object() { return this; }
+
     private void addRoundDisk(float height, float radius, float thickness) {
         // Filled strips approximate a round solid without the unsupported native
         // SphereCollider and without gaps between a hollow ring and the column.
@@ -87,7 +89,7 @@ final class AnimatedDhdModel extends Model {
         }
     }
 
-    void update(GateView view) {
+    @Override public void update(GateView view) {
         int circuits = litCircuits(view);
         if (circuits != activeCircuits) {
             for (int i = 0; i < keyCircuits.length; i++) {

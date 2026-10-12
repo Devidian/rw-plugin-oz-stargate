@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.7.0 — 2026-10-12
+
+- Use the accepted three-platform AssetBundles for the Milky Way gate, DHD and wormhole on new installations, with the existing OBJ renderer available through `gate.assetMode=obj`.
+- Add four administrator placement actions under **Plattformen**: circular, curved Milky Way, curved Pegasus and Grace of God. Each places a gate on the aimed floor point with aligned passage and arrival.
+- Give the platforms unreduced original LOD0 geometry, distant LODs, walkable collision and individually mapped materials; Grace of God has four subtle bollard lights.
+- Persist the optional platform variant with the gate visual and lift existing platform arrivals onto their decks. Existing gates without a platform remain valid.
+- Include the accepted DHD lighting and animated event horizon/Kawoosh in the bundle renderer. Preserve the previous runtime fallback for missing bundles.
+
 ## 0.6.0 — 2026-10-08
 
 - Let faction members share local gate addresses individually or through an all-address switch; personal gate names stay private to their owner.
