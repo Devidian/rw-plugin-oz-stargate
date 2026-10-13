@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.7.2 — 2026-10-13 | Coordinated menu icons
+
+- ui: replace all Stargate menu icons with coordinated portal, DHD, platform and action artwork in modern and classic styles.
+
 ## 0.7.1 — 2026-10-12
 
 - Use only the accepted AssetBundles for gate, DHD and event horizon; ignore the former `gate.assetMode` world setting.

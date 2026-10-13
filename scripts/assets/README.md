@@ -220,8 +220,7 @@ variant's collision, facing, terrain fit, arrival and LODs on a client before
 considering the Development candidate accepted. Review the source pack's
 distribution terms before public release.
 
-The radial platform category and four actions use matching modern/classic
-vector icons. Regenerate their SVG sources with
-`python3 scripts/assets/build-platform-icons.py`, then rasterize each SVG to a
-512 × 512 RGBA PNG with ImageMagick `convert -background none -depth 8`.
+The radial menu uses matching modern and classic PNG icons. The reviewed gate,
+DHD and platform motif sources live in `assets/icon-sources/`; regenerate all
+ten icon variants with `python3 scripts/generate-menu-icons.py` and ImageMagick.
 Runtime loads the PNGs through the existing OZ icon manager.
