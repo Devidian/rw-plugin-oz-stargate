@@ -47,9 +47,15 @@ public final class DhdService {
         boolean loading;
         boolean failed;
         boolean startGate;
+        boolean showNetwork = true;
+        String search = "";
         Session(Player player, DhdStore.Binding binding, String gateId) {
             this.player = player; this.uid = player.getUID(); this.binding = binding; this.gateId = gateId;
         }
+    }
+    static List<String> visibleAddresses(Session session) {
+        return DhdAddressFilter.visible(session.addresses, session.aliases, session.personalNames,
+                session.localAddresses, session.showNetwork, session.search);
     }
     private final DhdStore store;
     private final OZStargate plugin;
@@ -187,7 +193,7 @@ public final class DhdService {
             Set<String> shared = addressBook == null ? Set.of() : Set.copyOf(addressBook.sharedFromFaction(session.player));
             session.sharedOnly = shared;
             session.addresses = addresses == null ? List.of() : java.util.stream.Stream.concat(
-                    addresses.stream().filter(id -> current || session.localAddresses.contains(id)), shared.stream())
+                    addresses.stream(), shared.stream())
                     .filter(id -> !id.equals(ownLocal) && !id.equals(ownGlobal)).distinct().sorted().toList();
             Map<String, String> aliases = new HashMap<>();
             Map<String, String> personalNames = new HashMap<>();
@@ -204,8 +210,8 @@ public final class DhdService {
             session.aliases = Map.copyOf(aliases);
             session.personalNames = Map.copyOf(personalNames);
             session.sharedOwn = Set.copyOf(sharedOwn);
-            if (session.selected != null && !session.addresses.contains(session.selected)) session.selected = null;
-            session.page = Math.min(session.page, Math.max(0, (session.addresses.size() - 1) / DhdOverlay.PAGE_SIZE));
+            if (session.selected != null && !visibleAddresses(session).contains(session.selected)) session.selected = null;
+            session.page = Math.min(session.page, Math.max(0, (visibleAddresses(session).size() - 1) / DhdOverlay.PAGE_SIZE));
             session.overlay.update();
         });
     }
@@ -218,7 +224,8 @@ public final class DhdService {
     void select(Session session, int slot) {
         if (!valid(session) || session.loading) return;
         int index = session.page * DhdOverlay.PAGE_SIZE + slot;
-        if (index < session.addresses.size()) session.selected = session.addresses.get(index);
+        List<String> visible = visibleAddresses(session);
+        if (index < visible.size()) session.selected = visible.get(index);
         session.overlay.update();
     }
 
@@ -270,12 +277,46 @@ public final class DhdService {
 
     void page(Session session, int delta) {
         if (!valid(session) || session.loading) return;
-        session.page = Math.max(0, Math.min(Math.max(0, (session.addresses.size() - 1) / DhdOverlay.PAGE_SIZE), session.page + delta));
+        session.page = Math.max(0, Math.min(Math.max(0, (visibleAddresses(session).size() - 1) / DhdOverlay.PAGE_SIZE), session.page + delta));
         session.overlay.update();
     }
 
+    void toggleNetwork(Session session) {
+        if (!valid(session)) return;
+        session.showNetwork = !session.showNetwork;
+        session.page = 0;
+        if (session.selected != null && !visibleAddresses(session).contains(session.selected)) session.selected = null;
+        session.overlay.update();
+    }
+
+    void search(Session session) {
+        if (!valid(session)) return;
+        Player player = session.player;
+        String previous = session.search;
+        close(session);
+        plugin.executeDelayed(.1f, () -> {
+            if (!player.isConnected()) return;
+            player.showInputMessageBox(i18n.get("tc.stargate.dhd.search_title", player),
+                    i18n.get("tc.stargate.dhd.search_prompt", player), previous,
+                    answer -> plugin.enqueue(() -> {
+                        if (!player.isConnected() || answer == null) return;
+                        try {
+                            if (!gates.exists(session.gateId) || !nearSource(player, session)) return;
+                            open(player, session.gateId, session.binding);
+                            Session reopened = sessions.get(session.uid);
+                            if (reopened == null) return;
+                            reopened.showNetwork = session.showNetwork;
+                            reopened.search = answer.trim();
+                            reopened.page = 0;
+                            if (reopened.selected != null && !visibleAddresses(reopened).contains(reopened.selected)) reopened.selected = null;
+                            reopened.overlay.update();
+                        } catch (SQLException ex) { databaseError(player, ex); }
+                    }));
+        });
+    }
+
     void dial(Session session) {
-        if (!valid(session) || session.loading || session.selected == null || !session.addresses.contains(session.selected)) return;
+        if (!valid(session) || session.loading || session.selected == null || !visibleAddresses(session).contains(session.selected)) return;
         if (!network.gateView(session.gateId).state().equals("IDLE")) return;
         dialAddress(session.player, session.gateId, session.selected);
         session.overlay.update();

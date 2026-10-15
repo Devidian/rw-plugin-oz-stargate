@@ -73,3 +73,8 @@ Chevron stutter remain recorded limits; no release/Production deployment is
 part of this checkpoint.
 
 Discord event thread routing is implemented locally; Development Discord validation and the separately authorized release remain open. Configuration is documented in README.md.
+
+## Backlog validation (2026-10-15)
+
+- [x] Implement: The DHD address list now has a session-local network-gate switch and a native search for address, alias, and personal name. Network gates are visible when the DHD opens.
+- [ ] Verify behavior on Development after upload, including persistence and permissions where relevant.

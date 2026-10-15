@@ -35,6 +35,8 @@ final class DhdOverlay extends BasePluginOverlay {
     private final AdvancedButton previous;
     private final AdvancedButton next;
     private final AdvancedButton refresh;
+    private final AdvancedButton networkFilter;
+    private final AdvancedButton search;
     private final AdvancedButton manual;
     private final AdvancedButton dial;
     private final AdvancedButton discover;
@@ -51,6 +53,7 @@ final class DhdOverlay extends BasePluginOverlay {
         status = label(16, 12, 18);
         status.style.width.set(53, Unit.Percent);
         selection = label(16, 42, 14);
+        selection.style.width.set(50, Unit.Percent);
         startGate = button("I", 59, 12, 4, () -> service.toggleStartGate(session), true);
         startGate.style.height.set(26, Unit.Pixel);
         startGate.setVisible(session.player.isAdmin());
@@ -61,6 +64,10 @@ final class DhdOverlay extends BasePluginOverlay {
         personalName.style.height.set(26, Unit.Pixel);
         refresh = button("↻", 95, 12, 4, () -> service.refreshFromRelay(session), true);
         refresh.style.height.set(26, Unit.Pixel);
+        networkFilter = toggleButton("network_filter", 55, 48, 20, () -> service.toggleNetwork(session));
+        networkFilter.style.height.set(34, Unit.Pixel);
+        search = toggleButton("search", 77, 48, 20, () -> service.search(session));
+        search.style.height.set(34, Unit.Pixel);
         for (int i = 0; i < chevrons.length; i++) {
             UILabel chevron = new UILabel(Integer.toString(i + 1));
             chevron.setPivot(Pivot.UpperLeft);
@@ -162,12 +169,13 @@ final class DhdOverlay extends BasePluginOverlay {
     }
 
     void update() {
+        java.util.List<String> visible = DhdService.visibleAddresses(session);
         GateNetworkClient.GateView view = network.gateView(session.gateId);
         String state = !view.ready() ? "offline" : view.state().equals("OPEN")
                 ? (view.direction().equals("INCOMING") ? "open_incoming" : "open_outgoing") : view.state().toLowerCase(java.util.Locale.ROOT);
         status.setText(text("state_" + state) + (view.peerGateId().isEmpty() ? "" : " · " + view.peerGateId()));
         selection.setText(session.loading ? text("loading") : session.failed ? text("load_failed")
-                : session.addresses.isEmpty() ? text("empty") : session.selected == null ? text("choose")
+                : visible.isEmpty() ? text("empty") : session.selected == null ? text("choose")
                 : text("selected").replace("PH_GATE", session.selected));
         for (int i = 0; i < chevrons.length; i++) {
             boolean lit = view.ready() && (view.state().equals("OPEN") || i < view.chevrons());
@@ -175,13 +183,13 @@ final class DhdOverlay extends BasePluginOverlay {
         }
         for (int i = 0; i < rows.length; i++) {
             int index = session.page * PAGE_SIZE + i;
-            boolean present = index < session.addresses.size();
+            boolean present = index < visible.size();
             rowFrames[i].setVisible(present);
             rows[i].setVisible(present);
             rows[i].setClickable(present && !session.loading);
-            underlines[i].setVisible(present && session.sharedOwn.contains(session.addresses.get(index)));
+            underlines[i].setVisible(present && session.sharedOwn.contains(visible.get(index)));
             if (present) {
-                String address = session.addresses.get(index);
+                String address = visible.get(index);
                 String alias = session.aliases.get(address);
                 rowFrames[i].setBorderColor(session.sharedOnly.contains(address) ? SHARED_BORDER
                         : session.localAddresses.contains(address) ? LOCAL_BORDER : REMOTE_BORDER);
@@ -196,11 +204,13 @@ final class DhdOverlay extends BasePluginOverlay {
                 rows[i].setText(address.equals(session.selected) ? "▸ " + label : label);
             }
         }
-        int pages = Math.max(1, (session.addresses.size() + PAGE_SIZE - 1) / PAGE_SIZE);
+        int pages = Math.max(1, (visible.size() + PAGE_SIZE - 1) / PAGE_SIZE);
         pageLabel.setText(text("page").replace("PH_PAGE", Integer.toString(session.page + 1)).replace("PH_TOTAL", Integer.toString(pages)));
         previous.setClickable(!session.loading && session.page > 0);
         next.setClickable(!session.loading && session.page + 1 < pages);
         refresh.setClickable(!session.loading && view.ready());
+        networkFilter.setState(session.showNetwork ? AdvancedBaseButton.State.EXTRA_1 : AdvancedBaseButton.State.DEFAULT);
+        search.setState(session.search.isBlank() ? AdvancedBaseButton.State.DEFAULT : AdvancedBaseButton.State.EXTRA_1);
         manual.setClickable(!session.loading && view.ready() && view.state().equals("IDLE"));
         dial.setClickable(!session.loading && view.ready() && view.state().equals("IDLE") && session.selected != null);
         discover.setClickable(!session.loading && view.ready() && view.state().equals("IDLE"));

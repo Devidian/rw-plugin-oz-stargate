@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.8.0] - 2026-10-15 | DHD network filter and search
+
+- The DHD address list now has a session-local network-gate switch and a native search for address, alias, and personal name. Network gates are visible when the DHD opens.
+
 ## [0.7.3] - 2026-10-15 | Discord event threads
 
 - feat: Route travel, discovery, and network Discord events into configurable threads.

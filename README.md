@@ -249,3 +249,7 @@ This is an approximation of the source procedural material; fine bump mapping is
 ## Discord event threads
 
 Existing Discord event channel IDs remain in effect. Each route also accepts an optional thread topic: `discord.externalTravelThreadTopic`, `discord.internalTravelThreadTopic`, `discord.discoveryThreadTopic`, and `discord.networkStatusThreadTopic` for Stargate event routes. Leave a topic blank to use the plugin display name from `plugin.yml`. Matching topics in the same parent channel share one thread. Topic routing requires compatible OZ Tools and Discord Connect with the bot enabled; an older Discord Connect logs a failure and does not send the event to the parent channel. Install OZ Tools, then Discord Connect, then this plugin.
+
+## Backlog update (2026-10-15)
+
+The DHD address list now has a session-local network-gate switch and a native search for address, alias, and personal name. Network gates are visible when the DHD opens.
