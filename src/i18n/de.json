@@ -32,6 +32,10 @@
       "travel_screen_disabled": "Reisebildschirm deaktivieren"
     },
     "setting": {
+      "discord.externaltravelthreadtopic": {"label": "Externe Reisen-Thread", "desc": "Leer verwendet den Plugin-Namen. Gleicher Kanal und Thread-Titel nutzen denselben Thread."},
+      "discord.internaltravelthreadtopic": {"label": "Interne Reisen-Thread", "desc": "Leer verwendet den Plugin-Namen. Gleicher Kanal und Thread-Titel nutzen denselben Thread."},
+      "discord.discoverythreadtopic": {"label": "Entdeckungen-Thread", "desc": "Leer verwendet den Plugin-Namen. Gleicher Kanal und Thread-Titel nutzen denselben Thread."},
+      "discord.networkstatusthreadtopic": {"label": "Netzwerkstatus-Thread", "desc": "Leer verwendet den Plugin-Namen. Gleicher Kanal und Thread-Titel nutzen denselben Thread."},
       "audio": {
         "label": "Klang",
         "desc": "Stargate-Klänge und Lautstärke.",

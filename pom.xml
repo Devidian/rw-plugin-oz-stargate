@@ -8,7 +8,7 @@
 
     <groupId>com.github.devidian</groupId>
     <artifactId>rw-plugin-oz-stargate</artifactId>
-    <version>0.7.2</version>
+    <version>0.7.3</version>
 
     <name>OZStargate</name>
     <description>Cross-server Stargate transport</description>
@@ -40,7 +40,7 @@
         <dependency>
             <groupId>com.github.devidian</groupId>
             <artifactId>rw-plugin-oz-tools</artifactId>
-            <version>0.26.2</version>
+            <version>0.28.2</version>
         </dependency>
 
         <!-- Rising World PluginAPI -->

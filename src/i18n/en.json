@@ -32,6 +32,10 @@
       "travel_screen_disabled": "Disable travel screen"
     },
     "setting": {
+      "discord.externaltravelthreadtopic": {"label": "External travel thread", "desc": "Blank uses the plugin display name. The same channel and thread name reuse one thread."},
+      "discord.internaltravelthreadtopic": {"label": "Internal travel thread", "desc": "Blank uses the plugin display name. The same channel and thread name reuse one thread."},
+      "discord.discoverythreadtopic": {"label": "Discoveries thread", "desc": "Blank uses the plugin display name. The same channel and thread name reuse one thread."},
+      "discord.networkstatusthreadtopic": {"label": "Network status thread", "desc": "Blank uses the plugin display name. The same channel and thread name reuse one thread."},
       "audio": {
         "label": "Audio",
         "desc": "Stargate sounds and volume.",

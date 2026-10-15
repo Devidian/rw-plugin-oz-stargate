@@ -71,3 +71,5 @@ inventory-safe two-server travel. Use root
 player-test group. Intermittent native OBJ importer errors and occasional
 Chevron stutter remain recorded limits; no release/Production deployment is
 part of this checkpoint.
+
+Discord event thread routing is implemented locally; Development Discord validation and the separately authorized release remain open. Configuration is documented in README.md.

@@ -6,6 +6,6 @@
   "forbiddenActions": { "ChangeGameMode": true },
   "discovery": { "successPercent": 75, "radiusSectors": 10, "cooldownMinutes": 5, "noAdminCooldown": false },
   "arrival": { "randomGate": true },
-  "discord": { "externalTravelChannel": "0", "internalTravelChannel": "0", "discoveryChannel": "0", "networkStatusChannel": "0" },
+  "discord": { "externalTravelChannel": "0", "internalTravelChannel": "0", "discoveryChannel": "0", "networkStatusChannel": "0", "externalTravelThreadTopic": "", "internalTravelThreadTopic": "", "discoveryThreadTopic": "", "networkStatusThreadTopic": "" },
   "audio": { "theme": "silent", "volume": 70 }
 }

@@ -45,6 +45,10 @@ public class PluginSettings {
 	public long discordInternalTravelChannel = 0;
 	public long discordDiscoveryChannel = 0;
 	public long discordNetworkStatusChannel = 0;
+	public String discordExternalTravelThreadTopic = "";
+	public String discordInternalTravelThreadTopic = "";
+	public String discordDiscoveryThreadTopic = "";
+	public String discordNetworkStatusThreadTopic = "";
 	private Path audioDirectory;
 	private Path settingsFile;
 	private java.util.Map<String, String> currentSettings = new LinkedHashMap<>();
@@ -114,6 +118,10 @@ public class PluginSettings {
 			discordInternalTravelChannel = channel(settings, defaults, "discord.internalTravelChannel");
 			discordDiscoveryChannel = channel(settings, defaults, "discord.discoveryChannel");
 			discordNetworkStatusChannel = channel(settings, defaults, "discord.networkStatusChannel");
+			discordExternalTravelThreadTopic = settings.getOrDefault("discord.externalTravelThreadTopic", defaults.getOrDefault("discord.externalTravelThreadTopic", ""));
+			discordInternalTravelThreadTopic = settings.getOrDefault("discord.internalTravelThreadTopic", defaults.getOrDefault("discord.internalTravelThreadTopic", ""));
+			discordDiscoveryThreadTopic = settings.getOrDefault("discord.discoveryThreadTopic", defaults.getOrDefault("discord.discoveryThreadTopic", ""));
+			discordNetworkStatusThreadTopic = settings.getOrDefault("discord.networkStatusThreadTopic", defaults.getOrDefault("discord.networkStatusThreadTopic", ""));
 			logger().info(plugin.getName() + " Plugin settings loaded");
 			logger().info("Sending welcome message on login is: " + String.valueOf(enableWelcomeMessage));
 			currentSettings = settings;
@@ -187,6 +195,10 @@ public class PluginSettings {
 			entries.add(channelEntry("discord.internalTravelChannel", "internal"));
 			entries.add(channelEntry("discord.discoveryChannel", "discovery"));
 			entries.add(channelEntry("discord.networkStatusChannel", "network"));
+			entries.add(topicEntry("discord.externalTravelThreadTopic", "External travel thread"));
+			entries.add(topicEntry("discord.internalTravelThreadTopic", "Internal travel thread"));
+			entries.add(topicEntry("discord.discoveryThreadTopic", "Discovery thread"));
+			entries.add(topicEntry("discord.networkStatusThreadTopic", "Network status thread"));
 		}
 		return entries;
 	}
@@ -199,6 +211,12 @@ public class PluginSettings {
 					try { return Long.parseLong(value) >= 0 && SettingsFileEditor.writeValue(settingsFile, key, value); }
 					catch (NumberFormatException invalid) { return false; }
 				});
+	}
+
+	private AdminSettingsEntry topicEntry(String key, String label) {
+		return new AdminSettingsEntry(key, label, "Blank uses the plugin display name.",
+				currentSettings.getOrDefault(key, ""), "", AdminSettingsType.STRING, false,
+				value -> SettingsFileEditor.writeValue(settingsFile, key, value));
 	}
 
 	private static long channel(java.util.Map<String, String> settings, java.util.Map<String, String> defaults, String key) {

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.7.3] - 2026-10-15 | Discord event threads
+
+- feat: Route travel, discovery, and network Discord events into configurable threads.
+
 ## 0.7.2 — 2026-10-13 | Coordinated menu icons
 
 - ui: replace all Stargate menu icons with coordinated portal, DHD, platform and action artwork in modern and classic styles.

@@ -245,3 +245,7 @@ Chevron strips and fixed inner lights illuminate at the inward stop before the V
 Frame, ring and Chevron housings use a shade-readable derivative of the supplied author's mottled color reference with
 UV coordinates and separate metallic/smoothness values. Light strips retain accepted colors.
 This is an approximation of the source procedural material; fine bump mapping is not included.
+
+## Discord event threads
+
+Existing Discord event channel IDs remain in effect. Each route also accepts an optional thread topic: `discord.externalTravelThreadTopic`, `discord.internalTravelThreadTopic`, `discord.discoveryThreadTopic`, and `discord.networkStatusThreadTopic` for Stargate event routes. Leave a topic blank to use the plugin display name from `plugin.yml`. Matching topics in the same parent channel share one thread. Topic routing requires compatible OZ Tools and Discord Connect with the bot enabled; an older Discord Connect logs a failure and does not send the event to the parent channel. Install OZ Tools, then Discord Connect, then this plugin.

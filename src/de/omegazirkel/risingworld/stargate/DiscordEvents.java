@@ -13,12 +13,14 @@ public final class DiscordEvents {
     private final LocalGateStore gates;
     private final DiscordBridge bridge;
     private final I18n i18n;
+    private final String displayName;
 
     public DiscordEvents(OZStargate plugin, PluginSettings settings, LocalGateStore gates, I18n i18n) {
         this.settings = settings;
         this.gates = gates;
         this.bridge = new DiscordBridge(plugin);
         this.i18n = i18n;
+        this.displayName = plugin.getDescription("name");
     }
 
     public void internal(Player player, String source, String target) {
@@ -64,6 +66,13 @@ public final class DiscordEvents {
         String message = i18n.get("tc.stargate.discord.events." + event, language);
         for (int i = 0; i + 1 < replacements.length; i += 2)
             message = message.replace(replacements[i], replacements[i + 1]);
-        bridge.sendTextMessage(message, channel);
+        String override = switch (event) {
+            case "internal" -> settings.discordInternalTravelThreadTopic;
+            case "external_departure", "external_arrival" -> settings.discordExternalTravelThreadTopic;
+            case "discovery" -> settings.discordDiscoveryThreadTopic;
+            default -> settings.discordNetworkStatusThreadTopic;
+        };
+        bridge.sendTextMessage(message, channel, null,
+                override == null || override.isBlank() ? displayName : override.trim());
     }
 }
