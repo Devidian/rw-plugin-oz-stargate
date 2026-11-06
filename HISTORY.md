@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.8.1] - 2026-11-06 | Gate rendering diagnostics
+
+- Log the full exception stack trace when Stargate model rendering is suspended, so the cause of a recurring missing gate can be diagnosed from server logs.
+
 ## [0.8.0] - 2026-10-15 | DHD network filter and search
 
 - The DHD address list now has a session-local network-gate switch and a native search for address, alias, and personal name. Network gates are visible when the DHD opens.
