@@ -1,0 +1,1 @@
+- Log the full exception stack trace when Stargate model rendering is suspended, so a recurring placement failure can be diagnosed from server logs.

@@ -1,5 +1,7 @@
 package de.omegazirkel.risingworld.stargate.visual;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -190,7 +192,11 @@ public final class GateVisualService {
     }
 
     private void failRendering(RuntimeException ex) {
-        if (!renderFailed) OZStargate.logger().error("Stargate model rendering suspended until placement retry/reload: " + ex.getMessage());
+        if (!renderFailed) {
+            StringWriter trace = new StringWriter();
+            ex.printStackTrace(new PrintWriter(trace));
+            OZStargate.logger().error("Stargate model rendering suspended until placement retry/reload:\n" + trace);
+        }
         renderFailed = true;
     }
 
