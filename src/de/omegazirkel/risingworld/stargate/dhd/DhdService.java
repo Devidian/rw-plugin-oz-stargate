@@ -17,6 +17,7 @@ import de.omegazirkel.risingworld.stargate.discovery.DiscoveryService;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.sector.LocalDialService;
 import de.omegazirkel.risingworld.stargate.ui.StargateChat;
+import de.omegazirkel.risingworld.stargate.ui.StargatePlayerPluginSettings;
 import de.omegazirkel.risingworld.tools.I18n;
 import net.risingworld.api.World;
 import net.risingworld.api.events.player.PlayerObjectInteractionEvent;
@@ -47,10 +48,11 @@ public final class DhdService {
         boolean loading;
         boolean failed;
         boolean startGate;
-        boolean showNetwork = true;
+        boolean showNetwork;
         String search = "";
         Session(Player player, DhdStore.Binding binding, String gateId) {
             this.player = player; this.uid = player.getUID(); this.binding = binding; this.gateId = gateId;
+            this.showNetwork = StargatePlayerPluginSettings.showNetworkGates(player);
         }
     }
     static List<String> visibleAddresses(Session session) {
@@ -284,6 +286,7 @@ public final class DhdService {
     void toggleNetwork(Session session) {
         if (!valid(session)) return;
         session.showNetwork = !session.showNetwork;
+        StargatePlayerPluginSettings.setShowNetworkGates(session.player, session.showNetwork);
         session.page = 0;
         if (session.selected != null && !visibleAddresses(session).contains(session.selected)) session.selected = null;
         session.overlay.update();

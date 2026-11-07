@@ -19,6 +19,7 @@ import net.risingworld.api.ui.style.Unit;
 public class StargatePlayerPluginSettings extends PlayerPluginSettings {
     public static final String TRAVEL_SCREEN_DISABLED_KEY = "oz.stargate.travelScreenDisabled";
     public static final String ADDRESS_MODE_KEY = "oz.stargate.dhdAddressMode";
+    public static final String NETWORK_FILTER_KEY = "oz.stargate.dhdShowNetwork";
     public static final String ADDRESS_ALIASES = "ALIASES";
     public static final String ADDRESS_OWN = "OWN";
     public static final String ADDRESS_LOCAL = "LOCAL";
@@ -36,6 +37,16 @@ public class StargatePlayerPluginSettings extends PlayerPluginSettings {
     public static boolean travelScreenEnabled(Player player) {
         return player == null || OZTools.playerSettings() == null
                 || !OZTools.playerSettings().getBoolean(player.getDbID(), TRAVEL_SCREEN_DISABLED_KEY).orElse(false);
+    }
+
+    public static boolean showNetworkGates(Player player) {
+        return player == null || OZTools.playerSettings() == null
+                || OZTools.playerSettings().getBoolean(player.getDbID(), NETWORK_FILTER_KEY).orElse(true);
+    }
+
+    public static void setShowNetworkGates(Player player, boolean showNetwork) {
+        if (player != null && OZTools.playerSettings() != null)
+            OZTools.playerSettings().setBoolean(player.getDbID(), NETWORK_FILTER_KEY, showNetwork);
     }
 
     public StargatePlayerPluginSettings(String pluginLabel, String pluginVersion) {

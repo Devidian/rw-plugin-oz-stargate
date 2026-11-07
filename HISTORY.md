@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.8.2] - 2026-11-08 | Persistent DHD network filter
+
+- Remember each player's DHD network-gate filter choice in their plugin settings and restore it whenever the DHD opens. Network gates remain visible by default until a player changes the filter.
+
 ## [0.8.1] - 2026-11-06 | Gate rendering diagnostics
 
 - Log the full exception stack trace when Stargate model rendering is suspended, so the cause of a recurring missing gate can be diagnosed from server logs.
