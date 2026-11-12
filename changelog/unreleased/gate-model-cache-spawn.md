@@ -1,1 +1,0 @@
-- Keep Stargate model creation outside map mutation and use a concurrent model cache to prevent rendering from being suspended when a player spawns.

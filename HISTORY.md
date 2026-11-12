@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.8.3] - 2026-11-12 | Gate model spawn stability
+
+- Prevent the server from suspending Stargate rendering when the gate model cache changes while a player spawns.
+
 ## [0.8.2] - 2026-11-08 | Persistent DHD network filter
 
 - Remember each player's DHD network-gate filter choice in their plugin settings and restore it whenever the DHD opens. Network gates remain visible by default until a player changes the filter.
