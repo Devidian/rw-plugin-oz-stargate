@@ -9,7 +9,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
@@ -34,7 +37,7 @@ public final class GateVisualService {
     private final GateNetworkClient network;
     private final GateAudioService audio;
     private final Map<String, GateVisualPlacement> placements = new HashMap<>();
-    private final Map<String, GateRenderModel> models = new HashMap<>();
+    private final ConcurrentMap<String, GateRenderModel> models = new ConcurrentHashMap<>();
     private final Map<String, Viewer> viewers = new HashMap<>();
     private boolean closed;
     private boolean renderFailed;
@@ -237,11 +240,21 @@ public final class GateVisualService {
         }
         for (GateVisualPlacement placement : nearby) {
             if (!viewer.gates().contains(placement.gateId())) {
-                GateRenderModel model = models.computeIfAbsent(placement.gateId(), ignored -> createModel(placement));
+                GateRenderModel model = cachedModel(models, placement.gateId(), () -> createModel(placement));
                 player.addGameObject(model.object());
                 viewer.gates().add(placement.gateId());
             }
         }
+    }
+
+    /** Prefab creation can reenter API callbacks; never run it inside a map mutation. */
+    static GateRenderModel cachedModel(ConcurrentMap<String, GateRenderModel> models,
+            String gateId, Supplier<GateRenderModel> create) {
+        GateRenderModel existing = models.get(gateId);
+        if (existing != null) return existing;
+        GateRenderModel created = create.get();
+        existing = models.putIfAbsent(gateId, created);
+        return existing == null ? created : existing;
     }
 
     /** The manual rp client reset can arrive after server startup/spawn callbacks. */
