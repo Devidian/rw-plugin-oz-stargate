@@ -68,7 +68,13 @@ public final class AddressBookService implements AutoCloseable {
     public List<String> known(Player player) {
         String code = code();
         if (player == null || code == null || code.isBlank()) return List.of();
-        try { return settings.networkEnabled ? store.known(code, player.getUID()) : store.knownLocal(player.getUID()); }
+        try {
+            List<String> local = store.knownLocal(player.getUID());
+            if (!settings.networkEnabled || !de.omegazirkel.risingworld.tools.ExternalDataConsent.isGranted(player,
+                    de.omegazirkel.risingworld.tools.ExternalDataConsent.Purpose.STARGATE)) return local;
+            return java.util.stream.Stream.concat(local.stream(), store.known(code, player.getUID()).stream())
+                    .distinct().sorted().toList();
+        }
         catch (SQLException ex) { error(ex); return List.of(); }
     }
 
@@ -173,7 +179,9 @@ public final class AddressBookService implements AutoCloseable {
                 if (share.ownerDbId() == player.getDbID() || !faction.equals(factions.factionIdForPlayer(share.ownerDbId()))) continue;
                 List<String> ownerKnown = knownByOwner.get(share.ownerUid());
                 if (ownerKnown == null) {
-                    ownerKnown = settings.networkEnabled ? store.known(code(), share.ownerUid()) : store.knownLocal(share.ownerUid());
+                    ownerKnown = !settings.networkEnabled || !de.omegazirkel.risingworld.tools.ExternalDataConsent.isGranted(player,
+                            de.omegazirkel.risingworld.tools.ExternalDataConsent.Purpose.STARGATE)
+                            ? store.knownLocal(share.ownerUid()) : store.known(code(), share.ownerUid());
                     knownByOwner.put(share.ownerUid(), ownerKnown);
                 }
                 List<String> ids = share.all() ? ownerKnown : List.of(share.gateId());
@@ -216,7 +224,9 @@ public final class AddressBookService implements AutoCloseable {
 
     /** Returns true only after a current-code relay snapshot has been applied. */
     public void sync(Player player, Consumer<Boolean> completed) {
-        if (closed || player == null || !player.isConnected() || !network.isReady() || !settings.networkEnabled) {
+        if (closed || player == null || !player.isConnected() || !network.isReady() || !settings.networkEnabled
+                || !de.omegazirkel.risingworld.tools.ExternalDataConsent.isGranted(player,
+                        de.omegazirkel.risingworld.tools.ExternalDataConsent.Purpose.STARGATE)) {
             if (completed != null) completed.accept(false);
             return;
         }

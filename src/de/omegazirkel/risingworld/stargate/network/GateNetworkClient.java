@@ -31,6 +31,7 @@ import de.omegazirkel.risingworld.stargate.sector.SectorAddress;
 import de.omegazirkel.risingworld.stargate.sector.LocalDialService;
 import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import de.omegazirkel.risingworld.tools.I18n;
+import de.omegazirkel.risingworld.tools.privacy.ErasureMessageSigner;
 import de.omegazirkel.risingworld.tools.ServerThreadDispatcher;
 import de.omegazirkel.risingworld.tools.WSClientEndpoint;
 import de.omegazirkel.risingworld.tools.WebSocketHandler;
@@ -94,6 +95,10 @@ public final class GateNetworkClient implements WebSocketHandler {
     private Predicate<String> discoveryReserved = id -> false;
     private WSClientEndpoint socket;
     private String networkCode;
+    private String serverId;
+    private boolean relayErasureSupported;
+    private String erasureProbeId;
+    private final Map<String, Boolean> erasureRequests = new HashMap<>();
     private boolean hostMissing;
     private String detectedHost;
     private String hostLookupRequestId;
@@ -158,6 +163,31 @@ public final class GateNetworkClient implements WebSocketHandler {
 
     public boolean isReady() {
         return networkCode != null && socket != null && socket.isConnected();
+    }
+
+    private boolean hasErasureKey() {
+        String key = System.getenv("STARGATE_ERASURE_KEY");
+        return key != null && key.matches("[a-f0-9]{64}");
+    }
+
+    public boolean erasureReady() {
+        return isReady() && relayErasureSupported && hasErasureKey();
+    }
+
+    public boolean erasePlayer(String requestId, String uid) throws java.security.GeneralSecurityException {
+        if (erasureRequests.remove(requestId, true)) return true;
+        if (!erasureReady()) return false;
+        erasureRequests.putIfAbsent(requestId, false);
+        sendErasureMessage("erasePlayer", "stargate-player-erasure", requestId, uid);
+        return false;
+    }
+
+    private void sendErasureMessage(String event, String domain, String requestId, String uid)
+            throws java.security.GeneralSecurityException {
+        long issuedAt = System.currentTimeMillis();
+        String signature = ErasureMessageSigner.sign(System.getenv("STARGATE_ERASURE_KEY"), domain,
+                serverId, networkCode, requestId, uid, Long.toString(issuedAt));
+        send(event, requestId, Map.of("uid", uid, "issuedAt", issuedAt, "signature", signature), networkCode);
     }
     public String networkCode() { return networkCode; }
 
@@ -226,6 +256,8 @@ public final class GateNetworkClient implements WebSocketHandler {
     }
 
     public boolean transfer(String type, String requestId, Map<String, ?> payload) {
+        Object uid = payload.get("uid");
+        if (uid instanceof String playerUid && !consented(Server.getPlayerByUID(playerUid))) return false;
         return isReady() && send(type, requestId, payload, networkCode);
     }
 
@@ -307,7 +339,8 @@ public final class GateNetworkClient implements WebSocketHandler {
             Map<String, Object> payload = new HashMap<>();
             payload.put("dialSequenceVersion", 1);
             payload.put("travelEnabled", settings.networkEnabled);
-            payload.put("serverId", UUID.nameUUIDFromBytes(identity.getBytes(StandardCharsets.UTF_8)).toString());
+            serverId = UUID.nameUUIDFromBytes(identity.getBytes(StandardCharsets.UTF_8)).toString();
+            payload.put("serverId", serverId);
             payload.put("name", Server.getName());
             payload.put("host", host);
             payload.put("port", port);
@@ -338,6 +371,15 @@ public final class GateNetworkClient implements WebSocketHandler {
         String type = message.get("type").getAsString();
         String requestId = message.get("requestId").getAsString();
         JsonObject payload = message.getAsJsonObject("payload");
+        if (type.equals("playerErased")) {
+            erasureRequests.replace(requestId, true);
+            return;
+        }
+        if (type.equals("playerErasurePending")) return;
+        if (type.equals("erasureAvailable")) {
+            relayErasureSupported = requestId.equals(erasureProbeId);
+            return;
+        }
         if (type.equals("hostResolved")) {
             if (!requestId.equals(hostLookupRequestId) || !settings.relayAdvertisedHost.isBlank()) return;
             hostLookupRequestId = null;
@@ -354,6 +396,7 @@ public final class GateNetworkClient implements WebSocketHandler {
             boolean changed = payload.has("changed") && payload.get("changed").getAsBoolean();
             String previousCode = settings.networkCodeTrusted;
             networkCode = payload.get("networkCode").getAsString();
+            relayErasureSupported = false;
             dialSequenceSupported = payload.has("dialSequenceVersion") && payload.get("dialSequenceVersion").getAsInt() == 1;
             if (addressBook != null && previousCode != null && !previousCode.isBlank()
                     && !previousCode.equals(networkCode) && !addressBook.migrateLocalGates(previousCode, networkCode)) {
@@ -363,6 +406,14 @@ public final class GateNetworkClient implements WebSocketHandler {
                 return;
             }
             settings.trustNetworkCode(networkCode);
+            if (hasErasureKey() && payload.has("playerErasure") && payload.get("playerErasure").getAsBoolean()) {
+                erasureProbeId = UUID.randomUUID().toString();
+                try {
+                    sendErasureMessage("erasureProbe", "stargate-erasure-probe", erasureProbeId, "_");
+                } catch (java.security.GeneralSecurityException ex) {
+                    OZStargate.logger().warn("Could not sign Stargate erasure probe");
+                }
+            }
             if (detectedHost != null) settings.setDetectedHost(detectedHost);
             detectedHost = null;
             OZStargate.logger().info("Stargate network ready: " + networkCode);
@@ -771,6 +822,7 @@ public final class GateNetworkClient implements WebSocketHandler {
 
     public void updatePlayer(Player player) {
         if (!settings.networkEnabled) return;
+        if (!consented(player)) return;
         if (player == null || networkCode == null || socket == null || !socket.isConnected()) return;
         if (player.getUID() == null || player.getUID().isBlank()
                 || player.getName() == null || player.getName().isBlank()) return;
@@ -822,6 +874,10 @@ public final class GateNetworkClient implements WebSocketHandler {
 
     private void sendRequest(String type, Player player, Map<String, Object> payload, Vector3f position, Quaternion rotation,
             String gateId, String sourceGateId, Consumer<List<String>> addresses, RegistrationHandler registration) {
+        if (player != null && !consented(player)) {
+            tell(player, "travel_disabled", null, null);
+            return;
+        }
         String requestId = UUID.randomUUID().toString();
         Request request = new Request(type, player == null ? null : player.getUID(), position, rotation,
                 gateId, sourceGateId, addresses, registration);
@@ -855,9 +911,18 @@ public final class GateNetworkClient implements WebSocketHandler {
     }
 
     private boolean ready(Player player) {
+        if (player != null && !consented(player)) {
+            tell(player, "travel_disabled", null, null);
+            return false;
+        }
         if (networkCode != null && socket != null && socket.isConnected()) return true;
         tell(player, hostMissing ? "host_missing" : "offline", null, null);
         return false;
+    }
+
+    private static boolean consented(Player player) {
+        return de.omegazirkel.risingworld.tools.ExternalDataConsent.isGranted(
+                player, de.omegazirkel.risingworld.tools.ExternalDataConsent.Purpose.STARGATE);
     }
 
     static String newLocalGateId() {

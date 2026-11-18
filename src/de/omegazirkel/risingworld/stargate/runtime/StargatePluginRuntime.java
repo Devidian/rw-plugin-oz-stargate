@@ -56,6 +56,7 @@ import de.omegazirkel.risingworld.tools.ui.PluginMenuManager;
 import de.omegazirkel.risingworld.tools.ui.PluginShortcutVisibility;
 import de.omegazirkel.risingworld.tools.ui.SharedIndicatorProvider;
 import de.omegazirkel.risingworld.tools.ui.SharedIndicators;
+import net.risingworld.api.Server;
 import net.risingworld.api.objects.Player;
 
 public final class StargatePluginRuntime {
@@ -68,6 +69,7 @@ public final class StargatePluginRuntime {
     private final PluginGUI gui;
     private final StargatePlayerEventHandler events;
     private final GateNetworkClient network;
+    private AutoCloseable stargateConsentRegistration;
     private final LocalDialService localDial;
     private final DhdService dhd;
     private final DhdModelService dhdModels;
@@ -82,6 +84,8 @@ public final class StargatePluginRuntime {
     private final DiscoveryService discovery;
     private final DiscoveryPoolService discoveryPool;
     private final InitialGateService initialGate;
+    private final de.omegazirkel.risingworld.tools.privacy.PlayerErasureService.Registration erasureRegistration;
+    private final de.omegazirkel.risingworld.tools.privacy.PlayerErasureService.Registration relayErasureRegistration;
 
     public StargatePluginRuntime(OZStargate plugin) {
         this.plugin = plugin;
@@ -176,10 +180,21 @@ public final class StargatePluginRuntime {
         gui.setPlacement(placement);
         events = new StargatePlayerEventHandler(plugin, pluginName, settings, i18n, gui,
                 new InventorySnapshotService(snapshots, i18n), network, transfers, dhd, dhdModels, horizons, previews, visuals, placement, travelScreen, firstArrival, addressBook);
+        StargatePlayerErasure erasure = new StargatePlayerErasure(database);
+        erasureRegistration = de.omegazirkel.risingworld.tools.privacy.PlayerErasureService.register(
+                "stargate", erasure::ready, request -> erasure.erase(request.playerDbId()));
+        relayErasureRegistration = de.omegazirkel.risingworld.tools.privacy.PlayerErasureService.register(
+                "stargate-relay", ignored -> network.erasureReady(), request -> {
+                    String uid = Server.getPlayerUID(request.playerDbId());
+                    return uid != null && !uid.isBlank() && network.erasePlayer(request.id(), uid);
+                });
     }
 
     public void enable() {
         settings.initSettings();
+        stargateConsentRegistration = de.omegazirkel.risingworld.tools.ExternalDataConsent.registerPurpose(
+                de.omegazirkel.risingworld.tools.ExternalDataConsent.Purpose.STARGATE,
+                () -> settings.networkEnabled && de.omegazirkel.risingworld.OZTools.getSettings().webUseWebsockets);
         audio.reload();
         network.start();
         addressBook.start();
@@ -216,6 +231,8 @@ public final class StargatePluginRuntime {
     }
 
     public void disable() {
+        erasureRegistration.close();
+        relayErasureRegistration.close();
         initialGate.close();
         discovery.close();
         discoveryPool.close();
@@ -231,6 +248,8 @@ public final class StargatePluginRuntime {
         dhd.close();
         localDial.close();
         network.close();
+        try { if (stargateConsentRegistration != null) stargateConsentRegistration.close(); }
+        catch (Exception ex) { OZStargate.logger().warn("Stargate consent registration cleanup failed: " + ex.getMessage()); }
         InventoryOverlayButtons.unregisterButtons(pluginName);
         PluginShortcutVisibility.unregister(pluginName);
         SharedIndicators.unregisterProvider(pluginName);

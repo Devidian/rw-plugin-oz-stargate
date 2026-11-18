@@ -153,7 +153,11 @@ final class DhdOverlay extends BasePluginOverlay {
     }
 
     private AdvancedButton button(String key, int left, int top, int width, Runnable action, boolean literal) {
-        AdvancedButton button = AdvancedButtonFactory.defaultButton(literal ? key : text(key), event -> action.run());
+        AdvancedButton button = AdvancedButtonFactory.custom(
+                new AdvancedButtonState(AdvancedBaseButton.State.DEFAULT, 0x8A6A2DFF, 0x201B13D8,
+                        0xF4F0E6FF, 0xD7AE55FF, 0x342915E8, literal ? key : text(key), event -> action.run()),
+                new AdvancedButtonState(AdvancedBaseButton.State.DISABLED, 0x555555FF, 0x303030DD,
+                        0x999999FF, 0x555555FF, 0x303030DD, null, null));
         button.setPivot(Pivot.UpperLeft); button.style.position.set(Position.Absolute); button.style.left.set(left, Unit.Percent); button.style.top.set(top, Unit.Pixel);
         button.style.width.set(width, Unit.Percent); button.style.height.set(38, Unit.Pixel); body.addChild(button); return button;
     }
@@ -163,7 +167,9 @@ final class DhdOverlay extends BasePluginOverlay {
                 new AdvancedButtonState(AdvancedBaseButton.State.DEFAULT, 0x8A6A2DFF, 0x201B13D8,
                         0xF4F0E6FF, 0xD7AE55FF, 0x342915E8, text(key), event -> action.run()),
                 new AdvancedButtonState(AdvancedBaseButton.State.EXTRA_1, LOCAL_BORDER, 0x286B43FF,
-                        null, LOCAL_BORDER, 0x357D52FF, null, null));
+                        null, LOCAL_BORDER, 0x357D52FF, null, null),
+                new AdvancedButtonState(AdvancedBaseButton.State.DISABLED, 0x555555FF, 0x303030DD,
+                        0x999999FF, 0x555555FF, 0x303030DD, null, null));
         button.setPivot(Pivot.UpperLeft); button.style.position.set(Position.Absolute); button.style.left.set(left, Unit.Percent); button.style.top.set(top, Unit.Pixel);
         button.style.width.set(width, Unit.Percent); button.style.height.set(38, Unit.Pixel); body.addChild(button); return button;
     }
@@ -206,27 +212,38 @@ final class DhdOverlay extends BasePluginOverlay {
         }
         int pages = Math.max(1, (visible.size() + PAGE_SIZE - 1) / PAGE_SIZE);
         pageLabel.setText(text("page").replace("PH_PAGE", Integer.toString(session.page + 1)).replace("PH_TOTAL", Integer.toString(pages)));
-        previous.setClickable(!session.loading && session.page > 0);
-        next.setClickable(!session.loading && session.page + 1 < pages);
-        refresh.setClickable(!session.loading && view.ready());
-        networkFilter.setState(session.showNetwork ? AdvancedBaseButton.State.EXTRA_1 : AdvancedBaseButton.State.DEFAULT);
+        available(previous, !session.loading && session.page > 0);
+        available(next, !session.loading && session.page + 1 < pages);
+        available(refresh, !session.loading && view.ready());
+        boolean networkAvailable = network.isReady() &&
+                de.omegazirkel.risingworld.tools.ExternalDataConsent.isGranted(session.player,
+                        de.omegazirkel.risingworld.tools.ExternalDataConsent.Purpose.STARGATE);
+        networkFilter.setState(networkAvailable
+                ? session.showNetwork ? AdvancedBaseButton.State.EXTRA_1 : AdvancedBaseButton.State.DEFAULT
+                : AdvancedBaseButton.State.DISABLED);
         search.setState(session.search.isBlank() ? AdvancedBaseButton.State.DEFAULT : AdvancedBaseButton.State.EXTRA_1);
-        manual.setClickable(!session.loading && view.ready() && view.state().equals("IDLE"));
-        dial.setClickable(!session.loading && view.ready() && view.state().equals("IDLE") && session.selected != null);
-        discover.setClickable(!session.loading && view.ready() && view.state().equals("IDLE"));
+        available(manual, !session.loading && view.ready() && view.state().equals("IDLE"));
+        available(dial, !session.loading && view.ready() && view.state().equals("IDLE") && session.selected != null);
+        available(discover, !session.loading && view.ready() && view.state().equals("IDLE"));
         share.setVisible(service.hasFaction(session));
-        share.setState(session.selected != null && session.sharedOwn.contains(session.selected)
-                ? AdvancedBaseButton.State.EXTRA_1 : AdvancedBaseButton.State.DEFAULT);
-        share.setClickable(!session.loading && service.canShare(session));
+        share.setState(!session.loading && service.canShare(session)
+                ? session.selected != null && session.sharedOwn.contains(session.selected)
+                    ? AdvancedBaseButton.State.EXTRA_1 : AdvancedBaseButton.State.DEFAULT
+                : AdvancedBaseButton.State.DISABLED);
         shareAll.setVisible(service.hasFaction(session));
-        shareAll.setState(service.allShared(session) ? AdvancedBaseButton.State.EXTRA_1 : AdvancedBaseButton.State.DEFAULT);
-        shareAll.setClickable(!session.loading && service.hasFaction(session));
-        personalName.setClickable(!session.loading && session.selected != null && !session.sharedOnly.contains(session.selected));
-        editAlias.setClickable(session.player.isAdmin() && !session.loading);
+        shareAll.setState(!session.loading && service.hasFaction(session)
+                ? service.allShared(session) ? AdvancedBaseButton.State.EXTRA_1 : AdvancedBaseButton.State.DEFAULT
+                : AdvancedBaseButton.State.DISABLED);
+        available(personalName, !session.loading && session.selected != null && !session.sharedOnly.contains(session.selected));
+        available(editAlias, session.player.isAdmin() && !session.loading);
         startGate.setText(session.startGate ? "I" : "O");
         startGate.setBorderColor(session.startGate ? LOCAL_BORDER : REMOTE_BORDER);
         startGate.setBackgroundColor(session.startGate ? 0x286B43FF : 0x684022FF);
-        startGate.setClickable(session.player.isAdmin() && !session.loading);
+        available(startGate, session.player.isAdmin() && !session.loading);
+    }
+
+    private static void available(AdvancedButton button, boolean enabled) {
+        button.setState(enabled ? AdvancedBaseButton.State.DEFAULT : AdvancedBaseButton.State.DISABLED);
     }
 
     @Override protected void close() { service.close(session); }

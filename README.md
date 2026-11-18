@@ -1,5 +1,7 @@
 # OZ Stargate
 
+The DHD keeps a local address-book fallback from the world database when Stargate network consent is absent or the relay cannot return a current snapshot. Local gate addresses do not depend on the player's optional network permission.
+
 **Build baseline:** JDK 25 (`--release 25`) and the bundled Rising World PluginAPI 0.9.3.2 JAR.
 
 Players can hide the Stargate shortcut in the plugin settings. It remains visible by default.

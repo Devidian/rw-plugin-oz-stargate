@@ -188,14 +188,15 @@ public final class DhdService {
         network.requestAddresses(session.player, addresses -> {
             if (sessions.get(session.uid) != session) return;
             session.loading = false;
-            session.failed = addresses == null;
+            session.failed = addresses == null && (addressBook == null || addressBook.knownAddresses(session.player).isEmpty());
             String ownLocal = network.localAddress(session.gateId);
             String ownGlobal = network.globalAddress(session.gateId);
             Set<String> personallyKnown = addressBook == null ? Set.of() : Set.copyOf(addressBook.knownAddresses(session.player));
             Set<String> shared = addressBook == null ? Set.of() : Set.copyOf(addressBook.sharedFromFaction(session.player));
             session.sharedOnly = shared;
-            session.addresses = addresses == null ? List.of() : java.util.stream.Stream.concat(
-                    addresses.stream(), shared.stream())
+            session.addresses = java.util.stream.Stream.concat(
+                    addresses == null ? (addressBook == null ? java.util.stream.Stream.<String>empty()
+                            : addressBook.knownAddresses(session.player).stream()) : addresses.stream(), shared.stream())
                     .filter(id -> !id.equals(ownLocal) && !id.equals(ownGlobal)).distinct().sorted().toList();
             Map<String, String> aliases = new HashMap<>();
             Map<String, String> personalNames = new HashMap<>();

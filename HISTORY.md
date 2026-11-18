@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep locally known gate addresses visible in the DHD without network consent or an available relay snapshot.
+
 ## [0.8.3] - 2026-11-12 | Gate model spawn stability
 
 - Prevent the server from suspending Stargate rendering when the gate model cache changes while a player spawns.

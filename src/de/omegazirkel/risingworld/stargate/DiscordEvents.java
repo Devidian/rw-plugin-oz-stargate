@@ -58,7 +58,12 @@ public final class DiscordEvents {
         }
     }
 
-    private static String name(Player player) { return player == null ? "?" : player.getName(); }
+    private static String name(Player player) {
+        if (player == null) return "?";
+        return de.omegazirkel.risingworld.tools.ExternalDataConsent.isGranted(player,
+                de.omegazirkel.risingworld.tools.ExternalDataConsent.Purpose.DISCORD)
+                ? player.getName() : "Spieler #" + player.getDbID();
+    }
 
     private void send(long channel, String event, String... replacements) {
         if (channel <= 0 || !bridge.isAvailable()) return;
