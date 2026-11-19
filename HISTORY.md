@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [0.9.1] - 2026-11-19 | Expanded discovery search
+
+- Check the 16 central chunks and 64 chunks at quadrant centres before searching the remaining chunks in randomized order.
+- Persist terrain scan progress and available sites in world SQLite. Resume from that progress after a reload and discard the sector's scan state when a gate is placed.
+- Disable discovery while the source gate has no available sites and re-enable it without reopening the DHD when a site becomes available. An empty pool does not start a cooldown.
+
+## [0.9.0] - 2026-11-18 | External data controls
+
 - Keep locally known gate addresses visible in the DHD without network consent or an available relay snapshot.
 
 ## [0.8.3] - 2026-11-12 | Gate model spawn stability
