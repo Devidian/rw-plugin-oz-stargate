@@ -355,6 +355,7 @@
         "start_gate_disable": "Stop using this Stargate as a start gate?",
         "dial": "Dial",
         "discover": "Discover new Stargate",
+        "discover_unavailable": "No discovery targets yet",
         "loading": "Loading gate addresses …",
         "load_failed": "Could not load gate addresses. Please refresh.",
         "empty": "No gate addresses discovered yet.",
@@ -398,7 +399,7 @@
         "cooldown": "You can try again in PH_SECONDS seconds.",
         "dialing": "Dialling an unknown Stargate address …",
         "failed": "No valid address found. No gate was created.",
-        "no_site": "No suitable site was found in the limited search. No gate was created.",
+        "no_site": "This gate currently has no site available for discovery.",
         "error": "Discovery could not be completed. Please try again later.",
         "found": "Discovered new Stargate PH_GATE with a DHD."
       },

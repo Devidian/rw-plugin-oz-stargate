@@ -333,6 +333,19 @@ public final class DhdService {
         discovery.attempt(session.player, session.gateId);
     }
 
+    boolean hasDiscoveryTargets(Session session) {
+        try { return discovery != null && discovery.hasAvailable(session.gateId); }
+        catch (SQLException ex) {
+            OZStargate.logger().warn("Cannot read Stargate discovery availability: " + ex.getMessage());
+            return false;
+        }
+    }
+
+    public void discoveryAvailabilityChanged() {
+        for (Session session : new ArrayList<>(sessions.values()))
+            if (valid(session)) session.overlay.updateDiscovery();
+    }
+
     void manual(Session session) {
         if (!valid(session)) return;
         Player player = session.player;

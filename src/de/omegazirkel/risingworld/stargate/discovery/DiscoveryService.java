@@ -50,6 +50,10 @@ public final class DiscoveryService implements AutoCloseable {
         network.setArtificialDiscovery(views::get, views::containsKey);
     }
 
+    public boolean hasAvailable(String sourceGateId) throws SQLException {
+        return !closed && pool.hasAvailable(sourceGateId);
+    }
+
     public void attempt(Player player, String sourceGateId) {
         if (closed || player == null || !player.isConnected() || !player.isSpawned()) return;
         String uid = player.getUID();
@@ -59,6 +63,10 @@ public final class DiscoveryService implements AutoCloseable {
         }
         long now = System.currentTimeMillis();
         try {
+            if (!hasAvailable(sourceGateId)) {
+                tell(player, "no_site", null);
+                return;
+            }
             if (!(player.isAdmin() && settings.discoveryNoAdminCooldown)) {
                 long next = store.nextAt(uid);
                 if (next > now) {

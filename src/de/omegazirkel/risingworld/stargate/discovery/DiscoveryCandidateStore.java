@@ -34,19 +34,74 @@ public final class DiscoveryCandidateStore {
             statement.executeUpdate("CREATE TRIGGER IF NOT EXISTS stargate_discovery_source_deleted "
                     + "AFTER DELETE ON stargates BEGIN DELETE FROM stargate_discovery_candidates "
                     + "WHERE source_gate_id=OLD.gate_id; END");
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS stargate_discovery_scan_progress "
+                    + "(sector_x INTEGER NOT NULL, sector_z INTEGER NOT NULL, next_probe INTEGER NOT NULL, "
+                    + "candidate_x INTEGER, candidate_z INTEGER, "
+                    + "PRIMARY KEY(sector_x,sector_z))");
+            statement.executeUpdate("CREATE TRIGGER IF NOT EXISTS stargate_discovery_sector_occupied "
+                    + "AFTER INSERT ON stargate_local_sectors BEGIN DELETE FROM stargate_discovery_scan_progress "
+                    + "WHERE sector_x=NEW.sector_x AND sector_z=NEW.sector_z; END");
         }
     }
 
-    public synchronized void prune(String sourceId, int radius) throws SQLException {
+    public synchronized boolean prune(String sourceId, int radius) throws SQLException {
+        int removed;
         try (PreparedStatement statement = database.prepareStatement(
                 "DELETE FROM stargate_discovery_candidates WHERE source_gate_id=? AND radius<>?")) {
-            statement.setString(1, sourceId); statement.setInt(2, radius); statement.executeUpdate();
+            statement.setString(1, sourceId); statement.setInt(2, radius); removed = statement.executeUpdate();
         }
         try (Statement statement = database.createStatement()) {
-            statement.executeUpdate("DELETE FROM stargate_discovery_candidates WHERE EXISTS "
+            removed += statement.executeUpdate("DELETE FROM stargate_discovery_candidates WHERE EXISTS "
                     + "(SELECT 1 FROM stargate_local_sectors s WHERE "
                     + "s.sector_x=stargate_discovery_candidates.sector_x "
                     + "AND s.sector_z=stargate_discovery_candidates.sector_z)");
+        }
+        return removed > 0;
+    }
+
+    synchronized boolean hasAvailable(String sourceId, int radius) throws SQLException {
+        try (PreparedStatement statement = database.prepareStatement(
+                "SELECT 1 FROM stargate_discovery_candidates c WHERE c.source_gate_id=? AND c.radius=? "
+                + "AND NOT EXISTS (SELECT 1 FROM stargate_local_sectors s "
+                + "WHERE s.sector_x=c.sector_x AND s.sector_z=c.sector_z) LIMIT 1")) {
+            statement.setString(1, sourceId);
+            statement.setInt(2, radius);
+            try (ResultSet rows = statement.executeQuery()) { return rows.next(); }
+        }
+    }
+
+    synchronized Map<SectorAddress, Integer> progress(SectorAddress origin, int radius) throws SQLException {
+        Map<SectorAddress, Integer> result = new HashMap<>();
+        try (PreparedStatement statement = database.prepareStatement(
+                "SELECT sector_x,sector_z,next_probe FROM stargate_discovery_scan_progress "
+                + "WHERE sector_x BETWEEN ? AND ? AND sector_z BETWEEN ? AND ?")) {
+            statement.setInt(1, origin.x() - radius);
+            statement.setInt(2, origin.x() + radius);
+            statement.setInt(3, origin.z() - radius);
+            statement.setInt(4, origin.z() + radius);
+            try (ResultSet rows = statement.executeQuery()) {
+                while (rows.next()) result.put(new SectorAddress(rows.getInt(1), rows.getInt(2)), rows.getInt(3));
+            }
+        }
+        return result;
+    }
+
+    synchronized void recordProbe(SectorAddress sector, int nextProbe, Chunk candidate) throws SQLException {
+        try (PreparedStatement statement = database.prepareStatement(
+                "INSERT INTO stargate_discovery_scan_progress(sector_x,sector_z,next_probe,candidate_x,candidate_z) "
+                + "VALUES(?,?,?,?,?) ON CONFLICT(sector_x,sector_z) DO UPDATE SET next_probe=excluded.next_probe, "
+                + "candidate_x=excluded.candidate_x,candidate_z=excluded.candidate_z")) {
+            statement.setInt(1, sector.x());
+            statement.setInt(2, sector.z());
+            statement.setInt(3, nextProbe);
+            if (candidate == null) {
+                statement.setNull(4, java.sql.Types.INTEGER);
+                statement.setNull(5, java.sql.Types.INTEGER);
+            } else {
+                statement.setInt(4, candidate.x());
+                statement.setInt(5, candidate.z());
+            }
+            statement.executeUpdate();
         }
     }
 
@@ -95,11 +150,22 @@ public final class DiscoveryCandidateStore {
     }
 
     public synchronized void removeChunk(Chunk chunk) throws SQLException {
-        try (PreparedStatement statement = database.prepareStatement(
-                "DELETE FROM stargate_discovery_candidates WHERE chunk_x=? AND chunk_z=?")) {
-            statement.setInt(1, chunk.x()); statement.setInt(2, chunk.z());
-            statement.executeUpdate();
-        }
+        if (!database.getAutoCommit()) throw new SQLException("Unexpected nested discovery invalidation");
+        database.setAutoCommit(false);
+        try (PreparedStatement clear = database.prepareStatement(
+                    "UPDATE stargate_discovery_scan_progress SET candidate_x=NULL,candidate_z=NULL "
+                    + "WHERE sector_x=? AND sector_z=? AND candidate_x=? AND candidate_z=?");
+                PreparedStatement delete = database.prepareStatement(
+                    "DELETE FROM stargate_discovery_candidates WHERE chunk_x=? AND chunk_z=?")) {
+            SectorAddress sector = SectorAddress.fromChunk(chunk.x(), chunk.z());
+            clear.setInt(1, sector.x()); clear.setInt(2, sector.z());
+            clear.setInt(3, chunk.x()); clear.setInt(4, chunk.z()); clear.executeUpdate();
+            delete.setInt(1, chunk.x()); delete.setInt(2, chunk.z()); delete.executeUpdate();
+            database.commit();
+        } catch (SQLException | RuntimeException ex) {
+            database.rollback();
+            throw ex;
+        } finally { database.setAutoCommit(true); }
     }
 
     /** Reuse validated sites in other gate pools without exceeding the per-source limits. */
@@ -109,8 +175,10 @@ public final class DiscoveryCandidateStore {
         if (known.size() >= maxSectors) return;
         List<Site> sites = new ArrayList<>();
         try (PreparedStatement statement = database.prepareStatement(
-                "SELECT DISTINCT c.sector_x,c.sector_z,c.chunk_x,c.chunk_z "
-                        + "FROM stargate_discovery_candidates c WHERE NOT EXISTS "
+                "SELECT c.sector_x,c.sector_z,c.chunk_x,c.chunk_z FROM "
+                        + "(SELECT sector_x,sector_z,chunk_x,chunk_z FROM stargate_discovery_candidates "
+                        + "UNION SELECT sector_x,sector_z,candidate_x,candidate_z "
+                        + "FROM stargate_discovery_scan_progress WHERE candidate_x IS NOT NULL) c WHERE NOT EXISTS "
                         + "(SELECT 1 FROM stargate_local_sectors s WHERE "
                         + "s.sector_x=c.sector_x AND s.sector_z=c.sector_z)")) {
             try (ResultSet rows = statement.executeQuery()) {

@@ -224,7 +224,7 @@ final class DhdOverlay extends BasePluginOverlay {
         search.setState(session.search.isBlank() ? AdvancedBaseButton.State.DEFAULT : AdvancedBaseButton.State.EXTRA_1);
         available(manual, !session.loading && view.ready() && view.state().equals("IDLE"));
         available(dial, !session.loading && view.ready() && view.state().equals("IDLE") && session.selected != null);
-        available(discover, !session.loading && view.ready() && view.state().equals("IDLE"));
+        updateDiscovery(view);
         share.setVisible(service.hasFaction(session));
         share.setState(!session.loading && service.canShare(session)
                 ? session.selected != null && session.sharedOwn.contains(session.selected)
@@ -240,6 +240,14 @@ final class DhdOverlay extends BasePluginOverlay {
         startGate.setBorderColor(session.startGate ? LOCAL_BORDER : REMOTE_BORDER);
         startGate.setBackgroundColor(session.startGate ? 0x286B43FF : 0x684022FF);
         available(startGate, session.player.isAdmin() && !session.loading);
+    }
+
+    void updateDiscovery() { updateDiscovery(network.gateView(session.gateId)); }
+
+    private void updateDiscovery(GateNetworkClient.GateView view) {
+        boolean hasTargets = service.hasDiscoveryTargets(session);
+        available(discover, hasTargets && !session.loading && view.ready() && view.state().equals("IDLE"));
+        discover.setText(text(hasTargets ? "discover" : "discover_unavailable"));
     }
 
     private static void available(AdvancedButton button, boolean enabled) {

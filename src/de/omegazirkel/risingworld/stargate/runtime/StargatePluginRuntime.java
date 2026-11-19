@@ -177,6 +177,7 @@ public final class StargatePluginRuntime {
                 network, localDial, addressBook, i18n);
         discovery.setDiscordEvents(discordEvents);
         dhd.setDiscovery(discovery);
+        discoveryPool.setAvailabilityObserver(dhd::discoveryAvailabilityChanged);
         gui.setPlacement(placement);
         events = new StargatePlayerEventHandler(plugin, pluginName, settings, i18n, gui,
                 new InventorySnapshotService(snapshots, i18n), network, transfers, dhd, dhdModels, horizons, previews, visuals, placement, travelScreen, firstArrival, addressBook);

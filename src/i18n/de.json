@@ -355,6 +355,7 @@
         "start_gate_disable": "Dieses Stargate nicht mehr als Startgate verwenden?",
         "dial": "Anwählen",
         "discover": "Neues Stargate entdecken",
+        "discover_unavailable": "Derzeit keine Suchziele",
         "loading": "Toradressen werden geladen …",
         "load_failed": "Toradressen konnten nicht geladen werden. Bitte aktualisieren.",
         "empty": "Noch keine Toradressen entdeckt.",
@@ -398,7 +399,7 @@
         "cooldown": "Nächste Entdeckung in PH_SECONDS Sekunden möglich.",
         "dialing": "Wähle eine unbekannte Stargate-Adresse …",
         "failed": "Keine gültige Adresse gefunden. Es wurde kein Tor erstellt.",
-        "no_site": "In der begrenzten Suche wurde kein geeigneter Standort gefunden. Es wurde kein Tor erstellt.",
+        "no_site": "Für dieses Tor ist derzeit kein Standort für eine Entdeckung verfügbar.",
         "error": "Die Entdeckung konnte nicht abgeschlossen werden. Bitte später erneut versuchen.",
         "found": "Neues Stargate PH_GATE mit DHD entdeckt."
       },
