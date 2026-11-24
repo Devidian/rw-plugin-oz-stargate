@@ -1,5 +1,8 @@
 # OZ Stargate plan
 
+- [x] Use local gate addresses as the DHD fallback without Stargate consent.
+- [ ] Confirm the local DHD entries with a nonconsenting player on Development.
+
 2026-10-08: local faction sharing, personal address names, server-scoped cache migration and DHD hover fixes are implemented and accepted on Development. The Development plugin was uploaded after SQLite and relay backups; build and automated tests pass. Public 0.6.0 release preparation is under way; production deployment remains separate.
 
 - [ ] Validate the next-300926 change on Development with a controlled player check.
