@@ -1,6 +1,6 @@
 ---
 name: "repository-workflow"
-description: "Use for repository-local workflows, validation, migrations, runtime debugging, and release checks in rw-plugin-maven-template."
+description: "Use for repository-local workflows, validation, migrations, runtime debugging, and release checks in rw-plugin-oz-stargate."
 ---
 # Repository Skills
 
