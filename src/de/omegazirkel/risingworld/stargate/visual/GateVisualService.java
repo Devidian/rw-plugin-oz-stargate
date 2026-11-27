@@ -221,12 +221,7 @@ public final class GateVisualService {
     }
 
     private void refreshPlayer(Player player) {
-        Viewer viewer = viewers.get(player.getUID());
-        if (viewer != null && viewer.player() != player) { disconnect(viewer.player()); viewer = null; }
-        if (viewer == null) {
-            viewer = new Viewer(player, new HashSet<>(), new GateVisualPresence());
-            viewers.put(player.getUID(), viewer);
-        }
+        Viewer viewer = viewerFor(player);
         Vector3f p = player.getPosition();
         List<GateVisualPlacement> nearby = GateVisualPlacement.nearby(placements.values(), viewer.gates(), p.x, p.y, p.z);
         Set<String> wanted = new HashSet<>();
@@ -238,13 +233,34 @@ public final class GateVisualService {
                 viewer.presence().reset(System.nanoTime());
             }
         }
-        for (GateVisualPlacement placement : nearby) {
-            if (!viewer.gates().contains(placement.gateId())) {
-                GateRenderModel model = cachedModel(models, placement.gateId(), () -> createModel(placement));
-                player.addGameObject(model.object());
-                viewer.gates().add(placement.gateId());
-            }
+        for (GateVisualPlacement placement : nearby) attach(viewer, placement);
+    }
+
+    private Viewer viewerFor(Player player) {
+        Viewer viewer = viewers.get(player.getUID());
+        if (viewer != null && viewer.player() != player) { disconnect(viewer.player()); viewer = null; }
+        if (viewer == null) {
+            viewer = new Viewer(player, new HashSet<>(), new GateVisualPresence());
+            viewers.put(player.getUID(), viewer);
         }
+        return viewer;
+    }
+
+    private void attach(Viewer viewer, GateVisualPlacement placement) {
+        String gateId = placement.gateId();
+        if (viewer.gates().contains(gateId)) return;
+        GateRenderModel model = cachedModel(models, gateId, () -> createModel(placement));
+        viewer.player().addGameObject(model.object());
+        viewer.gates().add(gateId);
+    }
+
+    /** Send the platform with its gate before a network transfer moves the player onto it. */
+    public void prepareArrival(Player player, String gateId) {
+        if (closed || renderFailed || !player.isConnected()) return;
+        GateVisualPlacement placement = placements.get(gateId);
+        if (placement == null || placement.platform() == null) return;
+        try { attach(viewerFor(player), placement); }
+        catch (RuntimeException ex) { failRendering(ex); }
     }
 
     /** Prefab creation can reenter API callbacks; never run it inside a map mutation. */

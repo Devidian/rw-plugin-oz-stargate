@@ -120,14 +120,15 @@ public final class GatePlacementService {
     }
 
     public boolean discoveryCandidate(int chunkX, int chunkZ) throws SQLException {
-        return discoveryCandidate(World.getChunk(chunkX, chunkZ)) != null;
+        return SectorAddress.fromChunk(chunkX, chunkZ).isAccessible()
+                && discoveryCandidate(World.getChunk(chunkX, chunkZ)) != null;
     }
 
     /** Revalidates a cached site before sending the relay registration request. */
     public boolean createDiscovered(Player player, int chunkX, int chunkZ, Consumer<String> created)
             throws SQLException {
         SectorAddress sector = SectorAddress.fromChunk(chunkX, chunkZ);
-        if (sectors.gateAt(sector) != null || network.hasPendingRegistration(sector)) return false;
+        if (!sector.isAccessible() || sectors.gateAt(sector) != null || network.hasPendingRegistration(sector)) return false;
         DiscoveryCandidate candidate = discoveryCandidate(World.getChunk(chunkX, chunkZ));
         if (candidate == null) return false;
         network.register(player, candidate.feet(), candidate.facing(), (id, ignored, rotation) -> {

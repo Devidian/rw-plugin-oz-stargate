@@ -59,13 +59,15 @@ public final class DiscoveryCandidateStore {
         return removed > 0;
     }
 
-    synchronized boolean hasAvailable(String sourceId, int radius) throws SQLException {
+    synchronized boolean hasAvailable(String sourceId, int radius, int maxSector) throws SQLException {
         try (PreparedStatement statement = database.prepareStatement(
                 "SELECT 1 FROM stargate_discovery_candidates c WHERE c.source_gate_id=? AND c.radius=? "
+                + "AND (?3 < 0 OR (c.sector_x BETWEEN -?3 AND ?3 AND c.sector_z BETWEEN -?3 AND ?3)) "
                 + "AND NOT EXISTS (SELECT 1 FROM stargate_local_sectors s "
                 + "WHERE s.sector_x=c.sector_x AND s.sector_z=c.sector_z) LIMIT 1")) {
             statement.setString(1, sourceId);
             statement.setInt(2, radius);
+            statement.setInt(3, maxSector);
             try (ResultSet rows = statement.executeQuery()) { return rows.next(); }
         }
     }
@@ -171,7 +173,13 @@ public final class DiscoveryCandidateStore {
     /** Reuse validated sites in other gate pools without exceeding the per-source limits. */
     public synchronized void copyKnown(String sourceId, SectorAddress origin, int radius,
             int maxSectors, int maxChunksPerSector) throws SQLException {
+        copyKnown(sourceId, origin, radius, maxSectors, maxChunksPerSector, -1);
+    }
+
+    synchronized void copyKnown(String sourceId, SectorAddress origin, int radius,
+            int maxSectors, int maxChunksPerSector, int maxSector) throws SQLException {
         Set<SectorAddress> known = new HashSet<>(sectors(sourceId));
+        known.removeIf(sector -> !sector.isWithinLimit(maxSector));
         if (known.size() >= maxSectors) return;
         List<Site> sites = new ArrayList<>();
         try (PreparedStatement statement = database.prepareStatement(
@@ -185,7 +193,7 @@ public final class DiscoveryCandidateStore {
                 while (rows.next()) {
                     SectorAddress sector = new SectorAddress(rows.getInt(1), rows.getInt(2));
                     long dx = (long) sector.x() - origin.x(), dz = (long) sector.z() - origin.z();
-                    if (dx * dx + dz * dz <= (long) radius * radius)
+                    if (sector.isWithinLimit(maxSector) && dx * dx + dz * dz <= (long) radius * radius)
                         sites.add(new Site(sector, new Chunk(rows.getInt(3), rows.getInt(4))));
                 }
             }

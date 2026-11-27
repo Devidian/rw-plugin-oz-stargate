@@ -14,6 +14,7 @@ import de.omegazirkel.risingworld.OZStargate;
 import de.omegazirkel.risingworld.stargate.inventory.InventorySnapshotStore;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
+import de.omegazirkel.risingworld.stargate.sector.SectorAddress;
 import de.omegazirkel.risingworld.stargate.transfer.TransferStore.Base;
 import de.omegazirkel.risingworld.stargate.transfer.TransferStore.Transfer;
 import de.omegazirkel.risingworld.stargate.ui.StargateChat;
@@ -36,6 +37,7 @@ public final class TransferService {
     private final I18n i18n;
     private final Gson gson = new Gson();
     private java.util.function.Consumer<Player> arrivalObserver = player -> { };
+    private java.util.function.BiConsumer<Player, String> arrivalPreparation = (player, gateId) -> { };
     private java.util.function.BiConsumer<Player, String> arrivalSoundObserver = (player, gateId) -> { };
     private java.util.function.BiConsumer<Player, String> arrivalPlayerSoundObserver = (player, gateId) -> { };
     private TravelScreenService travelScreen;
@@ -43,6 +45,7 @@ public final class TransferService {
     public void setDiscordEvents(de.omegazirkel.risingworld.stargate.DiscordEvents events) { discordEvents = events; }
 
     public void setArrivalObserver(java.util.function.Consumer<Player> observer) { arrivalObserver = observer; }
+    public void setArrivalPreparation(java.util.function.BiConsumer<Player, String> preparation) { arrivalPreparation = preparation; }
     public void setArrivalSoundObserver(java.util.function.BiConsumer<Player, String> observer) { arrivalSoundObserver = observer; }
     public void setArrivalPlayerSoundObserver(java.util.function.BiConsumer<Player, String> observer) { arrivalPlayerSoundObserver = observer; }
     public void setTravelScreen(TravelScreenService travelScreen) { this.travelScreen = travelScreen; }
@@ -123,7 +126,7 @@ public final class TransferService {
         String uid = payload.get("uid").getAsString();
         String gateId = payload.get("targetGateId").getAsString();
         try {
-            if (gates.gate(gateId) == null || payload.get("expiresAt").getAsLong() <= System.currentTimeMillis()) {
+            if (accessibleArrival(gateId) == null || payload.get("expiresAt").getAsLong() <= System.currentTimeMillis()) {
                 network.transfer("transferInterrupted", id, Map.of("transferId", id)); return;
             }
             Transfer existing = store.byId(id);
@@ -411,7 +414,17 @@ public final class TransferService {
     }
 
     private void claim(Player player, String id) {
-        if (player != null && player.isConnected()) network.transfer("transferClaim", id, Map.of("transferId", id));
+        if (player == null || !player.isConnected()) return;
+        try {
+            Transfer transfer = store.byId(id);
+            if (transfer != null && accessibleArrival(transfer.gateId()) != null)
+                network.transfer("transferClaim", id, Map.of("transferId", id));
+        } catch (SQLException | RuntimeException ex) { log("Cannot check arrival gate before claim", ex); }
+    }
+
+    private LocalGateStore.Gate accessibleArrival(String gateId) throws SQLException {
+        LocalGateStore.Gate gate = gates.gate(gateId);
+        return gate != null && SectorAddress.fromWorld(gate.position()).isAccessible() ? gate : null;
     }
 
     private void abort(String id) { network.transfer("transferAbort", id, Map.of("transferId", id)); }
@@ -447,7 +460,7 @@ public final class TransferService {
     }
 
     private void apply(Player player, Transfer transfer, JsonObject incoming) throws SQLException {
-        if (gates.gate(transfer.gateId()) == null) throw new IllegalStateException("Arrival gate removed");
+        if (accessibleArrival(transfer.gateId()) == null) throw new IllegalStateException("Arrival gate unavailable");
         if (!restore(player, incoming)) { tell(player, "warp_manual"); return; }
         player.setInvisible(true);
         store.markArrivalPending(transfer.uid(), transfer.id());
@@ -465,8 +478,9 @@ public final class TransferService {
         player.setHunger(Math.min(100, incoming.get("hunger").getAsInt()));
         player.setThirst(Math.min(100, incoming.get("thirst").getAsInt()));
         player.setStamina(Math.min(100, incoming.get("stamina").getAsInt()));
-        LocalGateStore.Gate gate = gates.gate(transfer.gateId());
-        if (gate == null) throw new IllegalStateException("Arrival gate removed");
+        LocalGateStore.Gate gate = accessibleArrival(transfer.gateId());
+        if (gate == null) throw new IllegalStateException("Arrival gate unavailable");
+        arrivalPreparation.accept(player, transfer.gateId());
         player.setPosition(gate.position());
         player.setRotation(gate.rotation());
         // Keep the arriving player hidden after the final position update.

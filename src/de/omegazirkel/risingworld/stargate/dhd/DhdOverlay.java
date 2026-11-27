@@ -20,6 +20,7 @@ final class DhdOverlay extends BasePluginOverlay {
     private static final int LOCAL_BORDER = 0x286B43FF;
     private static final int REMOTE_BORDER = 0xD47A22FF;
     private static final int SHARED_BORDER = 0x3979E0FF;
+    private static final int RESTRICTED_BORDER = 0xD54E4EFF;
     private final DhdService.Session session;
     private final DhdService service;
     private final GateNetworkClient network;
@@ -54,7 +55,19 @@ final class DhdOverlay extends BasePluginOverlay {
         status.style.width.set(53, Unit.Percent);
         selection = label(16, 42, 14);
         selection.style.width.set(50, Unit.Percent);
-        startGate = button("I", 59, 12, 4, () -> service.toggleStartGate(session), true);
+        startGate = AdvancedButtonFactory.custom(
+                new AdvancedButtonState(AdvancedBaseButton.State.DEFAULT, REMOTE_BORDER, 0x684022FF,
+                        0xF4F0E6FF, REMOTE_BORDER, 0x824F29FF, "O", event -> service.toggleStartGate(session)),
+                new AdvancedButtonState(AdvancedBaseButton.State.EXTRA_1, LOCAL_BORDER, 0x286B43FF,
+                        null, LOCAL_BORDER, 0x357D52FF, "I", null),
+                new AdvancedButtonState(AdvancedBaseButton.State.DISABLED, 0x555555FF, 0x303030DD,
+                        0x999999FF, 0x555555FF, 0x303030DD, null, null));
+        startGate.setPivot(Pivot.UpperLeft);
+        startGate.style.position.set(Position.Absolute);
+        startGate.style.left.set(59, Unit.Percent);
+        startGate.style.top.set(12, Unit.Pixel);
+        startGate.style.width.set(4, Unit.Percent);
+        body.addChild(startGate);
         startGate.style.height.set(26, Unit.Pixel);
         startGate.setVisible(session.player.isAdmin());
         editAlias = button("✎", 85, 12, 4, () -> service.editAlias(session), true);
@@ -197,7 +210,8 @@ final class DhdOverlay extends BasePluginOverlay {
             if (present) {
                 String address = visible.get(index);
                 String alias = session.aliases.get(address);
-                rowFrames[i].setBorderColor(session.sharedOnly.contains(address) ? SHARED_BORDER
+                rowFrames[i].setBorderColor(session.restrictedAddresses.contains(address) ? RESTRICTED_BORDER
+                        : session.sharedOnly.contains(address) ? SHARED_BORDER
                         : session.localAddresses.contains(address) ? LOCAL_BORDER : REMOTE_BORDER);
                 String mode = StargatePlayerPluginSettings.addressMode(session.player);
                 String personal = session.personalNames.get(address);
@@ -223,7 +237,8 @@ final class DhdOverlay extends BasePluginOverlay {
                 : AdvancedBaseButton.State.DISABLED);
         search.setState(session.search.isBlank() ? AdvancedBaseButton.State.DEFAULT : AdvancedBaseButton.State.EXTRA_1);
         available(manual, !session.loading && view.ready() && view.state().equals("IDLE"));
-        available(dial, !session.loading && view.ready() && view.state().equals("IDLE") && session.selected != null);
+        available(dial, !session.loading && view.ready() && view.state().equals("IDLE") && session.selected != null
+                && !session.restrictedAddresses.contains(session.selected));
         updateDiscovery(view);
         share.setVisible(service.hasFaction(session));
         share.setState(!session.loading && service.canShare(session)
@@ -236,10 +251,8 @@ final class DhdOverlay extends BasePluginOverlay {
                 : AdvancedBaseButton.State.DISABLED);
         available(personalName, !session.loading && session.selected != null && !session.sharedOnly.contains(session.selected));
         available(editAlias, session.player.isAdmin() && !session.loading);
-        startGate.setText(session.startGate ? "I" : "O");
-        startGate.setBorderColor(session.startGate ? LOCAL_BORDER : REMOTE_BORDER);
-        startGate.setBackgroundColor(session.startGate ? 0x286B43FF : 0x684022FF);
-        available(startGate, session.player.isAdmin() && !session.loading);
+        startGate.setState(!session.player.isAdmin() || session.loading ? AdvancedBaseButton.State.DISABLED
+                : session.startGate ? AdvancedBaseButton.State.EXTRA_1 : AdvancedBaseButton.State.DEFAULT);
     }
 
     void updateDiscovery() { updateDiscovery(network.gateView(session.gateId)); }

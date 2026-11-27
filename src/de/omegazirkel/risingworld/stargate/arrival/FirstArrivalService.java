@@ -13,6 +13,7 @@ import de.omegazirkel.risingworld.stargate.audio.GateAudioTiming;
 import de.omegazirkel.risingworld.stargate.horizon.HorizonService;
 import de.omegazirkel.risingworld.stargate.network.GateNetworkClient;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
+import de.omegazirkel.risingworld.stargate.sector.SectorAddress;
 import de.omegazirkel.risingworld.stargate.transfer.TransferService;
 import de.omegazirkel.risingworld.stargate.ui.StargatePlayerPluginSettings;
 import de.omegazirkel.risingworld.stargate.ui.TravelScreenService;
@@ -94,7 +95,9 @@ public final class FirstArrivalService {
             List<String> free = new ArrayList<>(), incoming = new ArrayList<>();
             List<String> fallbackFree = new ArrayList<>(), fallbackIncoming = new ArrayList<>();
             for (String gateId : gates.ids()) {
-                if (!visuals.hasPlacement(gateId) || gates.gate(gateId) == null) continue;
+                var gate = gates.gate(gateId);
+                if (!visuals.hasPlacement(gateId) || gate == null
+                        || !SectorAddress.fromWorld(gate.position()).isAccessible()) continue;
                 GateNetworkClient.GateView view = network.gateView(gateId);
                 boolean eligible = settings.randomFirstArrival || gates.isStartGate(gateId);
                 if (network.isIdleForArtificialArrival(gateId) && !network.hasPendingUnregister(gateId)) {

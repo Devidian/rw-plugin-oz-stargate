@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.Test;
 
+import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
+import de.omegazirkel.risingworld.stargate.sector.LocalSectorStore;
 import de.omegazirkel.risingworld.stargate.sector.SectorAddress;
 
 public class DiscoveryCandidateStoreTest {
@@ -24,8 +26,8 @@ public class DiscoveryCandidateStoreTest {
             DiscoveryCandidateStore.Chunk chunk = new DiscoveryCandidateStore.Chunk(640, 384);
             pool.add("source-a", 10, target, chunk);
             pool.add("source-b", 10, target, chunk);
-            assertTrue(pool.hasAvailable("source-a", 10));
-            assertFalse(pool.hasAvailable("source-a", 9));
+            assertTrue(pool.hasAvailable("source-a", 10, -1));
+            assertFalse(pool.hasAvailable("source-a", 9, -1));
             assertEquals(1, pool.chunks("source-a", target).size());
             assertEquals(1, pool.chunks("source-b", target).size());
             pool.prune("source-a", 9);
@@ -33,7 +35,7 @@ public class DiscoveryCandidateStoreTest {
             try (var statement = db.createStatement()) {
                 statement.executeUpdate("INSERT INTO stargate_local_sectors VALUES('TARGET0000000001',2,1)");
             }
-            assertFalse(pool.hasAvailable("source-b", 10));
+            assertFalse(pool.hasAvailable("source-b", 10, -1));
             pool.prune("source-b", 10);
             assertTrue(pool.sectors("source-b").isEmpty());
         }
@@ -98,17 +100,17 @@ public class DiscoveryCandidateStoreTest {
             if (x * x + z * z > 4 || x == 0 && z == 0) continue;
             occupied.add(new SectorAddress(x, z));
         }
-        assertNull(DiscoverySectorScan.choose(origin, 2, occupied, Map.of()));
+        assertNull(DiscoverySectorScan.choose(origin, 2, occupied, Map.of(), -1));
         SectorAddress free = new SectorAddress(1, 0), farther = new SectorAddress(-2, 0);
         occupied.remove(free);
         occupied.remove(farther);
         Map<SectorAddress, Integer> progress = Map.of(free, DiscoverySectorScan.FIXED_PROBES, farther, 19);
         assertEquals(new DiscoverySectorScan.Target(farther, 19),
-                DiscoverySectorScan.choose(origin, 2, occupied, progress));
+                DiscoverySectorScan.choose(origin, 2, occupied, progress, -1));
         occupied.add(farther);
         assertEquals(new DiscoverySectorScan.Target(free, DiscoverySectorScan.FIXED_PROBES),
-                DiscoverySectorScan.choose(origin, 2, occupied, progress));
-        assertNull(DiscoverySectorScan.choose(origin, 2, occupied, Map.of(free, DiscoverySectorScan.END)));
+                DiscoverySectorScan.choose(origin, 2, occupied, progress, -1));
+        assertNull(DiscoverySectorScan.choose(origin, 2, occupied, Map.of(free, DiscoverySectorScan.END), -1));
     }
 
     @Test public void fixedPatchesAndFallbackCoverEveryChunkExactlyOnce() {
@@ -146,26 +148,70 @@ public class DiscoveryCandidateStoreTest {
             DiscoveryCandidateStore pool = new DiscoveryCandidateStore(db); pool.initialize();
             SectorAddress origin = new SectorAddress(0, 0), target = new SectorAddress(2, 1);
             pool.recordProbe(target, 16, null);
-            assertFalse(pool.hasAvailable("source", 10));
+            assertFalse(pool.hasAvailable("source", 10, -1));
             pool = new DiscoveryCandidateStore(db); pool.initialize();
             assertEquals(Map.of(target, 16), pool.progress(origin, 10));
 
             var probe = DiscoverySectorScan.next(target, 16);
             pool.recordProbe(target, probe.nextCursor(), probe.chunk());
             pool.copyKnown("source", origin, 10, 5, 5);
-            assertTrue(pool.hasAvailable("source", 10));
+            assertTrue(pool.hasAvailable("source", 10, -1));
             pool.prune("source", 3);
             pool.copyKnown("source", origin, 3, 5, 5);
-            assertTrue(pool.hasAvailable("source", 3));
+            assertTrue(pool.hasAvailable("source", 3, -1));
             pool.removeChunk(probe.chunk());
             pool.copyKnown("source", origin, 3, 5, 5);
-            assertFalse(pool.hasAvailable("source", 3));
+            assertFalse(pool.hasAvailable("source", 3, -1));
             assertEquals(Map.of(target, 17), pool.progress(origin, 10));
 
             try (var statement = db.createStatement()) {
                 statement.executeUpdate("INSERT INTO stargate_local_sectors VALUES('gate',2,1)");
             }
             assertTrue(pool.progress(origin, 10).isEmpty());
+        }
+    }
+
+    @Test public void worldLimitFiltersNewScansAndReusedSites() throws Exception {
+        var origin = new SectorAddress(0, 0);
+        var beyond = new SectorAddress(0, -2);
+        assertNull(DiscoverySectorScan.choose(origin, 10, Set.of(), Map.of(), 0));
+        assertTrue(DiscoverySectorScan.choose(origin, 10, Set.of(), Map.of(), 1).sector().isWithinLimit(1));
+        assertFalse(beyond.isWithinLimit(1));
+        assertTrue(beyond.isWithinLimit(2));
+        assertTrue(beyond.isWithinLimit(-1));
+        try (var db = DriverManager.getConnection("jdbc:sqlite::memory:")) {
+            var gates = new LocalGateStore(db);
+            gates.initialize();
+            var sectors = new LocalSectorStore(db);
+            sectors.initialize();
+            var pool = new DiscoveryCandidateStore(db);
+            pool.initialize();
+            pool.add("old", 10, beyond, new DiscoveryCandidateStore.Chunk(0, -512));
+            assertFalse(pool.hasAvailable("old", 10, 0));
+            pool.copyKnown("new", origin, 10, 5, 5, 1);
+            assertTrue(pool.sectors("new").isEmpty());
+            pool.copyKnown("new", origin, 10, 5, 5, 2);
+            assertEquals(List.of(beyond), pool.sectors("new"));
+            assertTrue(pool.hasAvailable("old", 10, -1));
+        }
+    }
+
+    @Test public void fiveRestrictedSectorsDoNotBlockAnAccessibleCandidate() throws Exception {
+        try (var db = DriverManager.getConnection("jdbc:sqlite::memory:")) {
+            new LocalGateStore(db).initialize();
+            new LocalSectorStore(db).initialize();
+            var pool = new DiscoveryCandidateStore(db);
+            pool.initialize();
+            for (int x = 2; x <= 6; x++) {
+                pool.add("origin", 10, new SectorAddress(x, 0),
+                        new DiscoveryCandidateStore.Chunk(x * SectorAddress.CHUNKS_PER_SECTOR, 0));
+            }
+            assertFalse(pool.hasAvailable("origin", 10, 1));
+            var accessible = new SectorAddress(1, 0);
+            pool.recordProbe(accessible, 1, new DiscoveryCandidateStore.Chunk(256, 0));
+            pool.copyKnown("origin", new SectorAddress(0, 0), 10, 5, 5, 1);
+            assertTrue(pool.hasAvailable("origin", 10, 1));
+            assertEquals(6, pool.sectors("origin").size());
         }
     }
 }

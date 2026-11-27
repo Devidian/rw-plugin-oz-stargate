@@ -1,5 +1,6 @@
 package de.omegazirkel.risingworld.stargate.sector;
 
+import net.risingworld.api.Server;
 import net.risingworld.api.utils.Utils.ChunkUtils;
 import net.risingworld.api.utils.Vector3f;
 import net.risingworld.api.utils.Vector3i;
@@ -19,6 +20,14 @@ public record SectorAddress(int x, int z) {
         Vector3i chunk = ChunkUtils.getChunkPosition(position);
         if (chunk == null) throw new IllegalArgumentException("Cannot determine gate chunk");
         return fromChunk(chunk.x, chunk.z);
+    }
+
+    public boolean isAccessible() {
+        return isWithinLimit(Server.getMaxSector());
+    }
+
+    public boolean isWithinLimit(int maxSector) {
+        return maxSector < 0 || (x >= -maxSector && x <= maxSector && z >= -maxSector && z <= maxSector);
     }
 
     @Override public String toString() { return "(" + x + ", " + z + ")"; }

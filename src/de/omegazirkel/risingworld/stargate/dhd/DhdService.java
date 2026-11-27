@@ -16,9 +16,11 @@ import de.omegazirkel.risingworld.stargate.addressbook.AddressBookService;
 import de.omegazirkel.risingworld.stargate.discovery.DiscoveryService;
 import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.sector.LocalDialService;
+import de.omegazirkel.risingworld.stargate.sector.SectorAddress;
 import de.omegazirkel.risingworld.stargate.ui.StargateChat;
 import de.omegazirkel.risingworld.stargate.ui.StargatePlayerPluginSettings;
 import de.omegazirkel.risingworld.tools.I18n;
+import net.risingworld.api.Server;
 import net.risingworld.api.World;
 import net.risingworld.api.events.player.PlayerObjectInteractionEvent;
 import net.risingworld.api.objects.Player;
@@ -41,6 +43,7 @@ public final class DhdService {
         Map<String, String> aliases = Map.of();
         Map<String, String> personalNames = Map.of();
         Set<String> localAddresses = Set.of();
+        Set<String> restrictedAddresses = Set.of();
         Set<String> sharedOnly = Set.of();
         Set<String> sharedOwn = Set.of();
         String selected;
@@ -175,8 +178,20 @@ public final class DhdService {
         session.overlay.update();
         try {
             Set<String> local = new java.util.HashSet<>();
-            for (String id : gates.ids()) local.add(gates.localAddress(id));
+            Set<String> restricted = new java.util.HashSet<>();
+            int maxSector = Server.getMaxSector();
+            for (String id : gates.ids()) {
+                String address = network.localAddress(id);
+                local.add(address);
+                if (maxSector < 0) continue;
+                var gate = gates.gate(id);
+                if (gate == null || SectorAddress.fromWorld(gate.position()).isWithinLimit(maxSector)) continue;
+                restricted.add(address);
+                String global = gates.globalAddress(id);
+                if (global != null) restricted.add(global);
+            }
             session.localAddresses = Set.copyOf(local);
+            session.restrictedAddresses = Set.copyOf(restricted);
         }
         catch (SQLException ex) { session.loading = false; databaseError(session.player, ex); return; }
         if (addressBook != null && network.isReady()) {
@@ -321,6 +336,7 @@ public final class DhdService {
 
     void dial(Session session) {
         if (!valid(session) || session.loading || session.selected == null || !visibleAddresses(session).contains(session.selected)) return;
+        if (session.restrictedAddresses.contains(session.selected)) return;
         if (!network.gateView(session.gateId).state().equals("IDLE")) return;
         dialAddress(session.player, session.gateId, session.selected);
         session.overlay.update();

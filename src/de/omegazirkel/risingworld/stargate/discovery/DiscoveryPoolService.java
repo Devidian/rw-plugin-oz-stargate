@@ -11,6 +11,7 @@ import de.omegazirkel.risingworld.stargate.network.LocalGateStore;
 import de.omegazirkel.risingworld.stargate.sector.GatePlacementService;
 import de.omegazirkel.risingworld.stargate.sector.LocalSectorStore;
 import de.omegazirkel.risingworld.stargate.sector.SectorAddress;
+import net.risingworld.api.Server;
 
 /** Fills persisted candidate pools one chunk at a time on the server thread. */
 public final class DiscoveryPoolService implements AutoCloseable {
@@ -35,19 +36,23 @@ public final class DiscoveryPoolService implements AutoCloseable {
     public void setAvailabilityObserver(Runnable observer) { availabilityObserver = observer; }
 
     public boolean hasAvailable(String sourceGateId) throws SQLException {
-        return store.hasAvailable(sourceGateId, settings.discoveryRadiusSectors);
+        int maxSector = Server.getMaxSector();
+        SectorAddress origin = sectors.addressOf(sourceGateId);
+        return origin != null && origin.isWithinLimit(maxSector)
+                && store.hasAvailable(sourceGateId, settings.discoveryRadiusSectors, maxSector);
     }
 
     public void start() { plugin.executeDelayed(2f, this::tick); }
 
     public List<SectorAddress> sectors(String sourceGateId) throws SQLException {
         if (store.prune(sourceGateId, settings.discoveryRadiusSectors)) availabilityObserver.run();
-        return store.sectors(sourceGateId);
+        int maxSector = Server.getMaxSector();
+        return store.sectors(sourceGateId).stream().filter(sector -> sector.isWithinLimit(maxSector)).toList();
     }
 
     public List<DiscoveryCandidateStore.Chunk> chunks(String sourceGateId, SectorAddress sector)
             throws SQLException {
-        return store.chunks(sourceGateId, sector);
+        return sector.isAccessible() ? store.chunks(sourceGateId, sector) : List.of();
     }
 
     public void removeChunk(DiscoveryCandidateStore.Chunk chunk) throws SQLException {
@@ -78,17 +83,19 @@ public final class DiscoveryPoolService implements AutoCloseable {
 
     private void fillOne(String source) throws SQLException {
         SectorAddress origin = sectors.addressOf(source);
-        if (origin == null) return;
+        int maxSector = Server.getMaxSector();
+        if (origin == null || !origin.isWithinLimit(maxSector)) return;
         int radius = settings.discoveryRadiusSectors;
         if (store.prune(source, radius)) availabilityObserver.run();
-        replenishKnown(source, origin, radius);
-        List<SectorAddress> known = store.sectors(source);
+        replenishKnown(source, origin, radius, maxSector);
+        List<SectorAddress> known = store.sectors(source).stream()
+                .filter(sector -> sector.isWithinLimit(maxSector)).toList();
         if (known.size() >= SECTORS_PER_GATE) return;
 
         Set<SectorAddress> unavailable = new HashSet<>(known);
         for (LocalSectorStore.Entry entry : sectors.all()) unavailable.add(entry.address());
         DiscoverySectorScan.Target target = DiscoverySectorScan.choose(origin, radius, unavailable,
-                store.progress(origin, radius));
+                store.progress(origin, radius), maxSector);
         if (target == null) return;
         DiscoverySectorScan.Probe probe = DiscoverySectorScan.next(target.sector(), target.cursor());
         if (probe == null) {
@@ -98,13 +105,13 @@ public final class DiscoveryPoolService implements AutoCloseable {
         var chunk = probe.chunk();
         boolean suitable = placement.discoveryCandidate(chunk.x(), chunk.z());
         store.recordProbe(target.sector(), probe.nextCursor(), suitable ? chunk : null);
-        if (suitable) replenishKnown(source, origin, radius);
+        if (suitable) replenishKnown(source, origin, radius, maxSector);
     }
 
-    private void replenishKnown(String source, SectorAddress origin, int radius) throws SQLException {
-        boolean wasAvailable = store.hasAvailable(source, radius);
-        store.copyKnown(source, origin, radius, SECTORS_PER_GATE, CHUNKS_PER_SECTOR);
-        if (!wasAvailable && store.hasAvailable(source, radius)) availabilityObserver.run();
+    private void replenishKnown(String source, SectorAddress origin, int radius, int maxSector) throws SQLException {
+        boolean wasAvailable = store.hasAvailable(source, radius, maxSector);
+        store.copyKnown(source, origin, radius, SECTORS_PER_GATE, CHUNKS_PER_SECTOR, maxSector);
+        if (!wasAvailable && store.hasAvailable(source, radius, maxSector)) availabilityObserver.run();
     }
 
     /** Square rings around sector center, with the centre itself as index zero. */

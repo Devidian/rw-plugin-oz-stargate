@@ -96,7 +96,7 @@ public final class LocalDialService {
     public List<Destination> destinations(String sourceGateId, Player player) throws SQLException {
         List<Destination> result = new ArrayList<>();
         for (LocalSectorStore.Entry entry : sectors.all()) {
-            if (!entry.gateId().equals(sourceGateId))
+            if (!entry.gateId().equals(sourceGateId) && entry.address().isAccessible())
                 result.add(new Destination(i18n.get("tc.stargate.sector.address", player)
                         .replace("PH_SECTOR", entry.address().toString()), entry.gateId()));
         }
@@ -151,7 +151,9 @@ public final class LocalDialService {
 
     public void dial(Player player, String source, String target) {
         try {
-            if (source.equals(target) || sectors.addressOf(source) == null) { tell(player, "unavailable"); return; }
+            if (source.equals(target) || !accessible(source) || !accessible(target)) {
+                tell(player, "unavailable"); return;
+            }
             if (byGate.containsKey(source) || network.hasPendingUnregister(source)
                     || !"IDLE".equals(network.gateView(source).state())) {
                 tell(player, "busy"); return;
@@ -169,7 +171,7 @@ public final class LocalDialService {
     /** Opens a newly discovered local destination after its outgoing animation has finished. */
     public boolean connectDiscovered(String playerUid, String source, String target) {
         try {
-            if (source.equals(target) || sectors.addressOf(source) == null || sectors.addressOf(target) == null
+            if (source.equals(target) || !accessible(source) || !accessible(target)
                     || gates.gate(target) == null || byGate.containsKey(source) || byGate.containsKey(target)
                     || network.hasPendingUnregister(source) || network.hasPendingUnregister(target)
                     || !"IDLE".equals(network.remoteGateView(source).state())
@@ -186,6 +188,11 @@ public final class LocalDialService {
             OZStargate.logger().error("Discovered Stargate connection failed: " + ex.getMessage());
             return false;
         }
+    }
+
+    private boolean accessible(String gateId) throws SQLException {
+        SectorAddress sector = sectors.addressOf(gateId);
+        return sector != null && sector.isAccessible();
     }
 
     private void tick() {

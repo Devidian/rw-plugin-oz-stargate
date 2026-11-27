@@ -159,6 +159,7 @@ public final class StargatePluginRuntime {
         try {
             visuals = new GateVisualService(plugin, visualStore, gates, modelAssets, i18n, horizons::isAligned, network, audio);
         } catch (SQLException ex) { throw new IllegalStateException("Cannot load Stargate models", ex); }
+        transfers.setArrivalPreparation(visuals::prepareArrival);
         horizons.setTravelObserver(visuals::travelled);
         horizons.setLocalTravelObserver(travel -> discordEvents.internal(travel.player(), travel.source(), travel.target()));
         horizons.setTravelScreen(travelScreen);

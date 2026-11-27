@@ -23,7 +23,7 @@ final class DiscoverySectorScan {
     private DiscoverySectorScan() { }
 
     static Target choose(SectorAddress origin, int radius, Set<SectorAddress> unavailable,
-            Map<SectorAddress, Integer> progress) {
+            Map<SectorAddress, Integer> progress, int maxSector) {
         Target fixed = null;
         Target fallback = null;
         int fixedDistance = Integer.MAX_VALUE;
@@ -33,7 +33,7 @@ final class DiscoverySectorScan {
                 int distance = dx * dx + dz * dz;
                 if (distance == 0 || distance > radius * radius) continue;
                 SectorAddress sector = new SectorAddress(origin.x() + dx, origin.z() + dz);
-                if (unavailable.contains(sector)) continue;
+                if (!sector.isWithinLimit(maxSector) || unavailable.contains(sector)) continue;
                 int cursor = progress.getOrDefault(sector, 0);
                 if (cursor < FIXED_PROBES) {
                     if (distance < fixedDistance) {

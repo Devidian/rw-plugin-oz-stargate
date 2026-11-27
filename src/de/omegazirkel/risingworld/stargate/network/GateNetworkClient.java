@@ -608,7 +608,9 @@ public final class GateNetworkClient implements WebSocketHandler {
         String dialId = payload.get("dialId").getAsString();
         try {
             RemoteGateState.GateState state = remoteStates.get(gateId);
-            if (!settings.networkEnabled || !gates.exists(gateId) || state == null
+            var gate = gates.gate(gateId);
+            if (!settings.networkEnabled || gate == null || !SectorAddress.fromWorld(gate.position()).isAccessible()
+                    || state == null
                     || !state.state().equals("INCOMING") || !state.connectionId().equals(dialId)
                     || isArtificialReserved(gateId)
                     || (localDial != null && !localDial.acceptRemoteIncoming(gateId))) {
@@ -797,7 +799,10 @@ public final class GateNetworkClient implements WebSocketHandler {
                 if (ids.size() != 1) { tell(player, "choose_origin", "PH_COUNT", Integer.toString(ids.size())); return; }
                 source = ids.get(0);
             }
-            if (!gates.exists(source)) { tell(player, "not_owned", "PH_GATE", source); return; }
+            var gate = gates.gate(source);
+            if (gate == null || !SectorAddress.fromWorld(gate.position()).isAccessible()) {
+                tell(player, "not_owned", "PH_GATE", source); return;
+            }
             if (gates.globalAddress(source) == null) {
                 tell(player, "local_gate_only", null, null); return;
             }
