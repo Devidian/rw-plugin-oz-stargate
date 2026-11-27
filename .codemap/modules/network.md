@@ -7,7 +7,10 @@ Coordinate remote gate dialing and player transfer with the Stargate relay. Own 
 
 ## Source and tests
 
+- [Queued state dispatch test](../../src-test/de/omegazirkel/risingworld/stargate/network/GateNetworkStateDispatchTest.java) covers relay state, disconnect and observer order.
+
 - [`GateNetworkClient`](../../src/de/omegazirkel/risingworld/stargate/network/GateNetworkClient.java) — relay WebSocket client.
+- [`RemoteGateState`](../../src/de/omegazirkel/risingworld/stargate/network/RemoteGateState.java) owns relay gate lifetimes and animation timestamps on the server thread. [Tests](../../src-test/de/omegazirkel/risingworld/stargate/network/RemoteGateStateTest.java) cover transition identity and reset.
 - [`TransferService`](../../src/de/omegazirkel/risingworld/stargate/transfer/TransferService.java) — transfer orchestration.
 - [`TransferStore`](../../src/de/omegazirkel/risingworld/stargate/transfer/TransferStore.java) — local transfer state.
 - [`InventorySnapshotStore`](../../src/de/omegazirkel/risingworld/stargate/inventory/InventorySnapshotStore.java) — inventory custody state.

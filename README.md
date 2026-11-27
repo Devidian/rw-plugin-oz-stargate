@@ -18,6 +18,8 @@ Admins can use `/sg pack`, `/sg unpack`, and `/sg recover`. Packing serializes i
 
 Admins can use `/sg registerGate` at their current position and `/sg unregisterGate <ID>`. All players can use `/sg gatelist` and `/sg dial <target ID> [source ID]`. The source ID is optional only when exactly one local gate exists. The relay owns globally visible gate IDs; world-local SQLite keeps coordinates and orientation. An established wormhole has a one-minute travel window.
 
+Remote gate transitions and their animation timestamps are tracked on the game server thread. Relay requests, transfer custody and local gate state keep their existing owners.
+
 `settings.<world>.json` contains `relay.url`, the required `relay.advertisedHost` (reachable IPv4 or DNS name), optional `networkCode.override`, `networkCode.trusted`, and `forbiddenActions.ChangeGameMode` (default `true`). The trusted code is written by the relay response and shown read-only in the admin workflow. The computed network code includes the forbidden-action flags; it is a routing value, not a secret. The default relay URL is `wss://sgn.omega-zirkel.de/ws`. Use the relay only with a controlled group of trusted servers behind TLS.
 
 Phase 3A records a player's UID, name, world play time, and permission group per server when the player connects, spawns, or changes group. Admins can inspect available observations with `/sg trust [UID]`. It does not calculate a trust score or move inventory. With `forbiddenActions.ChangeGameMode=true`, attempted game-mode changes are cancelled and show a localized native error dialog.

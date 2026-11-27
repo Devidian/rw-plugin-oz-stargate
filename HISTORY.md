@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Isolate relay gate-state transitions and timing from network request dispatch while preserving existing dial and transfer behavior.
+
 ## [0.9.1] - 2026-11-19 | Expanded discovery search
 
 - Check the 16 central chunks and 64 chunks at quadrant centres before searching the remaining chunks in randomized order.
