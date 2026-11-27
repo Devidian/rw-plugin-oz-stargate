@@ -2,9 +2,11 @@
 
 ## Unreleased
 
-- Send the destination gate and platform to arriving players before moving them into place.
-- Respect the active world sector limit for discovery and gate destinations. Keep the DHD arrival-gate button style consistent through hover and mark known local destinations beyond the sector limit in red.
-- Isolate relay gate-state transitions and timing from network request dispatch while preserving existing dial and transfer behavior.
+## [0.9.2] - 2026-11-27 | OZ Stargate travel reliability
+
+- Arriving players receive their destination gate and platform before they are moved. Discovery and travel respect the world's sector limit, and known local gates beyond it are marked in red.
+- Remote gate activity handles timeout and redial without stale state from earlier attempts. The relay protocol remains compatible.
+- Coordinate installation with the validated Stargate Network 0.5.3 peer. Keep both game peers' journals and the relay registry for recovery or rollback.
 
 ## [0.9.1] - 2026-11-19 | Expanded discovery search
 
