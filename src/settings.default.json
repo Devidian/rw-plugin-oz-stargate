@@ -1,4 +1,13 @@
 {
+  "eventLogs": {
+    "internal.enabled": true,
+    "external_departure.enabled": true,
+    "external_arrival.enabled": true,
+    "discovery.enabled": true,
+    "network_connected.enabled": true,
+    "network_disconnected.enabled": true,
+    "network_code_changed.enabled": true
+  },
   "enableWelcomeMessage": false,
   "relay": { "url": "wss://sgn.omega-zirkel.de/ws", "advertisedHost": "" },
   "networkCode": { "override": "", "trusted": "" },
@@ -6,6 +15,5 @@
   "forbiddenActions": { "ChangeGameMode": true },
   "discovery": { "successPercent": 75, "radiusSectors": 10, "cooldownMinutes": 5, "noAdminCooldown": false },
   "arrival": { "randomGate": true },
-  "discord": { "externalTravelChannel": "0", "internalTravelChannel": "0", "discoveryChannel": "0", "networkStatusChannel": "0", "externalTravelThreadTopic": "", "internalTravelThreadTopic": "", "discoveryThreadTopic": "", "networkStatusThreadTopic": "" },
   "audio": { "theme": "silent", "volume": 70 }
 }

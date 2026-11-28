@@ -32,10 +32,35 @@
       "travel_screen_disabled": "Reisebildschirm deaktivieren"
     },
     "setting": {
-      "discord.externaltravelthreadtopic": {"label": "Externe Reisen-Thread", "desc": "Leer verwendet den Plugin-Namen. Gleicher Kanal und Thread-Titel nutzen denselben Thread."},
-      "discord.internaltravelthreadtopic": {"label": "Interne Reisen-Thread", "desc": "Leer verwendet den Plugin-Namen. Gleicher Kanal und Thread-Titel nutzen denselben Thread."},
-      "discord.discoverythreadtopic": {"label": "Entdeckungen-Thread", "desc": "Leer verwendet den Plugin-Namen. Gleicher Kanal und Thread-Titel nutzen denselben Thread."},
-      "discord.networkstatusthreadtopic": {"label": "Netzwerkstatus-Thread", "desc": "Leer verwendet den Plugin-Namen. Gleicher Kanal und Thread-Titel nutzen denselben Thread."},
+      "eventlogs": {
+        "label": "Ereignisprotokolle",
+        "desc": "Wähle die Ereignisse, die dieses Plugin meldet.",
+        "internal": {
+          "label": "Lokale Torreise"
+        },
+        "external_departure": {
+          "label": "Externe Abreise"
+        },
+        "external_arrival": {
+          "label": "Externe Ankunft"
+        },
+        "discovery": {
+          "label": "Torentdeckung"
+        },
+        "network_connected": {
+          "label": "Netzwerk verbunden"
+        },
+        "network_disconnected": {
+          "label": "Netzwerk getrennt"
+        },
+        "network_code_changed": {
+          "label": "Netzwerkcode geändert"
+        }
+      },
+
+
+
+
       "audio": {
         "label": "Klang",
         "desc": "Stargate-Klänge und Lautstärke.",
@@ -76,26 +101,7 @@
           "desc": "Wenn ausgeschaltet, erscheinen neue Spieler nur an Startgates. Das Tor in Sektor 0,0 bleibt Fallback."
         }
       },
-      "discord": {
-        "label": "Discord-Ereignisse (optional)",
-        "desc": "Kanal-IDs für Stargate-Ereignisse; 0 deaktiviert die jeweilige Meldung.",
-        "externaltravelchannel": {
-          "label": "Externe Ankunft und Abreise",
-          "desc": "Kanal-ID für Reisen von und zu anderen Servern."
-        },
-        "internaltravelchannel": {
-          "label": "Serverinterne Reisen",
-          "desc": "Kanal-ID für Reisen zwischen Toren dieses Servers."
-        },
-        "discoverychannel": {
-          "label": "Neue Stargate-Entdeckungen",
-          "desc": "Kanal-ID für erfolgreiche Entdeckungen."
-        },
-        "networkstatuschannel": {
-          "label": "Stargate-Netzwerkstatus",
-          "desc": "Kanal-ID für Verbindung, Trennung und Netzwerkcode-Änderung ohne Codewert."
-        }
-      },
+
       "enablewelcomemessage": {
         "desc": "Wenn aktiv, sendet dieses Plugin eine Willkommensnachricht, wenn ein Spieler beitritt.",
         "label": "Willkommensnachricht"
@@ -415,18 +421,7 @@
         }
       },
       "discord": {
-        "settings": {
-          "title": "Discord-Ereignisse (optional)",
-          "desc": "Kanal-IDs für Stargate-Ereignisse; 0 deaktiviert die jeweilige Meldung.",
-          "external": "Externe Ankunft und Abreise",
-          "external_desc": "Kanal-ID für Reisen von und zu anderen Servern.",
-          "internal": "Serverinterne Reisen",
-          "internal_desc": "Kanal-ID für Reisen zwischen Toren dieses Servers.",
-          "discovery": "Neue Stargate-Entdeckungen",
-          "discovery_desc": "Kanal-ID für erfolgreiche Entdeckungen.",
-          "network": "Stargate-Netzwerkstatus",
-          "network_desc": "Kanal-ID für Verbindung, Trennung und Netzwerkcode-Änderung ohne Codewert."
-        },
+
         "events": {
           "internal": "PH_PLAYER reist von Stargate PH_SOURCE nach PH_TARGET.",
           "external_departure": "PH_PLAYER reist von Stargate PH_SOURCE zu einem anderen Server (Ziel: PH_TARGET).",

@@ -86,7 +86,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: Devidian/rw-plugin-oz-tools
-          ref: v0.26.2
+          ref: v0.31.0
           path: .ci/rw-plugin-oz-tools
 
       - name: Install OZ Tools locally
@@ -180,7 +180,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: Devidian/rw-plugin-oz-tools
-          ref: v0.26.2
+          ref: v0.31.0
           path: .ci/rw-plugin-oz-tools
 
       - name: Install OZ Tools locally

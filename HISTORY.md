@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [0.10.0] - 2026-11-28 | OZ Events integration
+
+- Travel, discovery and network events are available through OZ Events with per-event controls. Previous Discord event channel settings are ignored.
+- Requires OZ Tools 0.31.0 or later. OZ Events is optional.
+
 ## [0.9.2] - 2026-11-27 | OZ Stargate travel reliability
 
 - Arriving players receive their destination gate and platform before they are moved. Discovery and travel respect the world's sector limit, and known local gates beyond it are marked in red.

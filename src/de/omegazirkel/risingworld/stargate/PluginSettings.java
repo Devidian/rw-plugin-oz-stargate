@@ -19,6 +19,10 @@ import net.risingworld.api.World;
 
 public class PluginSettings {
 	private static PluginSettings instance = null;
+	public final de.omegazirkel.risingworld.tools.settings.EventLogSettings eventLogs =
+			new de.omegazirkel.risingworld.tools.settings.EventLogSettings(
+					"internal", "external_departure", "external_arrival", "discovery",
+					"network_connected", "network_disconnected", "network_code_changed");
 
 	private static OZStargate plugin;
 
@@ -41,14 +45,6 @@ public class PluginSettings {
 	public int discoveryCooldownMinutes = 5;
 	public boolean discoveryNoAdminCooldown = false;
 	public boolean randomFirstArrival = true;
-	public long discordExternalTravelChannel = 0;
-	public long discordInternalTravelChannel = 0;
-	public long discordDiscoveryChannel = 0;
-	public long discordNetworkStatusChannel = 0;
-	public String discordExternalTravelThreadTopic = "";
-	public String discordInternalTravelThreadTopic = "";
-	public String discordDiscoveryThreadTopic = "";
-	public String discordNetworkStatusThreadTopic = "";
 	private Path audioDirectory;
 	private Path settingsFile;
 	private java.util.Map<String, String> currentSettings = new LinkedHashMap<>();
@@ -89,6 +85,7 @@ public class PluginSettings {
 			JsonSettingsFile.prepareWorldSettings(settingsFile);
 			java.util.Map<String, String> settings = JsonSettingsFile.loadFlat(settingsFile);
 			java.util.Map<String, String> defaults = JsonSettingsFile.loadFlat(defaultSettingsFile);
+			eventLogs.load(settings::get);
 
 			// motd settings
 			enableWelcomeMessage = settings.getOrDefault("enableWelcomeMessage",
@@ -114,14 +111,6 @@ public class PluginSettings {
 					defaults.getOrDefault("discovery.noAdminCooldown", "false")));
 			randomFirstArrival = Boolean.parseBoolean(settings.getOrDefault("arrival.randomGate",
 					defaults.getOrDefault("arrival.randomGate", "true")));
-			discordExternalTravelChannel = channel(settings, defaults, "discord.externalTravelChannel");
-			discordInternalTravelChannel = channel(settings, defaults, "discord.internalTravelChannel");
-			discordDiscoveryChannel = channel(settings, defaults, "discord.discoveryChannel");
-			discordNetworkStatusChannel = channel(settings, defaults, "discord.networkStatusChannel");
-			discordExternalTravelThreadTopic = settings.getOrDefault("discord.externalTravelThreadTopic", defaults.getOrDefault("discord.externalTravelThreadTopic", ""));
-			discordInternalTravelThreadTopic = settings.getOrDefault("discord.internalTravelThreadTopic", defaults.getOrDefault("discord.internalTravelThreadTopic", ""));
-			discordDiscoveryThreadTopic = settings.getOrDefault("discord.discoveryThreadTopic", defaults.getOrDefault("discord.discoveryThreadTopic", ""));
-			discordNetworkStatusThreadTopic = settings.getOrDefault("discord.networkStatusThreadTopic", defaults.getOrDefault("discord.networkStatusThreadTopic", ""));
 			logger().info(plugin.getName() + " Plugin settings loaded");
 			logger().info("Sending welcome message on login is: " + String.valueOf(enableWelcomeMessage));
 			currentSettings = settings;
@@ -188,40 +177,8 @@ public class PluginSettings {
 				i18n.get("tc.stargate.arrival.settings.desc")));
 		entries.add(entry("arrival.randomGate", i18n.get("tc.stargate.arrival.settings.random"),
 				i18n.get("tc.stargate.arrival.settings.random_desc"), AdminSettingsType.BOOLEAN));
-		if (new DiscordBridge(plugin).isAvailable()) {
-			entries.add(AdminSettingsEntry.group("discord", i18n.get("tc.stargate.discord.settings.title"),
-					i18n.get("tc.stargate.discord.settings.desc")));
-			entries.add(channelEntry("discord.externalTravelChannel", "external"));
-			entries.add(channelEntry("discord.internalTravelChannel", "internal"));
-			entries.add(channelEntry("discord.discoveryChannel", "discovery"));
-			entries.add(channelEntry("discord.networkStatusChannel", "network"));
-			entries.add(topicEntry("discord.externalTravelThreadTopic", "External travel thread"));
-			entries.add(topicEntry("discord.internalTravelThreadTopic", "Internal travel thread"));
-			entries.add(topicEntry("discord.discoveryThreadTopic", "Discovery thread"));
-			entries.add(topicEntry("discord.networkStatusThreadTopic", "Network status thread"));
-		}
+		entries.addAll(eventLogs.entries(settingsFile));
 		return entries;
-	}
-
-	private AdminSettingsEntry channelEntry(String key, String labelKey) {
-		I18n i18n = I18n.getInstance(plugin.getDescription("name"));
-		return new AdminSettingsEntry(key, i18n.get("tc.stargate.discord.settings." + labelKey),
-				i18n.get("tc.stargate.discord.settings." + labelKey + "_desc"),
-				currentSettings.getOrDefault(key, "0"), "0", AdminSettingsType.STRING, false, value -> {
-					try { return Long.parseLong(value) >= 0 && SettingsFileEditor.writeValue(settingsFile, key, value); }
-					catch (NumberFormatException invalid) { return false; }
-				});
-	}
-
-	private AdminSettingsEntry topicEntry(String key, String label) {
-		return new AdminSettingsEntry(key, label, "Blank uses the plugin display name.",
-				currentSettings.getOrDefault(key, ""), "", AdminSettingsType.STRING, false,
-				value -> SettingsFileEditor.writeValue(settingsFile, key, value));
-	}
-
-	private static long channel(java.util.Map<String, String> settings, java.util.Map<String, String> defaults, String key) {
-		try { return Math.max(0, Long.parseLong(settings.getOrDefault(key, defaults.getOrDefault(key, "0")))); }
-		catch (NumberFormatException invalid) { return 0; }
 	}
 
 	private AdminSettingsEntry discoveryEntry(String key, String label, String description, int fallback, int min, int max) {

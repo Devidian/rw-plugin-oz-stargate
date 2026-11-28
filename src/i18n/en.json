@@ -32,10 +32,35 @@
       "travel_screen_disabled": "Disable travel screen"
     },
     "setting": {
-      "discord.externaltravelthreadtopic": {"label": "External travel thread", "desc": "Blank uses the plugin display name. The same channel and thread name reuse one thread."},
-      "discord.internaltravelthreadtopic": {"label": "Internal travel thread", "desc": "Blank uses the plugin display name. The same channel and thread name reuse one thread."},
-      "discord.discoverythreadtopic": {"label": "Discoveries thread", "desc": "Blank uses the plugin display name. The same channel and thread name reuse one thread."},
-      "discord.networkstatusthreadtopic": {"label": "Network status thread", "desc": "Blank uses the plugin display name. The same channel and thread name reuse one thread."},
+      "eventlogs": {
+        "label": "Event logs",
+        "desc": "Choose which events this plugin reports.",
+        "internal": {
+          "label": "Local gate travel"
+        },
+        "external_departure": {
+          "label": "External departure"
+        },
+        "external_arrival": {
+          "label": "External arrival"
+        },
+        "discovery": {
+          "label": "Gate discovery"
+        },
+        "network_connected": {
+          "label": "Network connected"
+        },
+        "network_disconnected": {
+          "label": "Network disconnected"
+        },
+        "network_code_changed": {
+          "label": "Network code changed"
+        }
+      },
+
+
+
+
       "audio": {
         "label": "Audio",
         "desc": "Stargate sounds and volume.",
@@ -76,26 +101,7 @@
           "desc": "When off, new players arrive only at start gates. The gate in sector 0,0 remains the fallback."
         }
       },
-      "discord": {
-        "label": "Discord events (optional)",
-        "desc": "Channel IDs for Stargate events; 0 disables each message.",
-        "externaltravelchannel": {
-          "label": "External arrivals and departures",
-          "desc": "Channel ID for travel to and from other servers."
-        },
-        "internaltravelchannel": {
-          "label": "Internal travel",
-          "desc": "Channel ID for travel between gates on this server."
-        },
-        "discoverychannel": {
-          "label": "New Stargate discoveries",
-          "desc": "Channel ID for successful discoveries."
-        },
-        "networkstatuschannel": {
-          "label": "Stargate network status",
-          "desc": "Channel ID for connections, disconnections and network code changes without exposing the code."
-        }
-      },
+
       "enablewelcomemessage": {
         "desc": "If true, this plugin sends a welcome message when a player joins.",
         "label": "Welcome message"
@@ -415,18 +421,7 @@
         }
       },
       "discord": {
-        "settings": {
-          "title": "Discord events (optional)",
-          "desc": "Channel IDs for Stargate events; 0 disables each message.",
-          "external": "External arrivals and departures",
-          "external_desc": "Channel ID for travel to and from other servers.",
-          "internal": "Internal travel",
-          "internal_desc": "Channel ID for travel between gates on this server.",
-          "discovery": "New Stargate discoveries",
-          "discovery_desc": "Channel ID for successful discoveries.",
-          "network": "Stargate network status",
-          "network_desc": "Channel ID for connections, disconnections and network code changes without exposing the code."
-        },
+
         "events": {
           "internal": "PH_PLAYER travels from Stargate PH_SOURCE to PH_TARGET.",
           "external_departure": "PH_PLAYER departs Stargate PH_SOURCE for another server (destination: PH_TARGET).",

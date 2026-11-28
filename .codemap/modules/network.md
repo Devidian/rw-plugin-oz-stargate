@@ -20,3 +20,4 @@ Coordinate remote gate dialing and player transfer with the Stargate relay. Own 
 ## Dependencies
 
 - `rw-stargate-network/protocol` — WebSocket protocol for gate routing and transfer coordination. [Integration source](../../src/de/omegazirkel/risingworld/stargate/network/GateNetworkClient.java)
+- `rw-plugin-oz-tools/shared-api` — optional travel, discovery and network events through EventBridge. [Call site](../../src/de/omegazirkel/risingworld/stargate/DiscordEvents.java)

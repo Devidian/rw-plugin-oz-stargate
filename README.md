@@ -69,11 +69,11 @@ administrator supplied content; verify rights before distribution.
 
 ## Installation and compatibility
 
-Requires OZ Tools 0.26.2 and the Rising World Unity API 0.9.3.2 baseline. Extract the release ZIP into Plugins, preserving world settings and SQLite databases during updates. Configure OZ Stargate Network 0.5.1 and a reachable advertised game-server address for alias synchronization, network addresses and server-scoped network-code migration. Upgrade the relay before the plugin. Network codes group servers but do not authenticate them. Administrators can use an unpredictable `networkCode.override` to isolate a network. Back up both player and plugin databases before rollback; never restore only one side of an in-flight transfer.
+Requires OZ Tools 0.31.0 and the Rising World Unity API 0.9.3.2 baseline. Extract the release ZIP into Plugins, preserving world settings and SQLite databases during updates. Configure OZ Stargate Network 0.5.1 and a reachable advertised game-server address for alias synchronization, network addresses and server-scoped network-code migration. Upgrade the relay before the plugin. Network codes group servers but do not authenticate them. Administrators can use an unpredictable `networkCode.override` to isolate a network. Back up both player and plugin databases before rollback; never restore only one side of an in-flight transfer.
 
 The DHD shows gate aliases by default. Players may choose local or network addresses in personal plugin settings; a known local address is the fallback. The DHD network-gate filter is enabled by default and remembers each player's choice in their plugin settings. Admins can set an alias with the DHD pencil button and mark a gate as a start gate with the confirmed I/O switch. Start-gate flags remain in the world's plugin database and are not sent to the relay.
 
-Admin PluginSettings control Discovery cooldown in minutes (default 5), an admin cooldown exemption (off), and random first arrival (on). When random arrival is off, new ordinary visitors use marked start gates; the sector 0,0 gate is the fallback. Incoming cross-server travelers still arrive at their transfer destination. Optional Discord Connect channel IDs (0 disables each) announce external travel, internal travel, discoveries and network status. Status messages omit the network code. Reopen the settings after changing values to refresh displayed options.
+Admin PluginSettings control Discovery cooldown in minutes (default 5), an admin cooldown exemption (off), and random first arrival (on). When random arrival is off, new ordinary visitors use marked start gates; the sector 0,0 gate is the fallback. Incoming cross-server travelers still arrive at their transfer destination. OZ Events can record external travel, internal travel, discoveries and network status. Status messages omit the network code. Reopen the settings after changing values to refresh displayed options.
 
 On a fresh installation with no gates, the plugin searches the sector of the
 server's global default spawn for one suitable site and creates a gate with a
@@ -92,7 +92,6 @@ The four optional platforms are placed with a gate from the
 administrator's **Plattformen** radial submenu at the aimed floor point.
 Their original source files remain outside the plugin; the package contains
 derived runtime bundles, textures and source notices only.
-
 
 One gate per sector supports local travel by default. An administrator can
 place or move a gate with its DHD, place either separately, or remove both from
@@ -250,10 +249,15 @@ Frame, ring and Chevron housings use a shade-readable derivative of the supplied
 UV coordinates and separate metallic/smoothness values. Light strips retain accepted colors.
 This is an approximation of the source procedural material; fine bump mapping is not included.
 
-## Discord event threads
-
-Existing Discord event channel IDs remain in effect. Each route also accepts an optional thread topic: `discord.externalTravelThreadTopic`, `discord.internalTravelThreadTopic`, `discord.discoveryThreadTopic`, and `discord.networkStatusThreadTopic` for Stargate event routes. Leave a topic blank to use the plugin display name from `plugin.yml`. Matching topics in the same parent channel share one thread. Topic routing requires compatible OZ Tools and Discord Connect with the bot enabled; an older Discord Connect logs a failure and does not send the event to the parent channel. Install OZ Tools, then Discord Connect, then this plugin.
-
 ## Backlog update (2026-10-15)
 
 The DHD address list now has a session-local network-gate switch and a native search for address, alias, and personal name. Network gates are visible when the DHD opens.
+
+## OZ Events integration
+
+Event reports use the optional OZ Events provider. Install OZ Tools 0.31.0 or later before installing this plugin.
+Gameplay continues when OZ Events is absent. Existing Discord event channel and thread
+settings no longer route these reports. Configure the event language, retention and
+optional Discord forwarding in OZ Events. Forwarding is disabled by default and
+legacy settings do not enable it. Discord Connect 0.25.2 or later provides the optional threaded transport.
+Per-event switches in this plugin's admin settings are enabled by default. Disabling a switch stops that event report while preserving gameplay.

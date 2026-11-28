@@ -420,10 +420,9 @@ public final class GateNetworkClient implements WebSocketHandler {
             OZStargate.logger().info("Stargate network ready: " + networkCode);
             if (discordEvents != null) {
                 discordEvents.networkConnected();
-                if (changed) discordEvents.networkCodeChanged(i18n.get(
-                        settings.networkCodeOverride.isBlank() ? "tc.stargate.discord.events.reason_profile"
-                                : "tc.stargate.discord.events.reason_override",
-                        new de.omegazirkel.risingworld.stargate.DiscordBridge(plugin).getBotLanguage()));
+                if (changed) discordEvents.networkCodeChanged(settings.networkCodeOverride.isBlank()
+                        ? "tc.stargate.discord.events.reason_profile"
+                        : "tc.stargate.discord.events.reason_override");
             }
             syncLocalGates();
             syncLegacyLocalAddresses();
